@@ -1,0 +1,12 @@
+[project]
+name = "clible-v2"
+version = "0.1.0"
+description = "Bible Study tool in CLI with users, sessions, text analytic experiments, export to different file types and basic read, diff, ref properties."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+# Dependencies will be added per PLAN.md tickets.
+# Runtime: click, rich, requests
+# Dev/test: pytest, pytest-mock, pytest-cov, ruff
+# See Ticket 0.1 for setup.
