@@ -55,7 +55,7 @@ clean separation of concerns, and thorough testing.
 └─────────────────┘
 ```
 
-### Layer Rules
+### Layer Rulesi
 
 | Layer        | Can access              | Cannot access           |
 |--------------|-------------------------|-------------------------|
@@ -65,6 +65,7 @@ clean separation of concerns, and thorough testing.
 | API Client   | Network (requests)      | DB, Repos, Services, UI |
 
 These boundaries exist so that:
+
 - Each layer can be tested independently
 - Changes in one layer don't ripple through the entire codebase
 - The UI framework can be swapped without touching business logic
