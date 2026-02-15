@@ -4,7 +4,14 @@ version = "0.1.0"
 description = "Bible Study tool in CLI with users, sessions, text analytic experiments, export to different file types and basic read, diff, ref properties."
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "pylance>=2.0.1",
+]
+
+[tool.pytest.ini_options]
+# addopts = "--cov=clible"  # Re-enable when pytest-cov is added (e.g. Ticket 0.3)
+testpaths = ["tests"]
+pythonpath = ["src"]
 
 # Dependencies will be added per PLAN.md tickets.
 # Runtime: click, rich, requests

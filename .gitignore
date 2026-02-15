@@ -9,5 +9,8 @@ wheels/
 # Virtual environments
 .venv
 
+# Local environment (secrets, overrides)
+.env
+
 # Notes
 notes/
