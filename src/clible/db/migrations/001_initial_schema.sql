@@ -1,0 +1,7 @@
+
+CREATE TABLE _migrations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    applied_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    CONSTRAINT unique_migration UNIQUE (name)
+)
