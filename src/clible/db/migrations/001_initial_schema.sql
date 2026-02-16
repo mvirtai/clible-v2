@@ -1,0 +1,1 @@
+-- Placeholder for initial schema. Table definitions added in ticket 1.2.
