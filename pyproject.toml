@@ -9,6 +9,12 @@ dependencies = [
     "ruff>=0.15.1",
 ]
 
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-mock>=3.12.0",
+]
+
 [tool.pytest.ini_options]
 # addopts = "--cov=clible"  # Re-enable when pytest-cov is added (e.g. Ticket 0.3)
 testpaths = ["tests"]
