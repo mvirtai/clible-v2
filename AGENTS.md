@@ -14,7 +14,7 @@ clible is a command-line Bible study tool. It fetches verses from
 [bible-api.com](https://bible-api.com/), stores them locally in SQLite, and
 provides tools for analysis, comparison, and export.
 
-This is a **v2 rebuild** of an existing project. The developer already knows
+This is a **v2 rebuild** of an existing project (ssh: <git@github.com>/mvirtai:clible) The developer already knows
 what the app does. The focus is on building it with proper architecture,
 clean separation of concerns, and thorough testing.
 
