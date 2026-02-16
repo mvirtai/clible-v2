@@ -9,9 +9,9 @@ via CLIBLE_* env vars so the same code works in every environment:
 - Docker: Pass -e CLIBLE_* or use env_file in compose/run.
 """
 
-from pathlib import Path
-from dataclasses import dataclass
 import os
+from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass

@@ -3,9 +3,7 @@
 import importlib
 import os
 
-import pytest
-
-# Import after we may have patched env, so we do a fresh import in the test.
+# Import as module (not individual objects) so we can reload() it in tests.
 import clible.config as config_module
 
 
