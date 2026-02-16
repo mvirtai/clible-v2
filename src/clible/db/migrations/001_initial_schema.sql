@@ -1,7 +1,1 @@
-
-CREATE TABLE _migrations (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    applied_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-    CONSTRAINT unique_migration UNIQUE (name)
-)
+-- Placeholder for initial schema. Table definitions added in ticket 1.2.
