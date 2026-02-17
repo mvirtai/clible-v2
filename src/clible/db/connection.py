@@ -3,6 +3,7 @@ from pathlib import Path
 
 from clible.config import get_config
 from clible.db.migrations import run_migrations
+from clible.db.seed_books import seed_books_if_empty
 
 db_path = get_config().db_path
 
@@ -21,5 +22,6 @@ def get_connection(db_path: Path | str | None = None) -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
 
     run_migrations(conn)
+    seed_books_if_empty(conn)  # Populate books table from JSON if empty
 
     return conn
