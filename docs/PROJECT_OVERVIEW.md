@@ -31,8 +31,8 @@ clible is a command-line Bible study tool. The v2 rebuild aims for:
                │                              │
 ┌──────────────▼──────────────┐  ┌─────────────▼──────────────────┐
 │ Repositories                │  │ Parsers                         │
-│   TranslationRepo           │  │   USFXParser (XML → verses)     │
-│   BookRepo                 │  │                                 │
+│   TranslationRepo           │  │   USFXParser, OSISParser        │
+│   BookRepo                 │  │   (XML → verse dicts)           │
 │   VerseRepo                │  │                                 │
 └──────────────┬──────────────┘  └─────────────────────────────────┘
                │
@@ -62,6 +62,8 @@ clible is a command-line Bible study tool. The v2 rebuild aims for:
 | **BookRepo** | `src/clible/db/repositories/book_repo.py` | get_all, get_by_id, get_by_name, search |
 | **VerseRepo** | `src/clible/db/repositories/verse_repo.py` | get_verse, get_verses, save_verses |
 | **USFX parser** | `src/clible/parsers/usfx_parser.py` | parse_file(xml_path) → list of verse dicts |
+| **OSIS parser** | `src/clible/parsers/osis_parser.py` | parse_file(xml_path) → list of verse dicts (container + milestone) |
+| **OSIS book map** | `src/clible/parsers/osis_book_map.py` | OSIS book IDs → clible book IDs |
 | **SeedService** | `src/clible/services/seed_service.py` | list_available, list_installed, seed_translation, remove_translation |
 | **VerseService** | `src/clible/services/verse_service.py` | get_verse(reference, translation_id) |
 | **CLI** | `src/clible/cli.py`, `commands/` | seed (install, list, available, remove), verse |
@@ -74,7 +76,6 @@ clible is a command-line Bible study tool. The v2 rebuild aims for:
 
 | Area | Notes |
 |------|-------|
-| **OSIS parser** | kjv, fin-biblia in catalog but format not supported yet |
 | **Search** | Full-text search across verses |
 | **Export** | Markdown, plain text export |
 | **Sessions / analytics** | From original PLAN.md |
@@ -103,6 +104,8 @@ clible-v2/
 │   │       ├── translation_repo.py
 │   │       └── verse_repo.py
 │   ├── parsers/
+│   │   ├── osis_book_map.py   # OSIS → clible book ID mapping
+│   │   ├── osis_parser.py     # OSIS XML → verse dicts
 │   │   └── usfx_parser.py     # USFX XML → verse dicts
 │   ├── services/
 │   │   ├── seed_service.py

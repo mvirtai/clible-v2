@@ -9,6 +9,7 @@ from clible.db.connection import get_connection
 from clible.db.repositories.book_repo import BookRepo
 from clible.db.repositories.translation_repo import TranslationRepo
 from clible.db.repositories.verse_repo import VerseRepo
+from clible.parsers.osis_parser import OSISParser
 from clible.parsers.usfx_parser import USFXParser
 from clible.services.seed_service import SeedService
 
@@ -20,7 +21,8 @@ def _get_seed_service() -> SeedService:
         translation_repo=TranslationRepo(conn),
         verse_repo=VerseRepo(conn),
         book_repo=BookRepo(conn),
-        parser=USFXParser(),
+        usfx_parser=USFXParser(),
+        osis_parser=OSISParser(),
     )
 
 
@@ -30,9 +32,10 @@ def install(translation_id: str) -> None:
     """Install a Bible translation by ID.
 
     Example: clible seed install web
+    Example: clible seed install kjv
 
     Downloads, parses, and stores the translation locally.
-    Only USFX format is supported currently.
+    Supported formats: USFX (web), OSIS (kjv, fin-biblia).
     """
     console = Console()
     try:

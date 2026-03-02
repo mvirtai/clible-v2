@@ -5,18 +5,20 @@ from unittest.mock import patch
 
 import pytest
 
+from clible.parsers.osis_parser import OSISParser
 from clible.parsers.usfx_parser import USFXParser
 from clible.services.seed_service import SeedService
 
 
 @pytest.fixture
 def seed_service(translation_repo, verse_repo, book_repo):
-    """SeedService with real parser and repo fixtures."""
+    """SeedService with real parsers and repo fixtures."""
     return SeedService(
         translation_repo=translation_repo,
         verse_repo=verse_repo,
         book_repo=book_repo,
-        parser=USFXParser(),
+        usfx_parser=USFXParser(),
+        osis_parser=OSISParser(),
     )
 
 
@@ -76,10 +78,42 @@ def test_seed_translation_raises_if_already_installed(seed_service):
         seed_service.seed_translation("web")
 
 
-def test_seed_translation_raises_for_osis_format(seed_service):
-    """seed_translation raises ValueError for non-USFX formats."""
-    with pytest.raises(ValueError, match="not supported"):
-        seed_service.seed_translation("kjv")
+def test_seed_translation_raises_for_unsupported_format(seed_service):
+    """seed_translation raises ValueError for formats other than USFX/OSIS."""
+    fake_catalog = {
+        "bad": {
+            "name": "Bad",
+            "language": "en",
+            "format": "Zefania",
+            "url": "http://example.com/bad.xml",
+        },
+    }
+    with patch(
+        "clible.services.seed_service._load_translations_catalog",
+        return_value=fake_catalog,
+    ):
+        with pytest.raises(ValueError, match="not supported"):
+            seed_service.seed_translation("bad")
+
+
+def test_seed_translation_osis_fin_biblia_succeeds(seed_service, verse_repo):
+    """seed_translation with OSIS format (e.g. fin-biblia) downloads, parses, saves."""
+    sample_osis = (Path(__file__).parent.parent / "fixtures" / "sample.osis.xml").read_bytes()
+
+    with patch("clible.services.seed_service.requests.get") as mock_get:
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.content = sample_osis
+        mock_get.return_value.raise_for_status = lambda: None
+
+        result = seed_service.seed_translation("fin-biblia")
+
+    assert result["translation_id"] == "fin-biblia"
+    assert result["verses_installed"] == 5
+    assert result["duration_seconds"] >= 0
+
+    verse = verse_repo.get_verse("fin-biblia", "GEN", 1, 1)
+    assert verse is not None
+    assert "Alussa loi Jumala" in verse["text"]
 
 
 def test_remove_translation_deletes_and_cascades(seed_service, verse_repo):
