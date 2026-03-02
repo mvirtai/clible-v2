@@ -1,8 +1,7 @@
 # Cursor Rules — clible v2
 
-Read SKILLS.md, AGENTS.md, and PLAN.md before starting any work. These files
-define the developer's skill level, the project architecture, and the
-implementation plan with tickets.
+Read docs/PROJECT_OVERVIEW.md and PLAN.md before starting any work.
+These define architecture and implementation plan.
 
 ## Role
 
