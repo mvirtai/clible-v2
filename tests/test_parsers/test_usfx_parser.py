@@ -60,22 +60,12 @@ def test_parse_file_skips_frt_book(parser):
 
 def test_parse_file_real_genesis_1_1(parser):
     """Real eng-web.usfx.xml parses Genesis 1:1 correctly."""
-    xml_path = (
-        Path(__file__).resolve().parents[2]
-        / "src"
-        / "clible"
-        / "data"
-        / "eng-web.usfx.xml"
-    )
+    xml_path = Path(__file__).resolve().parents[2] / "src" / "clible" / "data" / "eng-web.usfx.xml"
     if not xml_path.exists():
         pytest.skip("eng-web.usfx.xml not found")
     result = parser.parse_file(xml_path)
     gen_1_1 = next(
-        (
-            v
-            for v in result
-            if v["book_id"] == "GEN" and v["chapter"] == 1 and v["verse"] == 1
-        ),
+        (v for v in result if v["book_id"] == "GEN" and v["chapter"] == 1 and v["verse"] == 1),
         None,
     )
     assert gen_1_1 is not None
@@ -85,22 +75,12 @@ def test_parse_file_real_genesis_1_1(parser):
 
 def test_parse_file_real_genesis_strips_footnotes(parser):
     """Genesis verses with footnotes have footnote content stripped."""
-    xml_path = (
-        Path(__file__).resolve().parents[2]
-        / "src"
-        / "clible"
-        / "data"
-        / "eng-web.usfx.xml"
-    )
+    xml_path = Path(__file__).resolve().parents[2] / "src" / "clible" / "data" / "eng-web.usfx.xml"
     if not xml_path.exists():
         pytest.skip("eng-web.usfx.xml not found")
     result = parser.parse_file(xml_path)
     gen_1_1 = next(
-        (
-            v
-            for v in result
-            if v["book_id"] == "GEN" and v["chapter"] == 1 and v["verse"] == 1
-        ),
+        (v for v in result if v["book_id"] == "GEN" and v["chapter"] == 1 and v["verse"] == 1),
         None,
     )
     assert gen_1_1 is not None
