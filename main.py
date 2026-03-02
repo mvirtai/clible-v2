@@ -1,1 +1,6 @@
-# Placeholder — will be replaced by src/clible/ package in Ticket 0.1
+"""Launch clible CLI. Use 'uv run clible' after installation."""
+
+from clible.cli import main
+
+if __name__ == "__main__":
+    main()

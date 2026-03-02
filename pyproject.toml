@@ -1,3 +1,10 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/clible"]
+
 [project]
 name = "clible-v2"
 version = "0.1.0"
@@ -5,9 +12,15 @@ description = "Bible Study tool in CLI with users, sessions, text analytic exper
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "click>=8.1.0",
     "pylance>=2.0.1",
+    "requests>=2.31.0",
+    "rich>=13.0.0",
     "ruff>=0.15.1",
 ]
+
+[project.scripts]
+clible = "clible.cli:main"
 
 [dependency-groups]
 dev = [
@@ -19,6 +32,7 @@ dev = [
 # addopts = "--cov=clible"  # Re-enable when pytest-cov is added (e.g. Ticket 0.3)
 testpaths = ["tests"]
 pythonpath = ["src"]
+filterwarnings = ["ignore:cannot collect test class 'Testament':pytest.PytestCollectionWarning"]
 
 # Dependencies will be added per PLAN.md tickets.
 # Runtime: click, rich, requests
