@@ -20,11 +20,14 @@ _BOOK_ID_ALIASES = {"NAM": "NAH"}
 
 
 class USFXParserProtocol(Protocol):
-    """Protocol for USFX parser (supports dependency injection for tests)."""
+    """Protocol for XML parsers that return verse dicts (USFX, OSIS)."""
 
     def parse_file(self, xml_path: Path) -> list[dict]:
-        """Parse USFX XML file. Returns list of verse dicts."""
+        """Parse XML file. Returns list of verse dicts with book_id, chapter, verse, text."""
         ...
+
+
+_SUPPORTED_FORMATS = ("USFX", "OSIS")
 
 
 def _load_translations_catalog() -> dict:
@@ -42,13 +45,15 @@ class SeedService:
         translation_repo: "TranslationRepo",
         verse_repo: "VerseRepo",
         book_repo: "BookRepo",
-        parser: USFXParserProtocol,
+        usfx_parser: USFXParserProtocol,
+        osis_parser: USFXParserProtocol,
     ):
-        """Initialize with injected repositories and parser."""
+        """Initialize with injected repositories and parsers (USFX and OSIS)."""
         self._translation_repo = translation_repo
         self._verse_repo = verse_repo
         self._book_repo = book_repo
-        self._parser = parser
+        self._usfx_parser = usfx_parser
+        self._osis_parser = osis_parser
 
     def list_available(self) -> list[dict]:
         """List all translations from the catalog.
@@ -88,7 +93,7 @@ class SeedService:
 
         Raises:
             ValueError: If translation_id not in catalog, already installed,
-                or format is not USFX.
+                or format is not USFX or OSIS.
         """
         catalog = _load_translations_catalog()
         if translation_id not in catalog:
@@ -98,8 +103,15 @@ class SeedService:
         if self._translation_repo.exists(translation_id):
             raise ValueError(f"Translation '{translation_id}' is already installed")
 
-        if meta.get("format") != "USFX":
-            raise ValueError(f"Format '{meta.get('format')}' not supported (only USFX)")
+        fmt = meta.get("format")
+        if fmt == "USFX":
+            parser = self._usfx_parser
+        elif fmt == "OSIS":
+            parser = self._osis_parser
+        else:
+            raise ValueError(
+                f"Format '{fmt}' not supported (supported: {', '.join(_SUPPORTED_FORMATS)})"
+            )
 
         url = meta["url"]
         start = time.monotonic()
@@ -113,7 +125,7 @@ class SeedService:
         with tempfile.NamedTemporaryFile(suffix=".xml", delete=True) as tmp:
             tmp.write(response.content)
             tmp.flush()
-            verses = self._parser.parse_file(Path(tmp.name))
+            verses = parser.parse_file(Path(tmp.name))
 
         valid_book_ids = {b["id"] for b in self._book_repo.get_all()}
         filtered = []

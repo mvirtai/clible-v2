@@ -13,8 +13,10 @@ uv sync
 ## Quick Start
 
 ```bash
-# One-time: install World English Bible (~4 MB download, ~31k verses)
-uv run clible seed install web
+# One-time: install a translation (~4 MB download each)
+uv run clible seed install web      # World English Bible (USFX)
+uv run clible seed install kjv      # King James Version (OSIS)
+uv run clible seed install fin-biblia  # Finnish Bible (OSIS)
 
 # Look up verses
 uv run clible verse "John 3:16"
@@ -32,7 +34,7 @@ uv run clible verse "Genesis 1:1"
 | `clible seed list` | List installed translations |
 | `clible seed remove <id>` | Uninstall a translation and its verses |
 
-Supported formats: **USFX** only (web is supported). OSIS (kjv, fin-biblia) planned.
+Supported formats: **USFX** (web), **OSIS** (kjv, fin-biblia).
 
 ### Verse lookup (`clible verse`)
 
@@ -57,7 +59,7 @@ Override via environment variables:
 
 - **CLI** (Click + Rich) → **Services** → **Repositories** → **SQLite**
 - Repositories: TranslationRepo, BookRepo, VerseRepo
-- Parsers: USFX (XML → verses)
+- Parsers: USFX, OSIS (XML → verses)
 - No external API at runtime; all data local after seeding
 
 ## Development
