@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<usfx xmlns:xsi="http://eBible.org/usfx.xsd" xsi:noNamespaceSchemaLocation="usfx.xsd">
+  <languageCode>eng</languageCode>
+  <book id="JHN">
+    <id id="JHN">John</id>
+    <h>John</h>
+    <c id="1"/>
+    <p>
+      <v id="1"/>In the beginning was the Word, and the Word was with God, and the Word was God.
+      <ve/><v id="2"/>The same was in the beginning with God.
+      <ve/><v id="3"/>All things were made through him. Without him was not anything made that has been made.
+      <ve/><v id="4"/>In him was life, and the life was the light of men.
+      <ve/><v id="5"/>The light shines in the darkness, and the darkness hasn't overcome
+      <f caller="+">Footnote: word meaning</f> it.
+      <ve/>
+    </p>
+  </book>
+</usfx>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<usfx>
+  <book id="FRT">
+    <p>Preface content - should be skipped</p>
+    <v id="1"/>This is not a real verse.
+    <ve/>
+  </book>
+  <book id="JHN">
+    <c id="1"/>
+    <p><v id="1"/>In the beginning was the Word.<ve/></p>
+  </book>
+</usfx>
