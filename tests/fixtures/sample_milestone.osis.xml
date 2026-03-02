@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<osis xmlns='http://www.bibletechnologies.net/2003/OSIS/namespace'
+      xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+      xsi:schemaLocation='http://www.bibletechnologies.net/2003/OSIS/namespace http://www.bibletechnologies.net/osisCore.2.1.1.xsd'>
+    <osisText osisRefWork='Bible' osisIDWork='eng-kjv' xml:lang='en'>
+        <div type='bookGroup'>
+            <div type='book' osisID='Gen'>
+                <chapter osisRef='Gen.1' sID='Gen.1.ch' n='1'/>
+                <p>
+                    <verse osisID='Gen.1.1' sID='Gen.1.1.s' n='1'/>In the beginning God created the heaven and the earth.
+                    <verse eID='Gen.1.1.s'/>
+                    <verse osisID='Gen.1.2' sID='Gen.1.2.s' n='2'/>And the earth was without form, and void; and darkness
+                    <transChange type='added'>was</transChange>
+                    upon the face of the deep.
+                    <verse eID='Gen.1.2.s'/>
+                </p>
+                <chapter eID='Gen.1.ch'/>
+            </div>
+        </div>
+    </osisText>
+</osis>

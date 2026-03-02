@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<osis xmlns='http://www.bibletechnologies.net/2003/OSIS/namespace'
+      xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+      xsi:schemaLocation='http://www.bibletechnologies.net/2003/OSIS/namespace http://www.bibletechnologies.net/osisCore.2.1.1.xsd'>
+    <osisText osisRefWork='Bible' osisIDWork='fin' xml:lang='fi'>
+        <div type='book' osisID='Gen'>
+            <chapter osisID='Gen.1'>
+                <verse osisID='Gen.1.1'>Alussa loi Jumala taivaan ja maan.</verse>
+                <verse osisID='Gen.1.2'>Ja maa oli autio ja tyhjä, ja pimeys oli syvyyden päällä, ja Jumalan Henki liikkui vetten päällä.</verse>
+                <verse osisID='Gen.1.3'>Ja Jumala sanoi: "Tulkoon valkeus". Ja valkeus tuli.</verse>
+                <verse osisID='Gen.1.4'>Ja Jumala näki, että valkeus oli hyvä; ja Jumala erotti valkeuden pimeydestä.</verse>
+                <verse osisID='Gen.1.5'>Ja Jumala kutsui valkeuden päiväksi, ja pimeyden hän kutsui yöksi.
+                    <note type='study'>merkintä: ensimmäinen päivä</note>
+                    Ja tuli ehtoo, ja tuli aamu, ensimmäinen päivä.</verse>
+            </chapter>
+        </div>
+    </osisText>
+</osis>
