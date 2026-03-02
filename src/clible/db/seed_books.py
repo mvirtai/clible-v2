@@ -1,7 +1,7 @@
 # clible/db/seed_books.py
+import json
 import sqlite3
 from pathlib import Path
-import json
 
 
 def seed_books_if_empty(conn: sqlite3.Connection):
