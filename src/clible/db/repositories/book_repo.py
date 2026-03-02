@@ -5,11 +5,11 @@
 """
 
 import sqlite3
-from enum import Enum
+from enum import StrEnum
 from typing import TypedDict
 
 
-class Testament(str, Enum):
+class Testament(StrEnum):
     """Canonical section of the Bible. Values match DB/JSON (OT, NT, DEU)."""
 
     OT = "OT"  # Old Testament

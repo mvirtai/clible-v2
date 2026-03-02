@@ -2,7 +2,6 @@
 
 import pytest
 
-from clible.db.repositories.translation_repo import TranslationRepo
 from clible.services.verse_service import VerseService
 
 
