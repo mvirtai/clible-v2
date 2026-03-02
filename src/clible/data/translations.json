@@ -1,0 +1,26 @@
+{
+  "web": {
+    "name": "World English Bible",
+    "language": "en",
+    "format": "USFX",
+    "filename": "eng-web.usfx.xml",
+    "url": "https://raw.githubusercontent.com/seven1m/open-bibles/master/eng-web.usfx.xml",
+    "size_mb": 4.2
+  },
+  "kjv": {
+    "name": "King James Version",
+    "language": "en",
+    "format": "OSIS",
+    "filename": "eng-kjv.osis.xml",
+    "url": "https://raw.githubusercontent.com/seven1m/open-bibles/master/eng-kjv.osis.xml",
+    "size_mb": 4.5
+  },
+  "fin-biblia": {
+    "name": "Finnish Bible",
+    "language": "fi",
+    "format": "OSIS",
+    "filename": "fin-biblia.osis.xml",
+    "url": "https://raw.githubusercontent.com/seven1m/open-bibles/master/fin-biblia.osis.xml",
+    "size_mb": 4.5
+  }
+}

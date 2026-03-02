@@ -1,3 +1,6 @@
+# Database (user data, recreated by seed)
+*.db
+
 # Python-generated files
 __pycache__/
 *.py[oc]
@@ -14,3 +17,11 @@ wheels/
 
 # Notes
 notes/
+
+# Internal / AI context (not for public repo)
+docs/CONTINUATION_GUIDE.md
+AGENTS.md
+SKILLS.md
+reflections/
+
+NOT_IN_USE_*
