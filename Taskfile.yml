@@ -17,6 +17,25 @@ tasks:
     cmds:
       - uv run pytest -v
 
+  test-one:
+    desc: Run selected tests by filename pattern (tests/)
+    vars:
+      PATTERN: '{{default "" .PATTERN}}'
+    cmds:
+      - |
+        if [ -z "{{.PATTERN}}" ]; then
+          echo "Usage: task test-one PATTERN=analytic_service"
+          exit 1
+        fi
+
+        FILES="$(uv run python -c "from pathlib import Path; p='{{.PATTERN}}'.lower(); print(' '.join(str(f) for f in Path('tests').rglob('test_*.py') if p in str(f).lower()))")"
+        if [ -z "$FILES" ]; then
+          echo "No test files matched pattern: {{.PATTERN}}"
+          exit 1
+        fi
+
+        uv run pytest -v $FILES
+
   lint:
     desc: Run Ruff lint checks
     cmds:
