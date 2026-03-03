@@ -62,9 +62,10 @@ class VerseService:
             return None
 
         book_name, chapter, verse_start, verse_end = parsed
-        book = self._book_repo.get_by_name(book_name) or (
-            self._book_repo.search(book_name)[0] if self._book_repo.search(book_name) else None
-        )
+        book = self._book_repo.get_by_name(book_name)
+        if not book:
+            matches = self._book_repo.search(book_name)
+            book = matches[0] if matches else None
         if not book:
             return None
 
@@ -97,9 +98,10 @@ class VerseService:
             return []
 
         book_name, chapter, verse_start, verse_end = parsed
-        book = self._book_repo.get_by_name(book_name) or (
-            self._book_repo.search(book_name)[0] if self._book_repo.search(book_name) else None
-        )
+        book = self._book_repo.get_by_name(book_name)
+        if not book:
+            matches = self._book_repo.search(book_name)
+            book = matches[0] if matches else None
         if not book:
             return []
 
