@@ -1,0 +1,68 @@
+version: "3"
+
+dotenv:
+  - .env
+
+vars:
+  IMAGE_REPO:
+    sh: 'printf "%s" "${CLIBLE_DOCKER_REPO:-docker.io/mvirtai/clible-v2}"'
+  GIT_SHA:
+    sh: "git rev-parse --short HEAD"
+  IMAGE_TAG_COMMIT: "{{.IMAGE_REPO}}:{{.GIT_SHA}}"
+  IMAGE_TAG_LATEST: "{{.IMAGE_REPO}}:latest"
+
+tasks:
+  test:
+    desc: Run unit tests with pytest
+    cmds:
+      - uv run pytest -v
+
+  lint:
+    desc: Run Ruff lint checks
+    cmds:
+      - uv run ruff check .
+
+  format:
+    desc: Format code with Ruff formatter
+    cmds:
+      - uv run ruff format .
+
+  format-check:
+    desc: Check formatting without modifying files
+    cmds:
+      - uv run ruff format --check .
+
+  check:
+    desc: Run lint, format check, and tests
+    deps: [lint, format-check, test]
+
+  d-build:
+    desc: Build Docker image with latest and commit tags
+    deps: [check]
+    preconditions:
+      - sh: "command -v docker >/dev/null 2>&1"
+        msg: "Docker is required to build images."
+    cmds:
+      - docker build --target runtime -t {{.IMAGE_TAG_COMMIT}} -t {{.IMAGE_TAG_LATEST}} .
+      - task d-show-tags
+
+  d-show-tags:
+    desc: Show local tags for the clible image
+    preconditions:
+      - sh: "command -v docker >/dev/null 2>&1"
+        msg: "Docker is required to list image tags."
+    cmds:
+      - echo "Built image tags:"
+      - docker image inspect {{.IMAGE_TAG_COMMIT}} --format "{{`{{range .RepoTags}}{{println .}}{{end}}`}}"
+      - docker image inspect {{.IMAGE_TAG_LATEST}} --format "{{`{{range .RepoTags}}{{println .}}{{end}}`}}"
+
+  d-push:
+    desc: Build image, show tags, and push commit + latest to Docker Hub
+    deps: [d-build]
+    preconditions:
+      - sh: "command -v docker >/dev/null 2>&1"
+        msg: "Docker is required to push images."
+    cmds:
+      - task d-show-tags
+      - docker push {{.IMAGE_TAG_COMMIT}}
+      - docker push {{.IMAGE_TAG_LATEST}}

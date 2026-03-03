@@ -43,6 +43,7 @@ filterwarnings = ["ignore:cannot collect test class 'Testament':pytest.PytestCol
 # Configure Ruff for code style and linting that matches project conventions.
 line-length = 100
 target-version = "py312"
+extend-exclude = ["src/scripts/NOT_IN_USE_*.py"]
 
 [tool.ruff.lint]
 select = [
