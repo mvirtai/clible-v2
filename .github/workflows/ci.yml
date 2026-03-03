@@ -30,3 +30,6 @@ jobs:
 
       - name: Test
         run: uv run pytest -v
+
+      - name: Build Docker image
+        run: docker build --target runtime -t clible-v2:ci .
