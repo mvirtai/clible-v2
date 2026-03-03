@@ -49,6 +49,29 @@ class VerseRepo:
         )
         return [dict(row) for row in cursor.fetchall()]
 
+    def get_verses_in_range(
+        self,
+        translation_id: str,
+        book_id: str,
+        chapter: int,
+        verse_start: int,
+        verse_end: int,
+    ) -> list[dict]:
+        """Get verses in a chapter for the given verse range (inclusive), ordered by verse.
+
+        Returns empty list if none found.
+        """
+        cursor = self.conn.execute(
+            """
+            SELECT * FROM verses
+            WHERE translation_id = ? AND book_id = ? AND chapter = ?
+              AND verse >= ? AND verse <= ?
+            ORDER BY verse
+            """,
+            (translation_id, book_id, chapter, verse_start, verse_end),
+        )
+        return [dict(row) for row in cursor.fetchall()]
+
     def save_verses(self, verses: list[dict], translation_id: str) -> int:
         """Bulk insert verses for a translation.
 
