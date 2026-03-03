@@ -141,6 +141,57 @@ def test_get_verses_returns_ordered_by_verse(
     assert result[0]["text"] == "Verse 1"
 
 
+def test_get_verses_in_range_returns_subset_ordered(
+    verse_repo: VerseRepo,
+    translation_repo: TranslationRepo,
+):
+    """get_verses_in_range returns only verses in [verse_start, verse_end] inclusive, ordered."""
+    translation_repo.create(
+        {
+            "id": "web",
+            "name": "World English Bible",
+            "language": "en",
+            "format": "USFX",
+        }
+    )
+    verses = [
+        {"book_id": "JHN", "chapter": 3, "verse": 1, "text": "V1"},
+        {"book_id": "JHN", "chapter": 3, "verse": 2, "text": "V2"},
+        {"book_id": "JHN", "chapter": 3, "verse": 3, "text": "V3"},
+        {"book_id": "JHN", "chapter": 3, "verse": 4, "text": "V4"},
+        {"book_id": "JHN", "chapter": 3, "verse": 5, "text": "V5"},
+        {"book_id": "JHN", "chapter": 3, "verse": 6, "text": "V6"},
+    ]
+    verse_repo.save_verses(verses, "web")
+
+    result = verse_repo.get_verses_in_range("web", "JHN", 3, 2, 4)
+    assert len(result) == 3
+    assert [r["verse"] for r in result] == [2, 3, 4]
+    assert result[0]["text"] == "V2"
+    assert result[-1]["text"] == "V4"
+
+
+def test_get_verses_in_range_returns_empty_when_none_in_range(
+    verse_repo: VerseRepo,
+    translation_repo: TranslationRepo,
+):
+    """get_verses_in_range returns empty list when no verses in range exist."""
+    translation_repo.create(
+        {
+            "id": "web",
+            "name": "World English Bible",
+            "language": "en",
+            "format": "USFX",
+        }
+    )
+    verse_repo.save_verses(
+        [{"book_id": "JHN", "chapter": 3, "verse": 16, "text": "For God so loved..."}],
+        "web",
+    )
+    result = verse_repo.get_verses_in_range("web", "JHN", 3, 1, 5)
+    assert result == []
+
+
 def test_get_verses_only_returns_matching_chapter(
     verse_repo: VerseRepo,
     translation_repo: TranslationRepo,

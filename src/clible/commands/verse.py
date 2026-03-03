@@ -31,23 +31,26 @@ def _get_verse_service() -> VerseService:
     help="Translation ID (e.g. web). Defaults to installed default.",
 )
 def verse(reference: str, translation_id: str | None) -> None:
-    """Display a verse from the local database.
+    """Display verse(s) from the local database.
+
+    Supports single verse or range: "John 3:16" or "John 3:1-6".
 
     Example: clible verse "John 3:16"
-    Example: clible verse "Genesis 1:1" -t web
+    Example: clible verse "John 3:1-6" -t kjv
 
     Requires at least one translation to be installed (clible seed install web).
     """
     console = Console()
     service = _get_verse_service()
-    result = service.get_verse(reference, translation_id)
+    verses = service.get_verses(reference, translation_id)
 
-    if not result:
+    if not verses:
         console.print(
-            "[red]Verse not found.[/red] "
-            "Check the reference (e.g. 'John 3:16') and that you have run: clible seed install web"
+            "[red]Verse(s) not found.[/red] "
+            "Check the reference (e.g. 'John 3:16' or 'John 3:1-6') and that you have run: clible seed install web"
         )
         raise SystemExit(1)
 
-    ref_display = f"{result['book_id']} {result['chapter']}:{result['verse']}"
-    console.print(Panel(result["text"], title=ref_display, border_style="dim"))
+    for v in verses:
+        ref_display = f"{v['book_id']} {v['chapter']}:{v['verse']}"
+        console.print(Panel(v["text"], title=ref_display, border_style="dim"))
