@@ -47,7 +47,8 @@ def verse(reference: str, translation_id: str | None) -> None:
     if not verses:
         console.print(
             "[red]Verse(s) not found.[/red] "
-            "Check the reference (e.g. 'John 3:16' or 'John 3:1-6') and that you have run: clible seed install web"
+            "Check the reference (e.g. 'John 3:16' or 'John 3:1-6') and that you have run: "
+            "clible seed install web"
         )
         raise SystemExit(1)
 

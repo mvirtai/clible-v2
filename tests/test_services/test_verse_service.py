@@ -105,7 +105,9 @@ def test_get_verse_returns_none_for_invalid_range(verse_service, verse_repo, tra
     assert verse_service.get_verse("John 3:18-16") is None
 
 
-def test_get_verse_single_verse_and_explicit_range_same_result(verse_service, verse_repo, translation_repo):
+def test_get_verse_single_verse_and_explicit_range_same_result(
+    verse_service, verse_repo, translation_repo
+):
     """get_verse('John 3:16') and get_verse('John 3:16-16') return the same verse."""
     translation_repo.create(
         {
@@ -130,7 +132,9 @@ def test_get_verse_single_verse_and_explicit_range_same_result(verse_service, ve
 # --- get_verses (range support) ---
 
 
-def test_get_verses_returns_single_verse_for_single_reference(verse_service, verse_repo, translation_repo):
+def test_get_verses_returns_single_verse_for_single_reference(
+    verse_service, verse_repo, translation_repo
+):
     """get_verses with single reference returns list of one verse."""
     translation_repo.create(
         {

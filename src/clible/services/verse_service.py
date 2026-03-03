@@ -16,7 +16,10 @@ _REFERENCE_PATTERN = re.compile(
 
 
 def _parse_reference(reference: str) -> tuple[str, int, int, int] | None:
-    """Parse 'John 3:16' or 'John 3:16-18' -> (book_name, chapter, verse_start, verse_end). Returns None if invalid."""
+    """Parse 'John 3:16' or 'John 3:16-18' -> (book_name, chapter, verse_start, verse_end).
+
+    Returns None if invalid.
+    """
     m = _REFERENCE_PATTERN.match(reference.strip())
     if not m:
         return None
