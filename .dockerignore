@@ -1,5 +1,4 @@
 .git
-.gitignore
 .venv
 .direnv
 __pycache__/

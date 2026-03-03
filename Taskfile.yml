@@ -36,7 +36,7 @@ tasks:
     desc: Run lint, format check, and tests
     deps: [lint, format-check, test]
 
-  docker:build:
+  d-build:
     desc: Build Docker image with latest and commit tags
     deps: [check]
     preconditions:
@@ -44,23 +44,25 @@ tasks:
         msg: "Docker is required to build images."
     cmds:
       - docker build --target runtime -t {{.IMAGE_TAG_COMMIT}} -t {{.IMAGE_TAG_LATEST}} .
-      - task docker:show-tags
+      - task d-show-tags
 
-  docker:show-tags:
+  d-show-tags:
     desc: Show local tags for the clible image
     preconditions:
       - sh: "command -v docker >/dev/null 2>&1"
         msg: "Docker is required to list image tags."
     cmds:
-      - docker images {{.IMAGE_REPO}} --format "table {{`{{.Repository}}`}}\t{{`{{.Tag}}`}}\t{{`{{.ID}}`}}\t{{`{{.CreatedSince}}`}}"
+      - echo "Built image tags:"
+      - docker image inspect {{.IMAGE_TAG_COMMIT}} --format "{{`{{range .RepoTags}}{{println .}}{{end}}`}}"
+      - docker image inspect {{.IMAGE_TAG_LATEST}} --format "{{`{{range .RepoTags}}{{println .}}{{end}}`}}"
 
-  docker:push:
+  d-push:
     desc: Build image, show tags, and push commit + latest to Docker Hub
-    deps: [docker:build]
+    deps: [d-build]
     preconditions:
       - sh: "command -v docker >/dev/null 2>&1"
         msg: "Docker is required to push images."
     cmds:
-      - task docker:show-tags
+      - task d-show-tags
       - docker push {{.IMAGE_TAG_COMMIT}}
       - docker push {{.IMAGE_TAG_LATEST}}

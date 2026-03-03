@@ -91,16 +91,16 @@ direnv allow
 # Build Docker image with tags:
 # - docker.io/mvirtai/clible-v2:latest
 # - docker.io/mvirtai/clible-v2:<git-commit>
-task docker:build
+task d-build
 
 # Show local tags for the built image
-task docker:show-tags
+task d-show-tags
 
 # Push both tags (run docker login first)
-task docker:push
+task d-push
 ```
 
-`task docker:push` always shows image tags before pushing.
+`task d-push` always shows image tags before pushing.
 The target repository can be overridden with `CLIBLE_DOCKER_REPO`.
 
 ## Documentation

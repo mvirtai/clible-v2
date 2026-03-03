@@ -9,7 +9,7 @@ WORKDIR /app
 
 RUN pip install --no-cache-dir uv
 
-COPY pyproject.toml uv.lock README.md ./
+COPY pyproject.toml uv.lock README.md .gitignore ./
 COPY main.py ./
 COPY src ./src
 COPY tests ./tests
@@ -27,8 +27,8 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-COPY --from=builder /app/dist/*.whl /tmp/clible.whl
-RUN pip install --no-cache-dir /tmp/clible.whl && rm /tmp/clible.whl
+COPY --from=builder /app/dist/*.whl /tmp/
+RUN pip install --no-cache-dir /tmp/*.whl && rm /tmp/*.whl
 
 ENTRYPOINT ["clible"]
 CMD ["--help"]
