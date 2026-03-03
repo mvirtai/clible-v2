@@ -39,7 +39,10 @@ def test_word_freq_multiple_verses(analytic_service, verse_service_mock):
     verse_service_mock.get_verses.return_value = [
         {"text": "In the beginning God created the heaven and the earth."},
         {
-            "text": "And the earth was without form, and void; and darkness was upon the face of the deep."
+            "text": (
+                "And the earth was without form, and void; and darkness was "
+                "upon the face of the deep."
+            )
         },
     ]
     freq = analytic_service.word_freq("Genesis 1:1-2")
