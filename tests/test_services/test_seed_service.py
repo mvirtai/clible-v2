@@ -120,9 +120,7 @@ def test_seed_translation_osis_fin_biblia_succeeds(seed_service, verse_repo):
 
 def test_seed_translation_beblia_fin_1992_succeeds(seed_service, verse_repo):
     """seed_translation with BEBLIA format (e.g. fin-1992) downloads, parses, saves."""
-    sample_beblia = (
-        Path(__file__).parent.parent / "fixtures" / "sample.beblia.xml"
-    ).read_bytes()
+    sample_beblia = (Path(__file__).parent.parent / "fixtures" / "sample.beblia.xml").read_bytes()
 
     with patch("clible.services.seed_service.requests.get") as mock_get:
         mock_get.return_value.status_code = 200
