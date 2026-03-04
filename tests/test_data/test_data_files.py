@@ -10,12 +10,12 @@ DATA_DIR = Path(__file__).resolve().parent.parent.parent / "src" / "clible" / "d
 
 
 def test_translations_json_loads_and_has_expected_structure():
-    """translations.json is valid and contains web, kjv, fin-biblia with required keys."""
+    """translations.json is valid and contains expected entries with required keys."""
     path = DATA_DIR / "translations.json"
     data = json.loads(path.read_text(encoding="utf-8"))
 
     assert isinstance(data, dict)
-    required_ids = {"web", "kjv", "fin-biblia"}
+    required_ids = {"web", "kjv", "fin-biblia-33-38", "fin-1992"}
     required_keys = {"name", "language", "format", "filename", "url", "size_mb"}
 
     for tid in required_ids:
@@ -27,6 +27,8 @@ def test_translations_json_loads_and_has_expected_structure():
     assert data["web"]["format"] == "USFX"
     assert data["web"]["language"] == "en"
     assert "open-bibles" in data["web"]["url"]
+    assert data["fin-1992"]["format"] == "BEBLIA"
+    assert "Beblia" in data["fin-1992"]["url"]
 
 
 def test_progress_quotes_json_loads_and_has_expected_structure():

@@ -27,7 +27,7 @@ class USFXParserProtocol(Protocol):
         ...
 
 
-_SUPPORTED_FORMATS = ("USFX", "OSIS")
+_SUPPORTED_FORMATS = ("USFX", "OSIS", "BEBLIA")
 
 
 def _load_translations_catalog() -> dict:
@@ -47,13 +47,15 @@ class SeedService:
         book_repo: "BookRepo",
         usfx_parser: USFXParserProtocol,
         osis_parser: USFXParserProtocol,
+        beblia_parser: USFXParserProtocol,
     ):
-        """Initialize with injected repositories and parsers (USFX and OSIS)."""
+        """Initialize with injected repositories and parsers (USFX, OSIS, Beblia)."""
         self._translation_repo = translation_repo
         self._verse_repo = verse_repo
         self._book_repo = book_repo
         self._usfx_parser = usfx_parser
         self._osis_parser = osis_parser
+        self._beblia_parser = beblia_parser
 
     def list_available(self) -> list[dict]:
         """List all translations from the catalog.
@@ -93,7 +95,7 @@ class SeedService:
 
         Raises:
             ValueError: If translation_id not in catalog, already installed,
-                or format is not USFX or OSIS.
+                or format is not USFX, OSIS, or BEBLIA.
         """
         catalog = _load_translations_catalog()
         if translation_id not in catalog:
@@ -108,6 +110,8 @@ class SeedService:
             parser = self._usfx_parser
         elif fmt == "OSIS":
             parser = self._osis_parser
+        elif fmt == "BEBLIA":
+            parser = self._beblia_parser
         else:
             raise ValueError(
                 f"Format '{fmt}' not supported (supported: {', '.join(_SUPPORTED_FORMATS)})"

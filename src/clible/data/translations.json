@@ -15,12 +15,36 @@
     "url": "https://raw.githubusercontent.com/seven1m/open-bibles/master/eng-kjv.osis.xml",
     "size_mb": 4.5
   },
-  "fin-biblia": {
-    "name": "Finnish Bible",
+  "fin-biblia-33-38": {
+    "name": "Finnish Bible from 1933 (OT) and 1938 (NT)",
     "language": "fi",
     "format": "OSIS",
     "filename": "fin-biblia.osis.xml",
     "url": "https://raw.githubusercontent.com/seven1m/open-bibles/master/fin-biblia.osis.xml",
     "size_mb": 4.5
+  },
+  "fin-1992": {
+    "name": "Finnish Bible from 1992 (Kirkkoraamattu 1992)",
+    "language": "fi",
+    "format": "BEBLIA",
+    "filename": "Finnish1992Bible.xml",
+    "url": "https://raw.githubusercontent.com/Beblia/Holy-Bible-XML-Format/master/Finnish1992Bible.xml",
+    "size_mb": 4.9
+  },
+  "fin-1776": {
+    "name": "Finnish Bible from 1776",
+    "language": "fi",
+    "format": "BEBLIA",
+    "filename": "Finnish1776Bible.xml",
+    "url": "https://raw.githubusercontent.com/Beblia/Holy-Bible-XML-Format/master/Finnish1776Bible.xml",
+    "size_mb": 5.1
+  },
+  "fin-stlk": {
+    "name": "Finnish STLK Bible",
+    "language": "fi",
+    "format": "BEBLIA",
+    "filename": "FinnishSTLKBible.xml",
+    "url": "https://raw.githubusercontent.com/Beblia/Holy-Bible-XML-Format/master/FinnishSTLKBible.xml",
+    "size_mb": 4.9
   }
 }
