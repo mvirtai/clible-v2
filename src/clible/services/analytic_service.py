@@ -71,9 +71,7 @@ class AnalyticService:
                 tokens.append(token)
         return tokens
 
-    def _get_all_tokens(
-        self, reference: str, translation_id: str | None = None
-    ) -> list[str]:
+    def _get_all_tokens(self, reference: str, translation_id: str | None = None) -> list[str]:
         """Get all tokens from verses in the given reference.
 
         Args:
@@ -101,9 +99,7 @@ class AnalyticService:
         """
         return len(self._get_all_tokens(reference, translation_id))
 
-    def unique_token_count(
-        self, reference: str, translation_id: str | None = None
-    ) -> int:
+    def unique_token_count(self, reference: str, translation_id: str | None = None) -> int:
         """Count unique tokens in the given reference.
 
         Args:
@@ -116,9 +112,7 @@ class AnalyticService:
         tokens = self._get_all_tokens(reference, translation_id)
         return len(set(tokens))
 
-    def type_token_ratio(
-        self, reference: str, translation_id: str | None = None
-    ) -> float:
+    def type_token_ratio(self, reference: str, translation_id: str | None = None) -> float:
         """Calculate type-token ratio (unique tokens / total tokens).
 
         Args:
@@ -246,9 +240,7 @@ class AnalyticService:
             Dict with keys: token_count, unique_token_count, type_token_ratio,
             top_words, top_bigrams, top_trigrams.
         """
-        verses = self._verse_service.get_chapter_verses(
-            book_name, chapter, translation_id
-        )
+        verses = self._verse_service.get_chapter_verses(book_name, chapter, translation_id)
         if not verses:
             return {
                 "token_count": 0,
