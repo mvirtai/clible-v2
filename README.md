@@ -46,6 +46,30 @@ clible verse "1 Corinthians 13:4" -t web
 - **Reference format:** `"Book Chapter:Verse"` (e.g. `"Genesis 1:1"`, `"1 Corinthians 13:4"`)
 - **`-t`, `--translation`:** Translation ID. Defaults to the first installed (usually `web`)
 
+### Text analytics (`clible analytics`)
+
+Analyze token frequencies, lexical diversity, and n-grams for any scope.
+Stopwords (articles, prepositions, pronouns) are filtered by default.
+
+```bash
+# Analyze specific verses
+clible analytics reference "John 3:16"
+clible analytics reference "John 3:16-18" --top 5
+
+# Analyze an entire chapter
+clible analytics chapter John 3
+clible analytics chapter Genesis 1 -t kjv
+
+# Analyze an entire book
+clible analytics book John --top 20
+clible analytics book Genesis -t kjv
+```
+
+**Output per scope:** metrics table (total tokens, unique tokens, type-token ratio) + top-N words, bigrams, and trigrams.
+
+- **`-t`, `--translation`:** Translation ID. Defaults to the first installed.
+- **`--top` / `-n`:** Number of top items to show (default 10).
+
 ## Configuration
 
 Override via environment variables:
