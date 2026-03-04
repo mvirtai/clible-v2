@@ -118,3 +118,81 @@ class VerseService:
         return self._verse_repo.get_verses_in_range(
             tid, book["id"], chapter, verse_start, verse_end
         )
+
+    def get_chapter_verses(
+        self,
+        book_name: str,
+        chapter: int,
+        translation_id: str | None = None,
+    ) -> list[dict]:
+        """Get all verses in a chapter.
+
+        Args:
+            book_name: Book name (e.g. "John", "Genesis").
+            chapter: Chapter number.
+            translation_id: Translation to use. Defaults to installed default.
+
+        Returns:
+            List of verse dicts in the chapter, ordered by verse number.
+            Empty list if book not found or no verses in chapter.
+        """
+        book = self._book_repo.get_by_name(book_name)
+        if not book:
+            matches = self._book_repo.search(book_name)
+            book = matches[0] if matches else None
+        if not book:
+            return []
+
+        tid = translation_id
+        if not tid:
+            default = self._translation_repo.get_default()
+            tid = default["id"] if default else None
+        if not tid:
+            return []
+
+        return self._verse_repo.get_verses(tid, book["id"], chapter)
+
+    def get_book_verses(
+        self,
+        book_name: str,
+        translation_id: str | None = None,
+    ) -> list[dict]:
+        """Get all verses in a book.
+
+        Args:
+            book_name: Book name (e.g. "John", "Genesis").
+            translation_id: Translation to use. Defaults to installed default.
+
+        Returns:
+            List of all verse dicts in the book, ordered by chapter then verse.
+            Empty list if book not found or no verses in book.
+        """
+        book = self._book_repo.get_by_name(book_name)
+        if not book:
+            matches = self._book_repo.search(book_name)
+            book = matches[0] if matches else None
+        if not book:
+            return []
+
+        tid = translation_id
+        if not tid:
+            default = self._translation_repo.get_default()
+            tid = default["id"] if default else None
+        if not tid:
+            return []
+
+        return self._verse_repo.get_book_verses(tid, book["id"])
+
+    def search_text(self, word: str, translation_id: str | None = None) -> list[dict]:
+        """Search for verses containing the given word using FTS5 index.
+
+        Args:
+            word: The word to search for (case-insensitive).
+            translation_id: Optional translation ID to filter by.
+                If None, searches all translations.
+
+        Returns:
+            List of verse dicts that contain the word,
+            ordered by book/chapter/verse.
+        """
+        return self._verse_repo.search_text(word, translation_id)

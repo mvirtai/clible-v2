@@ -193,3 +193,70 @@ def test_get_verses_returns_empty_when_no_translation(verse_service, verse_repo)
     """get_verses returns empty list when no translation is installed."""
     result = verse_service.get_verses("John 3:16")
     assert result == []
+
+
+def test_get_chapter_verses_returns_all_verses_in_chapter(
+    verse_service, verse_repo, book_repo, translation_repo
+):
+    """get_chapter_verses returns all verses in a chapter."""
+    translation_repo.create(
+        {
+            "id": "web",
+            "name": "World English Bible",
+            "language": "en",
+            "format": "USFX",
+        }
+    )
+    verse_repo.save_verses(
+        [
+            {"book_id": "JHN", "chapter": 3, "verse": 1, "text": "V1"},
+            {"book_id": "JHN", "chapter": 3, "verse": 2, "text": "V2"},
+            {"book_id": "JHN", "chapter": 3, "verse": 3, "text": "V3"},
+        ],
+        "web",
+    )
+    result = verse_service.get_chapter_verses("John", 3, "web")
+    assert len(result) == 3
+    assert [r["verse"] for r in result] == [1, 2, 3]
+
+
+def test_get_chapter_verses_returns_empty_for_nonexistent_book(verse_service):
+    """get_chapter_verses returns empty list when book not found."""
+    result = verse_service.get_chapter_verses("Nonexistent", 1, "web")
+    assert result == []
+
+
+def test_get_book_verses_returns_all_verses_in_book(
+    verse_service, verse_repo, book_repo, translation_repo
+):
+    """get_book_verses returns all verses in a book ordered by chapter and verse."""
+    translation_repo.create(
+        {
+            "id": "web",
+            "name": "World English Bible",
+            "language": "en",
+            "format": "USFX",
+        }
+    )
+    verse_repo.save_verses(
+        [
+            {"book_id": "JHN", "chapter": 1, "verse": 1, "text": "Ch1V1"},
+            {"book_id": "JHN", "chapter": 1, "verse": 2, "text": "Ch1V2"},
+            {"book_id": "JHN", "chapter": 2, "verse": 1, "text": "Ch2V1"},
+            {"book_id": "GEN", "chapter": 1, "verse": 1, "text": "GenCh1V1"},
+        ],
+        "web",
+    )
+    result = verse_service.get_book_verses("John", "web")
+    assert len(result) == 3
+    assert result[0]["chapter"] == 1
+    assert result[0]["verse"] == 1
+    assert result[1]["chapter"] == 1
+    assert result[1]["verse"] == 2
+    assert result[2]["chapter"] == 2
+
+
+def test_get_book_verses_returns_empty_for_nonexistent_book(verse_service):
+    """get_book_verses returns empty list when book not found."""
+    result = verse_service.get_book_verses("Nonexistent", "web")
+    assert result == []

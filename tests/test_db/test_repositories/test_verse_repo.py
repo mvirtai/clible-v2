@@ -274,3 +274,181 @@ def test_save_verses_empty_list_returns_zero(verse_repo, translation_repo):
     )
     count = verse_repo.save_verses([], "web")
     assert count == 0
+
+
+def test_search_text_finds_matching_verses(verse_repo, translation_repo):
+    """search_text finds verses containing the search word using FTS5."""
+    translation_repo.create(
+        {
+            "id": "web",
+            "name": "World English Bible",
+            "language": "en",
+            "format": "USFX",
+        }
+    )
+    verses = [
+        {"book_id": "GEN", "chapter": 1, "verse": 1, "text": "In the beginning God created"},
+        {"book_id": "GEN", "chapter": 1, "verse": 2, "text": "And the earth was without form"},
+        {"book_id": "JHN", "chapter": 1, "verse": 1, "text": "In the beginning was the Word"},
+    ]
+    verse_repo.save_verses(verses, "web")
+
+    results = verse_repo.search_text("beginning")
+    assert len(results) == 2
+    assert results[0]["book_id"] == "GEN"
+    assert results[1]["book_id"] == "JHN"
+
+
+def test_search_text_is_case_insensitive(verse_repo, translation_repo):
+    """search_text is case-insensitive."""
+    translation_repo.create(
+        {
+            "id": "web",
+            "name": "World English Bible",
+            "language": "en",
+            "format": "USFX",
+        }
+    )
+    verse_repo.save_verses(
+        [{"book_id": "GEN", "chapter": 1, "verse": 1, "text": "God created the heavens"}],
+        "web",
+    )
+
+    results = verse_repo.search_text("GOD")
+    assert len(results) == 1
+    assert "God" in results[0]["text"]
+
+
+def test_search_text_filters_by_translation(verse_repo, translation_repo):
+    """search_text filters by translation_id when provided."""
+    translation_repo.create(
+        {
+            "id": "web",
+            "name": "World English Bible",
+            "language": "en",
+            "format": "USFX",
+        }
+    )
+    translation_repo.create(
+        {
+            "id": "kjv",
+            "name": "King James Version",
+            "language": "en",
+            "format": "USFX",
+        }
+    )
+    verses_web = [
+        {"book_id": "GEN", "chapter": 1, "verse": 1, "text": "In the beginning God created"},
+    ]
+    verses_kjv = [
+        {"book_id": "GEN", "chapter": 1, "verse": 1, "text": "In the beginning God made"},
+    ]
+    verse_repo.save_verses(verses_web, "web")
+    verse_repo.save_verses(verses_kjv, "kjv")
+
+    results_web = verse_repo.search_text("created", "web")
+    results_kjv = verse_repo.search_text("created", "kjv")
+    results_all = verse_repo.search_text("beginning")
+
+    assert len(results_web) == 1
+    assert results_web[0]["translation_id"] == "web"
+    assert len(results_kjv) == 0
+    assert len(results_all) == 2
+
+
+def test_search_text_returns_empty_when_no_match(verse_repo, translation_repo):
+    """search_text returns empty list when no verses match."""
+    translation_repo.create(
+        {
+            "id": "web",
+            "name": "World English Bible",
+            "language": "en",
+            "format": "USFX",
+        }
+    )
+    verse_repo.save_verses(
+        [{"book_id": "GEN", "chapter": 1, "verse": 1, "text": "In the beginning"}],
+        "web",
+    )
+
+    results = verse_repo.search_text("nonexistent")
+    assert results == []
+
+
+def test_get_book_verses_returns_all_verses_in_book(verse_repo, translation_repo):
+    """get_book_verses returns all verses in a book ordered by chapter and verse."""
+    translation_repo.create(
+        {
+            "id": "web",
+            "name": "World English Bible",
+            "language": "en",
+            "format": "USFX",
+        }
+    )
+    verses = [
+        {"book_id": "JHN", "chapter": 1, "verse": 1, "text": "Ch1V1"},
+        {"book_id": "JHN", "chapter": 1, "verse": 2, "text": "Ch1V2"},
+        {"book_id": "JHN", "chapter": 2, "verse": 1, "text": "Ch2V1"},
+        {"book_id": "GEN", "chapter": 1, "verse": 1, "text": "GenCh1V1"},
+    ]
+    verse_repo.save_verses(verses, "web")
+
+    result = verse_repo.get_book_verses("web", "JHN")
+    assert len(result) == 3
+    assert result[0]["chapter"] == 1
+    assert result[0]["verse"] == 1
+    assert result[1]["chapter"] == 1
+    assert result[1]["verse"] == 2
+    assert result[2]["chapter"] == 2
+    assert result[2]["verse"] == 1
+
+
+def test_get_book_verses_returns_empty_for_nonexistent_book(verse_repo, translation_repo):
+    """get_book_verses returns empty list when book has no verses."""
+    translation_repo.create(
+        {
+            "id": "web",
+            "name": "World English Bible",
+            "language": "en",
+            "format": "USFX",
+        }
+    )
+    verse_repo.save_verses(
+        [{"book_id": "GEN", "chapter": 1, "verse": 1, "text": "Text"}],
+        "web",
+    )
+
+    result = verse_repo.get_book_verses("web", "JHN")
+    assert result == []
+
+
+def test_get_book_verses_filters_by_translation(verse_repo, translation_repo):
+    """get_book_verses only returns verses for the specified translation."""
+    translation_repo.create(
+        {
+            "id": "web",
+            "name": "World English Bible",
+            "language": "en",
+            "format": "USFX",
+        }
+    )
+    translation_repo.create(
+        {
+            "id": "kjv",
+            "name": "King James Version",
+            "language": "en",
+            "format": "USFX",
+        }
+    )
+    verse_repo.save_verses(
+        [{"book_id": "JHN", "chapter": 1, "verse": 1, "text": "Web text"}],
+        "web",
+    )
+    verse_repo.save_verses(
+        [{"book_id": "JHN", "chapter": 1, "verse": 1, "text": "KJV text"}],
+        "kjv",
+    )
+
+    result = verse_repo.get_book_verses("web", "JHN")
+    assert len(result) == 1
+    assert result[0]["translation_id"] == "web"
