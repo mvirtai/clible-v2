@@ -10,32 +10,42 @@ from clible.services.verse_service import VerseService
 class AnalyticService:
     """Text analytics for Bible verses: tokens, frequencies, n-grams, concordance."""
 
-    def __init__(self, verse_service: VerseService, filter_stopwords: bool = True):
+    def __init__(
+        self,
+        verse_service: VerseService,
+        filter_stopwords: bool = True,
+        language: str = "en",
+    ):
         """Initialize with injected VerseService.
 
         Args:
             verse_service: VerseService instance for fetching verses.
-            filter_stopwords: If True, filters common English stopwords from analysis.
+            filter_stopwords: If True, filters stopwords for the given language.
+            language: Language code to select stopword list (e.g. "en", "fin").
+                Defaults to "en". Ignored when filter_stopwords is False.
         """
         self._verse_service = verse_service
         self._filter_stopwords = filter_stopwords
-        self._stopwords = self._load_stopwords() if filter_stopwords else set()
+        self._stopwords = self._load_stopwords(language) if filter_stopwords else set()
 
-    def _load_stopwords(self) -> set[str]:
-        """Load English stopwords from data file.
+    def _load_stopwords(self, language: str) -> set[str]:
+        """Load stopwords for the given language from the shared stopwords file.
+
+        Args:
+            language: Language code matching a key in stopwords.json (e.g. "en", "fin").
 
         Returns:
-            Set of lowercase stopwords.
+            Set of lowercase stopwords. Empty set if language not found or file missing.
         """
         data_dir = Path(__file__).parent.parent / "data"
-        stopwords_file = data_dir / "stopwords_en.json"
+        stopwords_file = data_dir / "stopwords.json"
 
         if not stopwords_file.exists():
             return set()
 
         with open(stopwords_file, encoding="utf-8") as f:
             data = json.load(f)
-            return set(data.get("words", []))
+            return set(data.get(language, {}).get("words", []))
 
     def _tokenize(self, text: str) -> list[str]:
         """Tokenize text into normalized words.
@@ -212,7 +222,11 @@ class AnalyticService:
         }
 
     def analyze_chapter(
-        self, book_name: str, chapter: int, translation_id: str | None = None, top_n: int = 10
+        self,
+        book_name: str,
+        chapter: int,
+        translation_id: str | None = None,
+        top_n: int = 10,
     ) -> dict:
         """Analyze all verses in a chapter.
 
