@@ -5,16 +5,22 @@ FROM python:3.12-slim AS builder
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
+# Kopioi uv valmiista imagesta — ei pip install -vaihetta
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
 WORKDIR /app
 
-RUN pip install --no-cache-dir uv
+# Dependencies first — these layers are cached unless pyproject.toml/uv.lock/README.md change
+# README.md is required by hatchling during build (pyproject.toml: readme = "README.md")
+COPY pyproject.toml uv.lock README.md ./
+RUN uv sync --all-groups --frozen
 
-COPY pyproject.toml uv.lock README.md .gitignore ./
-COPY main.py ./
+# Code copied separately — does not invalidate the above cache
+COPY .gitignore main.py ./
 COPY src ./src
 COPY tests ./tests
 
-RUN uv sync --all-groups --frozen
+# Jokainen tarkistus omalla layerillaan
 RUN uv run ruff check .
 RUN uv run ruff format --check .
 RUN uv run pytest -v
