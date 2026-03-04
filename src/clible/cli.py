@@ -2,6 +2,9 @@
 
 import click
 
+from clible.commands.analytics import book as analytics_book
+from clible.commands.analytics import chapter as analytics_chapter
+from clible.commands.analytics import reference as analytics_reference
 from clible.commands.seed import (
     available,
     install,
@@ -15,7 +18,7 @@ from clible.commands.verse import verse
 def main() -> None:
     """clible — Bible study tool for the command line.
 
-    Manage translations, search verses, and export to files.
+    Manage translations, search verses, analyze text, and export to files.
     """
     pass
 
@@ -26,9 +29,19 @@ def seed() -> None:
     pass
 
 
+@main.group("analytics")
+def analytics() -> None:
+    """Text analysis: word frequency, n-grams, and statistics."""
+    pass
+
+
 seed.add_command(install)
 seed.add_command(list_installed, "list")
 seed.add_command(available)
 seed.add_command(remove)
+
+analytics.add_command(analytics_reference, "reference")
+analytics.add_command(analytics_chapter, "chapter")
+analytics.add_command(analytics_book, "book")
 
 main.add_command(verse)

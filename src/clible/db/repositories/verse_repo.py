@@ -99,3 +99,52 @@ class VerseRepo:
                 rows,
             )
         return cursor.rowcount
+
+    def get_book_verses(self, translation_id: str, book_id: str) -> list[dict]:
+        """Get all verses in a book, ordered by chapter and verse.
+
+        Args:
+            translation_id: Translation ID.
+            book_id: Book ID (e.g. GEN, JHN).
+
+        Returns:
+            List of all verses in the book, ordered by chapter then verse.
+        """
+        cursor = self.conn.execute(
+            """
+            SELECT * FROM verses
+            WHERE translation_id = ? AND book_id = ?
+            ORDER BY chapter, verse
+            """,
+            (translation_id, book_id),
+        )
+        return [dict(row) for row in cursor.fetchall()]
+
+    def search_text(self, word: str, translation_id: str | None = None) -> list[dict]:
+        """Search verses by word using FTS5 index for efficient full-text search.
+
+        Args:
+            word: The word to search for (case-insensitive).
+            translation_id: Optional translation ID to filter by.
+                If None, searches all translations.
+
+        Returns:
+            List of verse dicts that contain the specified word,
+            ordered by book/chapter/verse.
+        """
+        query = """
+            SELECT v.*
+            FROM verses_fts f
+            JOIN verses v ON v.rowid = f.rowid
+            WHERE f.text MATCH ?
+        """
+        params = [word]
+
+        if translation_id:
+            query += " AND v.translation_id = ?"
+            params.append(translation_id)
+
+        query += " ORDER BY v.book_id, v.chapter, v.verse"
+
+        cursor = self.conn.execute(query, params)
+        return [dict(row) for row in cursor.fetchall()]

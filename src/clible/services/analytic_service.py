@@ -1,0 +1,329 @@
+"""Service layer for text analytics: word frequency, n-grams, and concordance."""
+
+import json
+from collections import Counter
+from pathlib import Path
+
+from clible.services.verse_service import VerseService
+
+
+class AnalyticService:
+    """Text analytics for Bible verses: tokens, frequencies, n-grams, concordance."""
+
+    def __init__(self, verse_service: VerseService, filter_stopwords: bool = True):
+        """Initialize with injected VerseService.
+
+        Args:
+            verse_service: VerseService instance for fetching verses.
+            filter_stopwords: If True, filters common English stopwords from analysis.
+        """
+        self._verse_service = verse_service
+        self._filter_stopwords = filter_stopwords
+        self._stopwords = self._load_stopwords() if filter_stopwords else set()
+
+    def _load_stopwords(self) -> set[str]:
+        """Load English stopwords from data file.
+
+        Returns:
+            Set of lowercase stopwords.
+        """
+        data_dir = Path(__file__).parent.parent / "data"
+        stopwords_file = data_dir / "stopwords_en.json"
+
+        if not stopwords_file.exists():
+            return set()
+
+        with open(stopwords_file, encoding="utf-8") as f:
+            data = json.load(f)
+            return set(data.get("words", []))
+
+    def _tokenize(self, text: str) -> list[str]:
+        """Tokenize text into normalized words.
+
+        Tokenization rules:
+        - Split on whitespace
+        - Strip common punctuation: ,.?!;:"()[]{}
+        - Convert to lowercase
+        - Filter stopwords (if enabled)
+        - Filter empty strings
+
+        Args:
+            text: Raw text to tokenize.
+
+        Returns:
+            List of normalized tokens (stopwords filtered if enabled).
+        """
+        words = text.split()
+        tokens = []
+        for word in words:
+            token = word.strip(',.?!;:"()[]{}').lower()
+            if token and token not in self._stopwords:
+                tokens.append(token)
+        return tokens
+
+    def _get_all_tokens(self, reference: str, translation_id: str | None = None) -> list[str]:
+        """Get all tokens from verses in the given reference.
+
+        Args:
+            reference: Bible reference string.
+            translation_id: Translation ID to use.
+
+        Returns:
+            List of all tokens (may contain duplicates).
+        """
+        verses = self._verse_service.get_verses(reference, translation_id)
+        all_tokens = []
+        for verse in verses:
+            all_tokens.extend(self._tokenize(verse["text"]))
+        return all_tokens
+
+    def token_count(self, reference: str, translation_id: str | None = None) -> int:
+        """Count total number of tokens in the given reference.
+
+        Args:
+            reference: Bible reference string ("John 3:16" or "John 3:16-18")
+            translation_id: Translation ID to use. If None, uses the default.
+
+        Returns:
+            Total token count.
+        """
+        return len(self._get_all_tokens(reference, translation_id))
+
+    def unique_token_count(self, reference: str, translation_id: str | None = None) -> int:
+        """Count unique tokens in the given reference.
+
+        Args:
+            reference: Bible reference string ("John 3:16" or "John 3:16-18")
+            translation_id: Translation ID to use. If None, uses the default.
+
+        Returns:
+            Number of unique tokens.
+        """
+        tokens = self._get_all_tokens(reference, translation_id)
+        return len(set(tokens))
+
+    def type_token_ratio(self, reference: str, translation_id: str | None = None) -> float:
+        """Calculate type-token ratio (unique tokens / total tokens).
+
+        Args:
+            reference: Bible reference string ("John 3:16" or "John 3:16-18")
+            translation_id: Translation ID to use. If None, uses the default.
+
+        Returns:
+            Ratio between 0.0 and 1.0. Returns 0.0 if no tokens found.
+        """
+        total = self.token_count(reference, translation_id)
+        if total == 0:
+            return 0.0
+        unique = self.unique_token_count(reference, translation_id)
+        return unique / total
+
+    def top_words(
+        self, reference: str, translation_id: str | None = None, n: int = 10
+    ) -> list[tuple[str, int]]:
+        """Get the top N most frequent words in the given reference.
+
+        Args:
+            reference: Bible reference string ("John 3:16" or "John 3:16-18")
+            translation_id: Translation ID to use. If None, uses the default.
+            n: Number of top words to return (default 10).
+
+        Returns:
+            List of (word, count) tuples, sorted by count descending,
+            then alphabetically for ties.
+        """
+        tokens = self._get_all_tokens(reference, translation_id)
+        if not tokens:
+            return []
+        counter = Counter(tokens)
+        return counter.most_common(n)
+
+    def top_bigrams(
+        self, reference: str, translation_id: str | None = None, n: int = 10
+    ) -> list[tuple[str, int]]:
+        """Get the top N most frequent word pairs (bigrams).
+
+        Args:
+            reference: Bible reference string ("John 3:16" or "John 3:16-18")
+            translation_id: Translation ID to use. If None, uses the default.
+            n: Number of top bigrams to return (default 10).
+
+        Returns:
+            List of (bigram, count) tuples where bigram is "word1 word2",
+            sorted by count descending, then alphabetically for ties.
+        """
+        tokens = self._get_all_tokens(reference, translation_id)
+        if len(tokens) < 2:
+            return []
+
+        bigrams = []
+        for i in range(len(tokens) - 1):
+            bigrams.append(f"{tokens[i]} {tokens[i + 1]}")
+
+        counter = Counter(bigrams)
+        return counter.most_common(n)
+
+    def top_trigrams(
+        self, reference: str, translation_id: str | None = None, n: int = 10
+    ) -> list[tuple[str, int]]:
+        """Get the top N most frequent word triplets (trigrams).
+
+        Args:
+            reference: Bible reference string ("John 3:16" or "John 3:16-18")
+            translation_id: Translation ID to use. If None, uses the default.
+            n: Number of top trigrams to return (default 10).
+
+        Returns:
+            List of (trigram, count) tuples where trigram is "word1 word2 word3",
+            sorted by count descending, then alphabetically for ties.
+        """
+        tokens = self._get_all_tokens(reference, translation_id)
+        if len(tokens) < 3:
+            return []
+
+        trigrams = []
+        for i in range(len(tokens) - 2):
+            trigrams.append(f"{tokens[i]} {tokens[i + 1]} {tokens[i + 2]}")
+
+        counter = Counter(trigrams)
+        return counter.most_common(n)
+
+    def analyze_reference(
+        self, reference: str, translation_id: str | None = None, top_n: int = 10
+    ) -> dict:
+        """Analyze verses in a reference (e.g. 'John 3:16' or 'John 3:16-18').
+
+        Args:
+            reference: Bible reference string.
+            translation_id: Translation ID to use. If None, uses the default.
+            top_n: Number of top items to return for words/bigrams/trigrams.
+
+        Returns:
+            Dict with keys: token_count, unique_token_count, type_token_ratio,
+            top_words, top_bigrams, top_trigrams.
+        """
+        return {
+            "token_count": self.token_count(reference, translation_id),
+            "unique_token_count": self.unique_token_count(reference, translation_id),
+            "type_token_ratio": self.type_token_ratio(reference, translation_id),
+            "top_words": self.top_words(reference, translation_id, top_n),
+            "top_bigrams": self.top_bigrams(reference, translation_id, top_n),
+            "top_trigrams": self.top_trigrams(reference, translation_id, top_n),
+        }
+
+    def analyze_chapter(
+        self, book_name: str, chapter: int, translation_id: str | None = None, top_n: int = 10
+    ) -> dict:
+        """Analyze all verses in a chapter.
+
+        Args:
+            book_name: Book name (e.g. "John", "Genesis").
+            chapter: Chapter number.
+            translation_id: Translation ID to use. If None, uses the default.
+            top_n: Number of top items to return for words/bigrams/trigrams.
+
+        Returns:
+            Dict with keys: token_count, unique_token_count, type_token_ratio,
+            top_words, top_bigrams, top_trigrams.
+        """
+        verses = self._verse_service.get_chapter_verses(book_name, chapter, translation_id)
+        if not verses:
+            return {
+                "token_count": 0,
+                "unique_token_count": 0,
+                "type_token_ratio": 0.0,
+                "top_words": [],
+                "top_bigrams": [],
+                "top_trigrams": [],
+            }
+
+        all_tokens = []
+        for verse in verses:
+            all_tokens.extend(self._tokenize(verse["text"]))
+
+        unique = len(set(all_tokens))
+        total = len(all_tokens)
+
+        return {
+            "token_count": total,
+            "unique_token_count": unique,
+            "type_token_ratio": unique / total if total > 0 else 0.0,
+            "top_words": Counter(all_tokens).most_common(top_n),
+            "top_bigrams": self._get_bigrams(all_tokens, top_n),
+            "top_trigrams": self._get_trigrams(all_tokens, top_n),
+        }
+
+    def analyze_book(
+        self, book_name: str, translation_id: str | None = None, top_n: int = 10
+    ) -> dict:
+        """Analyze all verses in a book.
+
+        Args:
+            book_name: Book name (e.g. "John", "Genesis").
+            translation_id: Translation ID to use. If None, uses the default.
+            top_n: Number of top items to return for words/bigrams/trigrams.
+
+        Returns:
+            Dict with keys: token_count, unique_token_count, type_token_ratio,
+            top_words, top_bigrams, top_trigrams.
+        """
+        verses = self._verse_service.get_book_verses(book_name, translation_id)
+        if not verses:
+            return {
+                "token_count": 0,
+                "unique_token_count": 0,
+                "type_token_ratio": 0.0,
+                "top_words": [],
+                "top_bigrams": [],
+                "top_trigrams": [],
+            }
+
+        all_tokens = []
+        for verse in verses:
+            all_tokens.extend(self._tokenize(verse["text"]))
+
+        unique = len(set(all_tokens))
+        total = len(all_tokens)
+
+        return {
+            "token_count": total,
+            "unique_token_count": unique,
+            "type_token_ratio": unique / total if total > 0 else 0.0,
+            "top_words": Counter(all_tokens).most_common(top_n),
+            "top_bigrams": self._get_bigrams(all_tokens, top_n),
+            "top_trigrams": self._get_trigrams(all_tokens, top_n),
+        }
+
+    def _get_bigrams(self, tokens: list[str], n: int) -> list[tuple[str, int]]:
+        """Extract top N bigrams from token list."""
+        if len(tokens) < 2:
+            return []
+        bigrams = []
+        for i in range(len(tokens) - 1):
+            bigrams.append(f"{tokens[i]} {tokens[i + 1]}")
+        return Counter(bigrams).most_common(n)
+
+    def _get_trigrams(self, tokens: list[str], n: int) -> list[tuple[str, int]]:
+        """Extract top N trigrams from token list."""
+        if len(tokens) < 3:
+            return []
+        trigrams = []
+        for i in range(len(tokens) - 2):
+            trigrams.append(f"{tokens[i]} {tokens[i + 1]} {tokens[i + 2]}")
+        return Counter(trigrams).most_common(n)
+
+    def concordance(self, word: str, translation_id: str | None = None) -> list[dict]:
+        """Generate a concordance for a given word using FTS5 full-text search.
+
+        Args:
+            word: The word to search for (case-insensitive).
+            translation_id: Optional translation ID to filter by.
+                If None, searches all translations.
+
+        Returns:
+            List of verse dicts that contain the specified word,
+            ordered by book/chapter/verse.
+        """
+        if not word or not word.strip():
+            raise ValueError("Search word cannot be empty.")
+        return self._verse_service.search_text(word, translation_id)
