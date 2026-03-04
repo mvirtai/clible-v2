@@ -1,5 +1,8 @@
 """Analytics commands: text analysis for verses, chapters, and books."""
 
+import json
+from pathlib import Path
+
 import click
 from rich.console import Console
 from rich.table import Table
@@ -11,16 +14,53 @@ from clible.db.repositories.verse_repo import VerseRepo
 from clible.services.analytic_service import AnalyticService
 from clible.services.verse_service import VerseService
 
+_TRANSLATIONS_FILE = Path(__file__).parent.parent / "data" / "translations.json"
 
-def _get_analytic_service() -> AnalyticService:
-    """Build AnalyticService with real dependencies."""
+
+def _language_for_translation(translation_id: str) -> str:
+    """Look up the language code for a given translation ID.
+
+    Reads the static translations catalog. Returns "en" if the translation
+    is not found or the file is missing.
+
+    Args:
+        translation_id: Translation ID (e.g. "web", "fin-biblia").
+
+    Returns:
+        ISO 639-1 language code (e.g. "en", "fi").
+    """
+    if not _TRANSLATIONS_FILE.exists():
+        return "en"
+    with open(_TRANSLATIONS_FILE, encoding="utf-8") as f:
+        catalog = json.load(f)
+    return catalog.get(translation_id, {}).get("language", "en")
+
+
+def _get_analytic_service(translation_id: str | None) -> AnalyticService:
+    """Build AnalyticService with real dependencies.
+
+    Resolves the stopword language automatically from the translation:
+    if translation_id is None, the installed default is used.
+
+    Args:
+        translation_id: Translation ID passed by the user, or None for default.
+    """
     conn = get_connection()
+    translation_repo = TranslationRepo(conn)
+
+    resolved_id = translation_id
+    if resolved_id is None:
+        default = translation_repo.get_default()
+        resolved_id = default["id"] if default else None
+
+    language = _language_for_translation(resolved_id) if resolved_id else "en"
+
     verse_service = VerseService(
         verse_repo=VerseRepo(conn),
         book_repo=BookRepo(conn),
-        translation_repo=TranslationRepo(conn),
+        translation_repo=translation_repo,
     )
-    return AnalyticService(verse_service=verse_service)
+    return AnalyticService(verse_service=verse_service, language=language)
 
 
 def _render_analysis(console: Console, analysis: dict, scope_label: str) -> None:
@@ -101,7 +141,7 @@ def reference(ref: str, translation_id: str | None, top_n: int) -> None:
     Example: clible analytics reference "Genesis 1:1" -t kjv --top 5
     """
     console = Console()
-    service = _get_analytic_service()
+    service = _get_analytic_service(translation_id)
 
     analysis = service.analyze_reference(ref, translation_id, top_n)
     _render_analysis(console, analysis, ref)
@@ -132,7 +172,7 @@ def chapter(book_name: str, chapter_num: int, translation_id: str | None, top_n:
     Example: clible analytics chapter Genesis 1 -t kjv --top 5
     """
     console = Console()
-    service = _get_analytic_service()
+    service = _get_analytic_service(translation_id)
 
     analysis = service.analyze_chapter(book_name, chapter_num, translation_id, top_n)
     scope_label = f"{book_name} {chapter_num}"
@@ -163,7 +203,7 @@ def book(book_name: str, translation_id: str | None, top_n: int) -> None:
     Example: clible analytics book Genesis -t kjv --top 5
     """
     console = Console()
-    service = _get_analytic_service()
+    service = _get_analytic_service(translation_id)
 
     analysis = service.analyze_book(book_name, translation_id, top_n)
     _render_analysis(console, analysis, book_name)
