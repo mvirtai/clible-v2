@@ -1,6 +1,6 @@
 # clible
 
-A command-line Bible study tool. Offline-first: seed local XML data from [seven1m/open-bibles](https://github.com/seven1m/open-bibles), then query verses without network calls.
+A command-line Bible study tool. Offline-first: seed local XML data, then query and analyze verses locally without network calls.
 
 ## Installation
 
@@ -16,10 +16,11 @@ uv sync
 # One-time: install a translation (~4 MB download each)
 uv run clible seed install web      # World English Bible (USFX)
 uv run clible seed install kjv      # King James Version (OSIS)
-uv run clible seed install fin-biblia  # Finnish Bible (OSIS)
+uv run clible seed install fin-biblia-33-38  # Finnish Bible 1933/1938 (OSIS)
 
 # Look up verses
 uv run clible verse "John 3:16"
+uv run clible verse "John 3:16-18" -t kjv
 uv run clible verse "Genesis 1:1"
 ```
 
@@ -34,7 +35,11 @@ uv run clible verse "Genesis 1:1"
 | `clible seed list` | List installed translations |
 | `clible seed remove <id>` | Uninstall a translation and its verses |
 
-Supported formats: **USFX** (web), **OSIS** (kjv, fin-biblia).
+Supported formats in the catalog:
+
+- **USFX**: `web`
+- **OSIS**: `kjv`, `fin-biblia-33-38`
+- **BEBLIA**: `fin-1992`, `fin-1776`, `fin-stlk`
 
 ### Verse lookup (`clible verse`)
 
@@ -44,6 +49,7 @@ clible verse "1 Corinthians 13:4" -t web
 ```
 
 - **Reference format:** `"Book Chapter:Verse"` (e.g. `"Genesis 1:1"`, `"1 Corinthians 13:4"`)
+- **Range format:** `"Book Chapter:Start-End"` (e.g. `"John 3:1-6"`) in the same chapter
 - **`-t`, `--translation`:** Translation ID. Defaults to the first installed (usually `web`)
 
 ### Text analytics (`clible analytics`)
@@ -71,9 +77,49 @@ clible analytics compare "Psalm 23:1-4" --left fin-1992 --right fin17xx
 
 **Output per scope:** metrics table (total tokens, unique tokens, type-token ratio) + top-N words, bigrams, and trigrams.
 `analytics compare` prints a side-by-side verse table with word-level diffs and a similarity summary (exact match rate, average similarity, shared vocabulary).
+`fin17xx` is an alias that resolves to `fin-1776` (or another installed `fin-17*` translation).
 
 - **`-t`, `--translation`:** Translation ID. Defaults to the first installed.
 - **`--top` / `-n`:** Number of top items to show (default 10).
+
+## Developer workflows
+
+### 1) Local bootstrap from scratch
+
+```bash
+uv sync
+uv run clible seed available
+uv run clible seed install web
+uv run clible seed list
+uv run clible verse "John 3:16"
+```
+
+### 2) Finnish translation comparison workflow
+
+```bash
+uv run clible seed install fin-1992
+uv run clible seed install fin-1776
+uv run clible analytics compare "John 3:16-18"
+```
+
+### 3) Isolated local database for experimentation
+
+```bash
+export CLIBLE_DB_PATH=/tmp/clible-dev.db
+uv run clible seed install web
+uv run clible verse "John 1:1"
+```
+
+## Troubleshooting and common pitfalls
+
+- **`Comparison failed. Missing translation(s): ...`**
+  - Install the missing translations first (typically `fin-1992` and `fin-1776` for default compare).
+- **`Verse(s) not found.`**
+  - Check reference format (`"Book Chapter:Verse"` or `"Book Chapter:Start-End"`), then confirm translation data is installed with `clible seed list`.
+- **`Unknown translation: <id>` during install**
+  - Run `clible seed available` and use an ID exactly as listed.
+- **Unexpected translation selected when `-t` is omitted**
+  - Default resolution is: use `web` if installed, otherwise first installed translation by install time.
 
 ## Configuration
 
