@@ -1,37 +1,54 @@
-# feat: support verse ranges in verse command (multi-verse lookup)
+# feat: add side-by-side Finnish translation comparison with diffs
 
-Extends verse search so a single reference can return multiple consecutive verses from the same chapter. Builds on the existing verse lookup added in the previous PR (Bible data seeding / offline-first).
+Adds a new analytics command for comparing Finnish translations side-by-side:
+`fin-1992` vs `fin17xx` (alias to `fin-1776`).
 
 ## Summary
 
-- **Reference parsing** — `_parse_reference` now supports both single verses and ranges, e.g. `"John 3:16"`, `"John 3:16-18"`, `"John 3:1-6"`. It normalizes whitespace, validates `end >= start`, and returns `(book_name, chapter, verse_start, verse_end)`; invalid or reversed ranges return `None`.
-- **VerseRepo** — New `get_verses_in_range(translation_id, book_id, chapter, verse_start, verse_end)` encapsulates the SQL for inclusive verse ranges, returning plain dicts ordered by verse number.
-- **VerseService** — Keeps `get_verse(reference, translation_id)` for single-verse callers and adds `get_verses(reference, translation_id)` returning a list (length 1 for single reference, N for a range). Both share the same parsing and book/translation resolution.
-- **CLI** — The `verse` command uses `get_verses` and renders each verse in its own Rich `Panel`. Single references show one panel; ranges show multiple panels in order.
+- **New CLI command** — `clible analytics compare "<reference>"` renders two translations in parallel columns, plus a word-level diff column and per-verse similarity percentages.
+- **Alias support** — `fin17xx` and `fin-17xx` are resolved to an installed `fin-1776` (or another installed `fin-17*` translation if present).
+- **Similarity analytics** — Added service-level comparison logic that:
+  - aligns verses by `(book_id, chapter, verse)`
+  - computes per-verse similarity (sequence + token overlap)
+  - reports exact match rate, average similarity, most similar verse, and top shared vocabulary
+- **Error handling** — Clear CLI error messages for missing translations, empty compare results, and invalid same-translation comparisons.
+- **Docs update** — README now includes examples for the new compare command.
 
 ## Files added
 
-- `tests/test_cli/test_verse_commands.py` — CLI integration tests for the verse command, including range behavior.
+- `tests/test_cli/test_analytics_commands.py` — CLI integration tests for `analytics compare` success and failure paths.
 
 ## Files modified
 
-- `src/clible/services/verse_service.py` — Extended `_REFERENCE_PATTERN` and `_parse_reference` for ranges; added `get_verses`; refactored book lookup (exact name then `search()` without duplicate calls).
-- `src/clible/db/repositories/verse_repo.py` — Added `get_verses_in_range`; `get_verse` and `get_verses` unchanged as pure DB helpers.
-- `src/clible/commands/verse.py` — Uses `get_verses`, updated help and error message for ranges; iterates over verses when rendering panels.
-- `tests/test_db/test_repositories/test_verse_repo.py` — Tests for `get_verses_in_range` (subset ordering, empty range).
-- `tests/test_services/test_verse_service.py` — Tests for range parsing and `get_verses` (single vs range, invalid range, no translation).
+- `src/clible/commands/analytics.py`
+  - Added `compare` command
+  - Added translation alias resolver for `fin17xx`
+  - Added side-by-side rendering and word-level diff visualization
+  - Added similarity summary panel output
+- `src/clible/services/analytic_service.py`
+  - Added `compare_translations(reference, translation_a, translation_b)`
+  - Added verse alignment helper and token-overlap helper
+  - Added aggregate similarity summary generation
+- `src/clible/cli.py`
+  - Registered new command: `analytics compare`
+- `tests/test_services/test_analytic_service.py`
+  - Added tests for compare summary metrics, missing verse alignment, and empty result handling
+- `README.md`
+  - Added `analytics compare` usage examples and output description
 
 ## Tests
 
-- `uv run pytest tests/test_db/test_repositories/test_verse_repo.py tests/test_services/test_verse_service.py tests/test_cli/test_verse_commands.py -v`
-- Full suite: `uv run pytest -v` — **98 tests**, all passing.
+- `uv run pytest tests/test_services/test_analytic_service.py tests/test_cli/test_analytics_commands.py -v`
+- `uv run ruff check src/clible/services/analytic_service.py src/clible/commands/analytics.py src/clible/cli.py tests/test_services/test_analytic_service.py tests/test_cli/test_analytics_commands.py`
+- `uv run ruff format --check src/clible/services/analytic_service.py src/clible/commands/analytics.py src/clible/cli.py tests/test_services/test_analytic_service.py tests/test_cli/test_analytics_commands.py`
 
 ## Usage
 
 ```bash
-# Single verse (unchanged)
-uv run clible verse "John 3:16" -t kjv
+# Default compare target:
+# left=fin-1992, right=fin17xx (alias to fin-1776)
+uv run clible analytics compare "John 3:16-18"
 
-# Multi-verse range (new)
-uv run clible verse "John 3:1-6" -t kjv
+# Explicit compare translations
+uv run clible analytics compare "Psalm 23:1-4" --left fin-1992 --right fin17xx
 ```
