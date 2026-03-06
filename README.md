@@ -87,6 +87,17 @@ Override via environment variables:
 | `CLIBLE_DB_PATH` | `{data_dir}/clible.db` | SQLite database path |
 | `CLIBLE_DATA_DIR` | `src/clible/data` | Data and config directory |
 
+### Google Cloud (optional)
+
+For GCS backup, seed-from-GCS, and Docker push to Artifact Registry, see **[docs/GCP_SETUP.md](docs/GCP_SETUP.md)**.
+
+| Variable | Description |
+| -------- | ----------- |
+| `CLIBLE_GCS_BUCKET` | GCS bucket for `clible backup gcs` |
+| `CLIBLE_GCS_BACKUP_PREFIX` | Object prefix for backups (default: `backups`) |
+| `CLIBLE_SEED_BASE_URL` | Base URL for seed XML (e.g. public GCS prefix) |
+| `CLIBLE_GCP_ARTIFACT_REGISTRY` | Artifact Registry prefix for `task d-push-gcp` |
+
 ## Architecture
 
 - **CLI** (Click + Rich) → **Services** → **Repositories** → **SQLite**
@@ -194,6 +205,9 @@ task d-push
 `task d-push` always shows image tags before pushing.
 The target repository can be overridden with `CLIBLE_DOCKER_REPO`.
 
+To push to **Google Cloud Artifact Registry** instead of Docker Hub, set `CLIBLE_GCP_ARTIFACT_REGISTRY` (e.g. `europe-docker.pkg.dev/myproject/clible`) and run `task d-push-gcp`. See [docs/GCP_SETUP.md](docs/GCP_SETUP.md).
+
 ## Documentation
 
 - **[docs/PROJECT_OVERVIEW.md](docs/PROJECT_OVERVIEW.md)** — Architecture, schema, implementation status
+- **[docs/GCP_SETUP.md](docs/GCP_SETUP.md)** — Google Cloud (GCS backup, seed from GCS, Artifact Registry)

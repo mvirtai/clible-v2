@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING, Protocol
 
 import requests
 
+from clible.config import get_config
+
 if TYPE_CHECKING:
     from clible.db.repositories.book_repo import BookRepo
     from clible.db.repositories.translation_repo import TranslationRepo
@@ -117,7 +119,12 @@ class SeedService:
                 f"Format '{fmt}' not supported (supported: {', '.join(_SUPPORTED_FORMATS)})"
             )
 
-        url = meta["url"]
+        cfg = get_config()
+        if cfg.seed_base_url:
+            url = cfg.seed_base_url.rstrip("/") + "/" + meta["filename"]
+        else:
+            url = meta["url"]
+
         start = time.monotonic()
         report = progress_callback or (lambda m: None)
 
@@ -145,7 +152,7 @@ class SeedService:
             "name": meta["name"],
             "language": meta["language"],
             "format": meta["format"],
-            "source_url": meta.get("url"),
+            "source_url": url,
         }
         self._translation_repo.create(translation_data, commit=False)
         count = self._verse_repo.save_verses(verses, translation_id)
