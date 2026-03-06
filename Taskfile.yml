@@ -85,3 +85,8 @@ tasks:
       - task d-show-tags
       - docker push {{.IMAGE_TAG_COMMIT}}
       - docker push {{.IMAGE_TAG_LATEST}}
+
+  pr-compare:
+    desc: Create compare feature PR with prefilled story body
+    cmds:
+      - bash scripts/create_compare_pr.sh
