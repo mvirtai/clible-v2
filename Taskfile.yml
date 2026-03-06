@@ -88,5 +88,7 @@ tasks:
 
   pr-compare:
     desc: Create compare feature PR with prefilled story body
+    vars:
+      ARGS: '{{default "" .ARGS}}'
     cmds:
-      - bash scripts/create_compare_pr.sh
+      - bash scripts/create_compare_pr.sh {{.ARGS}}
