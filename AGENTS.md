@@ -252,3 +252,29 @@ stop and reconsider.
 
 8. **Do not generate massive code blocks without explanation.**
    This is a learning project. The developer must understand every line.
+
+---
+
+## Cursor Cloud specific instructions
+
+This project uses **uv** as the package manager. The update script installs uv (if missing) and runs `uv sync --all-groups`.
+
+### Quick reference
+
+| Task | Command |
+|------|---------|
+| Install deps | `uv sync --all-groups` |
+| Run tests | `uv run pytest -v` |
+| Lint | `uv run ruff check .` |
+| Format check | `uv run ruff format --check .` |
+| Run CLI | `uv run clible --help` |
+| Look up a verse | `uv run clible verse "John 3:16"` |
+
+### Notes
+
+- Python 3.12+ is required (the VM has 3.12.3 at `/usr/bin/python3`).
+- The project is a pure CLI tool — no web server to start. The "hello world" flow is: `clible seed install web` (downloads ~4 MB) then `clible verse "John 3:16"`.
+- SQLite is embedded (stdlib `sqlite3`), no external DB server needed.
+- Bible XML files are downloaded from GitHub during `seed install` — this requires internet but is **not** needed for tests (all HTTP is mocked).
+- The SQLite database lives at `src/clible/data/clible.db` by default (configurable via `CLIBLE_DB_PATH` env var).
+- `pylance` is listed as a runtime dependency in `pyproject.toml` but is actually a dev tool; this is a known quirk of the project's current config.
