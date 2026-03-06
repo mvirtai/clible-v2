@@ -98,6 +98,19 @@ For GCS backup, seed-from-GCS, and Docker push to Artifact Registry, see **[docs
 | `CLIBLE_SEED_BASE_URL` | Base URL for seed XML (e.g. public GCS prefix) |
 | `CLIBLE_GCP_ARTIFACT_REGISTRY` | Artifact Registry prefix for `task d-push-gcp` |
 
+### Backup and restore (`clible backup`)
+
+```bash
+# Upload the local SQLite database to GCS
+clible backup gcs
+
+# Restore the local database from a GCS object
+clible backup restore-gcs "gs://my-bucket/backups/clible-20260306-180000.db"
+```
+
+`restore-gcs` asks for confirmation before replacing the local DB. Use `--force`
+to skip the prompt in scripted environments.
+
 ## Architecture
 
 - **CLI** (Click + Rich) → **Services** → **Repositories** → **SQLite**

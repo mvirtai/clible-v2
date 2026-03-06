@@ -1,13 +1,15 @@
 """Backup subcommands: GCS and other targets."""
 
+import tempfile
 import warnings
+from pathlib import Path
 
 import click
 from rich.console import Console
 from rich.panel import Panel
 
 from clible.config import get_config
-from clible.storage.gcs import upload_file
+from clible.storage.gcs import download_file, upload_file
 
 
 def _timestamp_for_backup() -> str:
@@ -23,6 +25,22 @@ def backup() -> None:
     pass
 
 
+def _db_path() -> Path:
+    """Return the configured database path as a Path instance."""
+    return Path(get_config().db_path)
+
+
+def _gcs_error_hint(error: Exception) -> str:
+    """Return extra troubleshooting text for common GCS auth failures."""
+    err_str = str(error).lower()
+    if "invalid_grant" in err_str or "refresh" in err_str:
+        return (
+            "\n\nYour credentials may have expired. Re-authenticate with:\n"
+            "  gcloud auth application-default login"
+        )
+    return ""
+
+
 @backup.command("gcs")
 def backup_gcs() -> None:
     """Upload the SQLite database to Google Cloud Storage.
@@ -33,6 +51,7 @@ def backup_gcs() -> None:
     """
     console = Console()
     cfg = get_config()
+    db_path = _db_path()
     if not cfg.gcs_bucket:
         console.print(
             Panel(
@@ -44,10 +63,10 @@ def backup_gcs() -> None:
         )
         raise SystemExit(1)
 
-    if not cfg.db_path.exists():
+    if not db_path.exists():
         console.print(
             Panel(
-                f"Database file not found: {cfg.db_path}",
+                f"Database file not found: {db_path}",
                 title="[red]File not found[/red]",
                 border_style="red",
             )
@@ -66,7 +85,7 @@ def backup_gcs() -> None:
             uri = upload_file(
                 bucket_name=cfg.gcs_bucket,
                 object_name=object_name,
-                local_path=cfg.db_path,
+                local_path=db_path,
             )
         console.print(
             Panel(
@@ -76,17 +95,96 @@ def backup_gcs() -> None:
             )
         )
     except Exception as e:
-        hint = ""
-        err_str = str(e).lower()
-        if "invalid_grant" in err_str or "refresh" in err_str:
-            hint = (
-                "\n\nYour credentials may have expired. Re-authenticate with:\n"
-                "  gcloud auth application-default login"
-            )
         console.print(
             Panel(
-                str(e) + hint,
+                str(e) + _gcs_error_hint(e),
                 title="[red]GCS upload failed[/red]",
+                border_style="red",
+            )
+        )
+        raise SystemExit(1)
+
+
+@backup.command("restore-gcs")
+@click.argument("gcs_uri")
+@click.option(
+    "--force",
+    is_flag=True,
+    help="Skip the confirmation prompt before replacing the local database.",
+)
+def restore_gcs(gcs_uri: str, force: bool) -> None:
+    """Restore the local SQLite database from a GCS object.
+
+    Downloads the remote database to a temporary file, writes a local backup of
+    the current database (if present), and then replaces the configured DB file.
+    """
+    console = Console()
+    db_path = _db_path()
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if not force:
+        confirmed = click.confirm(
+            f"This will replace the local database at '{db_path}'. Continue?",
+            default=False,
+        )
+        if not confirmed:
+            console.print(
+                Panel(
+                    "Restore cancelled. Local database was not changed.",
+                    title="[yellow]Restore aborted[/yellow]",
+                    border_style="yellow",
+                )
+            )
+            raise SystemExit(1)
+
+    temp_path: Path | None = None
+    backup_path: Path | None = None
+    timestamp = _timestamp_for_backup()
+
+    try:
+        with tempfile.NamedTemporaryFile(
+            suffix=".db",
+            prefix="clible-restore-",
+            dir=db_path.parent,
+            delete=False,
+        ) as temp_file:
+            temp_path = Path(temp_file.name)
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                category=UserWarning,
+                module="google.auth._default",
+            )
+            download_file(gcs_uri, temp_path)
+
+        if db_path.exists():
+            backup_path = db_path.with_name(f"{db_path.name}.pre-restore-{timestamp}.bak")
+            db_path.replace(backup_path)
+
+        temp_path.replace(db_path)
+
+        message = f"Database restored successfully from:\n{gcs_uri}\n\nLocal path:\n{db_path}"
+        if backup_path is not None:
+            message += f"\n\nPrevious database backup:\n{backup_path}"
+
+        console.print(
+            Panel(
+                message,
+                title="[green]GCS restore complete[/green]",
+                border_style="green",
+            )
+        )
+    except Exception as e:
+        if temp_path is not None and temp_path.exists():
+            temp_path.unlink()
+        if backup_path is not None and backup_path.exists() and not db_path.exists():
+            backup_path.replace(db_path)
+
+        console.print(
+            Panel(
+                str(e) + _gcs_error_hint(e),
+                title="[red]GCS restore failed[/red]",
                 border_style="red",
             )
         )

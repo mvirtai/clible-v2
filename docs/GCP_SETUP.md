@@ -1,6 +1,6 @@
 # Google Cloud setup (optional)
 
-This document describes how to use clible with Google Cloud: backing up the database to GCS, optionally seeding translations from a GCS bucket, and pushing the Docker image to Artifact Registry.
+This document describes how to use clible with Google Cloud: backing up the database to GCS, restoring it back locally, optionally seeding translations from a GCS bucket, and pushing the Docker image to Artifact Registry.
 
 ## Prerequisites
 
@@ -28,6 +28,16 @@ This document describes how to use clible with Google Cloud: backing up the data
    ```bash
    clible backup gcs
    ```
+
+5. Restore a backup back to the configured local database path:
+
+   ```bash
+   clible backup restore-gcs "gs://YOUR_BUCKET_NAME/backups/clible-YYYYMMDD-HHMMSS.db"
+   ```
+
+   The command downloads the object to a temporary file, asks for confirmation,
+   stores the current local database as `*.pre-restore-<timestamp>.bak`, and
+   then replaces the configured database file.
 
 **Troubleshooting**
 
@@ -94,6 +104,5 @@ You can serve translation XML files from a GCS bucket and point clible at that l
 
 ## Future options
 
-- **Restore from GCS:** A `clible restore gcs gs://bucket/backups/clible-YYYYMMDD-HHMMSS.db` command could download and replace the local database.
 - **Private GCS seed:** Using the `google-cloud-storage` SDK to download from a private bucket when the catalog or config points to a `gs://` URL.
 - **Cloud Run / scheduled backup:** Run the CLI in a container (e.g. Cloud Run job or GCE) and trigger backup on a schedule (e.g. Cloud Scheduler).

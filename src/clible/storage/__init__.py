@@ -1,5 +1,5 @@
 """Storage backends for backup and optional data sources."""
 
-from clible.storage.gcs import upload_file
+from clible.storage.gcs import download_file, parse_gcs_uri, upload_file
 
-__all__ = ["upload_file"]
+__all__ = ["download_file", "parse_gcs_uri", "upload_file"]
