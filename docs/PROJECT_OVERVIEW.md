@@ -1,6 +1,6 @@
 # clible v2 — Project Overview
 
-**Last updated:** 2026-03-02
+**Last updated:** 2026-03-05
 
 This document provides a comprehensive picture of the clible v2 application: what it is, its architecture, current implementation status, and where all the pieces live.
 
@@ -21,25 +21,27 @@ clible is a command-line Bible study tool. The v2 rebuild aims for:
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │ UI Layer                                                        │
-│   cli.py, commands/seed.py, commands/verse.py (Click + Rich)    │
+│   cli.py, commands/seed.py, commands/verse.py,                   │
+│   commands/analytics.py (Click + Rich)                           │
 └───────────────────────────────┬─────────────────────────────────┘
                                 │
 ┌───────────────────────────────▼─────────────────────────────────┐
 │ Service Layer                                                    │
-│   SeedService (install, list, remove)  VerseService (lookup)     │
+│   SeedService (install/list/remove), VerseService (lookup/search),│
+│   AnalyticService (token stats, n-grams, concordance)            │
 └──────────────┬──────────────────────────────┬───────────────────┘
                │                              │
 ┌──────────────▼──────────────┐  ┌─────────────▼──────────────────┐
 │ Repositories                │  │ Parsers                         │
-│   TranslationRepo           │  │   USFXParser, OSISParser        │
-│   BookRepo                 │  │   (XML → verse dicts)           │
-│   VerseRepo                │  │                                 │
+│   TranslationRepo           │  │   USFXParser, OSISParser,        │
+│   BookRepo                  │  │   BebliaParser                   │
+│   VerseRepo                 │  │   (XML → verse dicts)           │
 └──────────────┬──────────────┘  └─────────────────────────────────┘
                │
 ┌──────────────▼──────────────┐
 │ SQLite (clible.db)          │
-│   books, translations,     │
-│   verses                    │
+│   books, translations,      │
+│   verses + verses_fts (FTS5)│
 └────────────────────────────┘
 ```
 
@@ -57,28 +59,32 @@ clible is a command-line Bible study tool. The v2 rebuild aims for:
 | **DB connection** | `src/clible/db/connection.py` | WAL, foreign_keys, row_factory, migrations, seed_books |
 | **Migrations** | `src/clible/db/migrations.py` | `_migrations` table, ordered `.sql` execution |
 | **002_seed_architecture.sql** | `src/clible/db/migrations/` | books, translations, verses + indexes |
+| **003_add_verse_fts.sql** | `src/clible/db/migrations/` | FTS5 virtual table + triggers for `verses` |
 | **Seed books** | `src/clible/db/seed_books.py` | Fills `books` from bible_structure.json when empty |
 | **TranslationRepo** | `src/clible/db/repositories/translation_repo.py` | get_all, get_by_id, exists, create, delete, get_default |
 | **BookRepo** | `src/clible/db/repositories/book_repo.py` | get_all, get_by_id, get_by_name, search |
-| **VerseRepo** | `src/clible/db/repositories/verse_repo.py` | get_verse, get_verses, save_verses |
+| **VerseRepo** | `src/clible/db/repositories/verse_repo.py` | get_verse, get_verses, get_verses_in_range, save_verses, search_text |
 | **USFX parser** | `src/clible/parsers/usfx_parser.py` | parse_file(xml_path) → list of verse dicts |
 | **OSIS parser** | `src/clible/parsers/osis_parser.py` | parse_file(xml_path) → list of verse dicts (container + milestone) |
+| **Beblia parser** | `src/clible/parsers/beblia_parser.py` | parse_file(xml_path) for BEBLIA XML format |
 | **OSIS book map** | `src/clible/parsers/osis_book_map.py` | OSIS book IDs → clible book IDs |
 | **SeedService** | `src/clible/services/seed_service.py` | list_available, list_installed, seed_translation, remove_translation |
-| **VerseService** | `src/clible/services/verse_service.py` | get_verse(reference, translation_id) |
-| **CLI** | `src/clible/cli.py`, `commands/` | seed (install, list, available, remove), verse |
-| **Data files** | `src/clible/data/` | bible_structure.json, translations.json, progress_quotes.json, eng-web.usfx.xml |
+| **VerseService** | `src/clible/services/verse_service.py` | get_verse/get_verses (single + range), chapter/book retrieval, FTS search |
+| **AnalyticService** | `src/clible/services/analytic_service.py` | token metrics, top words, bigrams, trigrams, concordance |
+| **CLI** | `src/clible/cli.py`, `commands/` | seed (install, list, available, remove), verse, analytics (reference/chapter/book) |
+| **Data files** | `src/clible/data/` | bible_structure.json, translations.json, stopwords.json, progress_quotes.json |
 | **Tests** | `tests/` | Repos, parsers, services, CLI; in-memory SQLite, mocked HTTP |
 | **CI** | `.github/workflows/ci.yml` | uv, ruff, pytest on push/PR |
+| **Task automation** | `Taskfile.yml` | lint/test/check + Docker build/push tasks |
 | **Dependencies** | `pyproject.toml` | click, rich, requests, ruff, pytest, pytest-mock |
 
 ### Planned (not yet implemented)
 
 | Area | Notes |
 |------|-------|
-| **Search** | Full-text search across verses |
+| **Search command UX** | FTS backend exists; dedicated `clible search` command not yet added |
 | **Export** | Markdown, plain text export |
-| **Sessions / analytics** | From original PLAN.md |
+| **Sessions** | From original PLAN.md |
 
 ---
 
@@ -87,32 +93,37 @@ clible is a command-line Bible study tool. The v2 rebuild aims for:
 ```
 clible-v2/
 ├── src/clible/
-│   ├── cli.py                 # Entry point, seed + verse command groups
+│   ├── cli.py                 # Entry point, seed + verse + analytics groups
 │   ├── config.py              # Configuration (env overrides)
 │   ├── commands/
 │   │   ├── seed.py            # seed install, list, available, remove
-│   │   └── verse.py           # verse "reference" -t translation
+│   │   ├── verse.py           # verse "reference" -t translation
+│   │   └── analytics.py       # analytics reference/chapter/book
 │   ├── db/
 │   │   ├── connection.py      # get_connection, migrations, seed_books
 │   │   ├── migrations.py      # run_migrations()
 │   │   ├── migrations/
 │   │   │   ├── 001_initial_schema.sql   # Placeholder
-│   │   │   └── 002_seed_architecture.sql
+│   │   │   ├── 002_seed_architecture.sql
+│   │   │   └── 003_add_verse_fts.sql
 │   │   ├── seed_books.py      # seed_books_if_empty(conn)
 │   │   └── repositories/
 │   │       ├── book_repo.py
 │   │       ├── translation_repo.py
 │   │       └── verse_repo.py
 │   ├── parsers/
+│   │   ├── beblia_parser.py   # BEBLIA XML → verse dicts
 │   │   ├── osis_book_map.py   # OSIS → clible book ID mapping
 │   │   ├── osis_parser.py     # OSIS XML → verse dicts
 │   │   └── usfx_parser.py     # USFX XML → verse dicts
 │   ├── services/
+│   │   ├── analytic_service.py
 │   │   ├── seed_service.py
 │   │   └── verse_service.py
 │   └── data/
 │       ├── bible_structure.json   # 66 books metadata
-│       ├── translations.json      # Catalog (web, kjv, fin-biblia)
+│       ├── translations.json      # Catalog (web, kjv, fin-biblia-33-38, fin-1992, ...)
+│       ├── stopwords.json         # Language-specific stopword lists (en, fi)
 │       ├── progress_quotes.json   # Quotes shown during seed
 │       └── eng-web.usfx.xml       # Sample XML
 ├── tests/
@@ -133,7 +144,7 @@ clible-v2/
 
 ---
 
-## Database Schema (002_seed_architecture)
+## Database Schema (002_seed_architecture + 003_add_verse_fts)
 
 **books** — Static reference (66 books)
 - `id` TEXT PK (e.g. GEN, JHN)
@@ -151,6 +162,11 @@ clible-v2/
 
 Indexes: `idx_verses_lookup`, `idx_verses_search`
 
+**verses_fts** — FTS5 index for full-text search
+- Virtual table linked to `verses(text)`
+- Triggers keep index synced on INSERT/UPDATE/DELETE
+- Used by `VerseRepo.search_text()` and analytics concordance
+
 ---
 
 ## Key Conventions
@@ -158,6 +174,8 @@ Indexes: `idx_verses_lookup`, `idx_verses_search`
 - **Config:** `get_config()` from `clible.config`; override via `CLIBLE_*` env vars
 - **DB:** `get_connection()` or `get_connection(":memory:")`; repos receive `conn` in constructor
 - **Repos:** Return plain dicts (or TypedDict like BookRow); no sqlite3.Row leakage
+- **Default translation:** `web` if installed, otherwise first installed translation
+- **Analytics stopwords:** language picked from `translations.json` (`language` field), fallback `en`
 - **Tests:** In-memory SQLite, mocked HTTP; fixtures in `conftest.py`
 - **Entry point:** `clible` script (pyproject.toml) or `python main.py`
 

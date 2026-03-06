@@ -16,11 +16,13 @@ uv sync
 # One-time: install a translation (~4 MB download each)
 uv run clible seed install web      # World English Bible (USFX)
 uv run clible seed install kjv      # King James Version (OSIS)
-uv run clible seed install fin-biblia  # Finnish Bible (OSIS)
+uv run clible seed install fin-biblia-33-38  # Finnish Bible 1933/1938 (OSIS)
+uv run clible seed install fin-1992          # Finnish Bible 1992 (BEBLIA)
 
 # Look up verses
 uv run clible verse "John 3:16"
 uv run clible verse "Genesis 1:1"
+uv run clible verse "John 3:16-18"
 ```
 
 ## Commands
@@ -34,22 +36,28 @@ uv run clible verse "Genesis 1:1"
 | `clible seed list` | List installed translations |
 | `clible seed remove <id>` | Uninstall a translation and its verses |
 
-Supported formats: **USFX** (web), **OSIS** (kjv, fin-biblia).
+Supported formats:
+
+- **USFX**: `web`
+- **OSIS**: `kjv`, `fin-biblia-33-38`
+- **BEBLIA**: `fin-1992`, `fin-1776`, `fin-stlk`
 
 ### Verse lookup (`clible verse`)
 
 ```bash
 clible verse "John 3:16"
+clible verse "John 3:16-18"
 clible verse "1 Corinthians 13:4" -t web
 ```
 
-- **Reference format:** `"Book Chapter:Verse"` (e.g. `"Genesis 1:1"`, `"1 Corinthians 13:4"`)
-- **`-t`, `--translation`:** Translation ID. Defaults to the first installed (usually `web`)
+- **Reference format:** `"Book Chapter:Verse"` or range `"Book Chapter:Start-End"` (e.g. `"Genesis 1:1"`, `"John 3:16-18"`)
+- **`-t`, `--translation`:** Translation ID. Defaults to `web` if installed, otherwise first installed
 
 ### Text analytics (`clible analytics`)
 
 Analyze token frequencies, lexical diversity, and n-grams for any scope.
 Stopwords (articles, prepositions, pronouns) are filtered by default.
+Stopword language is resolved from the selected translation's `language` in `src/clible/data/translations.json` (fallback: `en`).
 
 ```bash
 # Analyze specific verses
@@ -67,7 +75,7 @@ clible analytics book Genesis -t kjv
 
 **Output per scope:** metrics table (total tokens, unique tokens, type-token ratio) + top-N words, bigrams, and trigrams.
 
-- **`-t`, `--translation`:** Translation ID. Defaults to the first installed.
+- **`-t`, `--translation`:** Translation ID. Defaults to `web` if installed, otherwise first installed.
 - **`--top` / `-n`:** Number of top items to show (default 10).
 
 ## Configuration
@@ -83,7 +91,8 @@ Override via environment variables:
 
 - **CLI** (Click + Rich) → **Services** → **Repositories** → **SQLite**
 - Repositories: TranslationRepo, BookRepo, VerseRepo
-- Parsers: USFX, OSIS (XML → verses)
+- Parsers: USFX, OSIS, BEBLIA (XML → verses)
+- Full-text search: SQLite FTS5 index (`verses_fts`) for concordance/search codepaths
 - No external API at runtime; all data local after seeding
 
 ## Development
@@ -93,6 +102,64 @@ uv sync --all-groups
 uv run pytest -v
 uv run ruff check . && uv run ruff format --check .
 ```
+
+## Operational runbook
+
+### Translation lifecycle
+
+```bash
+# See what can be installed
+clible seed available
+
+# Install one translation
+clible seed install web
+
+# Verify installation
+clible seed list
+
+# Remove translation and its verses
+clible seed remove web
+```
+
+### Local quality gates
+
+```bash
+# Standard checks
+task check
+
+# Run a focused test subset
+task test-one PATTERN=verse_service
+```
+
+`task d-build` depends on `task check`, so Docker images are only built after lint, format-check, and tests pass.
+
+## Troubleshooting
+
+### `Error: Unknown translation: <id>`
+
+- Cause: ID is not in `src/clible/data/translations.json`.
+- Fix: run `clible seed available` and use an ID from that list.
+
+### `Error: Translation '<id>' is already installed`
+
+- Cause: duplicate install attempt.
+- Fix: either keep the existing install or run `clible seed remove <id>` first.
+
+### `Verse(s) not found`
+
+- Cause: invalid reference format, missing verses in selected translation, or no installed translations.
+- Fix:
+  1. Use `Book Chapter:Verse` or `Book Chapter:Start-End` format (e.g. `John 3:16-18`).
+  2. Confirm installed translations with `clible seed list`.
+  3. Set translation explicitly with `-t <id>`.
+
+### Analytics results are sparse or empty
+
+- Cause: very short input and/or stopword filtering removes most tokens.
+- Fix:
+  1. Analyze a larger scope (`analytics chapter` or `analytics book`).
+  2. Try another translation/language (`-t web` vs `-t fin-1992`).
+  3. Increase output depth with `--top`.
 
 ## Task Automation
 
