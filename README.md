@@ -63,9 +63,14 @@ clible analytics chapter Genesis 1 -t kjv
 # Analyze an entire book
 clible analytics book John --top 20
 clible analytics book Genesis -t kjv
+
+# Compare Finnish translations side-by-side with diffs
+clible analytics compare "John 3:16-18"
+clible analytics compare "Psalm 23:1-4" --left fin-1992 --right fin17xx
 ```
 
 **Output per scope:** metrics table (total tokens, unique tokens, type-token ratio) + top-N words, bigrams, and trigrams.
+`analytics compare` prints a side-by-side verse table with word-level diffs and a similarity summary (exact match rate, average similarity, shared vocabulary).
 
 - **`-t`, `--translation`:** Translation ID. Defaults to the first installed.
 - **`--top` / `-n`:** Number of top items to show (default 10).

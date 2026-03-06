@@ -239,3 +239,128 @@ def test_analyze_book_returns_empty_metrics_when_no_verses(analytic_service, ver
     assert result["unique_token_count"] == 0
     assert result["type_token_ratio"] == 0.0
     assert result["top_words"] == []
+
+
+def test_compare_translations_returns_aligned_rows_and_similarity_summary(
+    analytic_service_no_filter, verse_service_mock
+):
+    """compare_translations returns side-by-side rows and aggregate similarity metrics."""
+
+    def _verses_for_translation(_reference: str, translation_id: str) -> list[dict]:
+        if translation_id == "fin-1992":
+            return [
+                {
+                    "book_id": "JHN",
+                    "chapter": 3,
+                    "verse": 16,
+                    "text": "Sillä niin on Jumala maailmaa rakastanut",
+                },
+                {
+                    "book_id": "JHN",
+                    "chapter": 3,
+                    "verse": 17,
+                    "text": "Jumala ei lähettänyt Poikaansa tuomitsemaan maailmaa",
+                },
+            ]
+        return [
+            {
+                "book_id": "JHN",
+                "chapter": 3,
+                "verse": 16,
+                "text": "Sillä Jumala on rakastanut maailmaa niin paljon",
+            },
+            {
+                "book_id": "JHN",
+                "chapter": 3,
+                "verse": 17,
+                "text": "Jumala ei lähettänyt Poikaansa tuomitsemaan maailmaa",
+            },
+        ]
+
+    verse_service_mock.get_verses.side_effect = _verses_for_translation
+
+    result = analytic_service_no_filter.compare_translations(
+        "John 3:16-17",
+        "fin-1992",
+        "fin-1776",
+    )
+
+    assert result["translation_a"] == "fin-1992"
+    assert result["translation_b"] == "fin-1776"
+    assert len(result["aligned_verses"]) == 2
+    assert result["summary"]["total_verses"] == 2
+    assert result["summary"]["fully_aligned_verses"] == 2
+    assert result["summary"]["exact_matches"] == 1
+    assert 0.0 < result["summary"]["average_similarity"] <= 1.0
+    assert result["summary"]["most_similar_verse"]["reference"] == "JHN 3:17"
+    assert result["summary"]["top_shared_words"]
+
+
+def test_compare_translations_handles_missing_verses_between_translations(
+    analytic_service_no_filter, verse_service_mock
+):
+    """compare_translations keeps unmatched verses and sets their similarity to zero."""
+
+    def _verses_for_translation(_reference: str, translation_id: str) -> list[dict]:
+        if translation_id == "fin-1992":
+            return [
+                {
+                    "book_id": "JHN",
+                    "chapter": 3,
+                    "verse": 16,
+                    "text": "Sillä niin on Jumala maailmaa rakastanut",
+                }
+            ]
+        return [
+            {
+                "book_id": "JHN",
+                "chapter": 3,
+                "verse": 16,
+                "text": "Sillä niin on Jumala maailmaa rakastanut",
+            },
+            {
+                "book_id": "JHN",
+                "chapter": 3,
+                "verse": 17,
+                "text": "Hän ei lähettänyt Poikaansa maailmaan tuomitsemaan",
+            },
+        ]
+
+    verse_service_mock.get_verses.side_effect = _verses_for_translation
+
+    result = analytic_service_no_filter.compare_translations(
+        "John 3:16-17",
+        "fin-1992",
+        "fin-1776",
+    )
+
+    assert result["summary"]["total_verses"] == 2
+    assert result["summary"]["fully_aligned_verses"] == 1
+    assert result["summary"]["exact_matches"] == 1
+
+    second_row = result["aligned_verses"][1]
+    assert second_row["verse"] == 17
+    assert second_row["text_a"] == ""
+    assert second_row["text_b"] != ""
+    assert second_row["similarity"] == 0.0
+    assert not second_row["exact_match"]
+
+
+def test_compare_translations_returns_empty_summary_when_no_verses_found(
+    analytic_service_no_filter, verse_service_mock
+):
+    """compare_translations returns zeroed summary when neither translation has verses."""
+    verse_service_mock.get_verses.return_value = []
+
+    result = analytic_service_no_filter.compare_translations(
+        "Unknown 1:1",
+        "fin-1992",
+        "fin-1776",
+    )
+
+    assert result["aligned_verses"] == []
+    assert result["summary"]["total_verses"] == 0
+    assert result["summary"]["fully_aligned_verses"] == 0
+    assert result["summary"]["exact_matches"] == 0
+    assert result["summary"]["average_similarity"] == 0.0
+    assert result["summary"]["most_similar_verse"] is None

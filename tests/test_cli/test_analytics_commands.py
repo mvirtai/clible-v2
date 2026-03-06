@@ -1,0 +1,121 @@
+"""CLI integration tests for analytics commands."""
+
+import tempfile
+
+import pytest
+from click.testing import CliRunner
+
+from clible import config as config_module
+from clible.cli import main
+from clible.db.connection import get_connection
+from clible.db.repositories.translation_repo import TranslationRepo
+from clible.db.repositories.verse_repo import VerseRepo
+
+
+@pytest.fixture(autouse=True)
+def cli_uses_temp_db(monkeypatch):
+    """Use a temporary SQLite DB for CLI tests."""
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
+        tmp_path = f.name
+    monkeypatch.setattr(config_module.config, "db_path", tmp_path)
+    yield
+    try:
+        import os
+
+        os.unlink(tmp_path)
+    except OSError:
+        pass
+
+
+def test_analytics_compare_shows_side_by_side_diff_and_similarity(cli_uses_temp_db):
+    """analytics compare renders table rows and similarity summary."""
+    conn = get_connection()
+    translation_repo = TranslationRepo(conn)
+    verse_repo = VerseRepo(conn)
+
+    translation_repo.create(
+        {
+            "id": "fin-1992",
+            "name": "Finnish Bible 1992",
+            "language": "fi",
+            "format": "BEBLIA",
+        }
+    )
+    translation_repo.create(
+        {
+            "id": "fin-1776",
+            "name": "Finnish Bible 1776",
+            "language": "fi",
+            "format": "BEBLIA",
+        }
+    )
+
+    verse_repo.save_verses(
+        [
+            {
+                "book_id": "JHN",
+                "chapter": 3,
+                "verse": 16,
+                "text": "Sillä niin on Jumala maailmaa rakastanut",
+            },
+            {
+                "book_id": "JHN",
+                "chapter": 3,
+                "verse": 17,
+                "text": "Jumala ei lähettänyt Poikaansa tuomitsemaan maailmaa",
+            },
+        ],
+        "fin-1992",
+    )
+    verse_repo.save_verses(
+        [
+            {
+                "book_id": "JHN",
+                "chapter": 3,
+                "verse": 16,
+                "text": "Sillä Jumala on rakastanut maailmaa niin paljon",
+            },
+            {
+                "book_id": "JHN",
+                "chapter": 3,
+                "verse": 17,
+                "text": "Jumala ei lähettänyt Poikaansa tuomitsemaan maailmaa",
+            },
+        ],
+        "fin-1776",
+    )
+    conn.close()
+
+    runner = CliRunner()
+    result = runner.invoke(main, ["analytics", "compare", "John 3:16-17"])
+
+    assert result.exit_code == 0
+    assert "Translation Comparison: John 3:16-17" in result.output
+    assert "fin-1992" in result.output
+    assert "fin17xx" in result.output
+    assert "fin-1776" in result.output
+    assert "Similarity Analysis" in result.output
+    assert "Exact textual matches" in result.output
+    assert "Average similarity" in result.output
+
+
+def test_analytics_compare_fails_when_required_translations_missing(cli_uses_temp_db):
+    """analytics compare exits with error if fin17xx alias cannot be resolved."""
+    conn = get_connection()
+    translation_repo = TranslationRepo(conn)
+    translation_repo.create(
+        {
+            "id": "fin-1992",
+            "name": "Finnish Bible 1992",
+            "language": "fi",
+            "format": "BEBLIA",
+        }
+    )
+    conn.close()
+
+    runner = CliRunner()
+    result = runner.invoke(main, ["analytics", "compare", "John 3:16"])
+
+    assert result.exit_code != 0
+    assert "Comparison failed." in result.output
+    assert "Missing translation(s): fin17xx" in result.output

@@ -1,10 +1,13 @@
 """Analytics commands: text analysis for verses, chapters, and books."""
 
+import difflib
 import json
 from pathlib import Path
 
 import click
 from rich.console import Console
+from rich.markup import escape
+from rich.panel import Panel
 from rich.table import Table
 
 from clible.db.connection import get_connection
@@ -63,6 +66,65 @@ def _get_analytic_service(translation_id: str | None) -> AnalyticService:
     return AnalyticService(verse_service=verse_service, language=language)
 
 
+def _resolve_compare_translation_id(
+    translation_repo: TranslationRepo,
+    requested_translation_id: str,
+) -> str | None:
+    """Resolve compare translation IDs, including fin17xx alias support.
+
+    Args:
+        translation_repo: Repository used to inspect installed translations.
+        requested_translation_id: Translation ID provided by user.
+
+    Returns:
+        Installed translation ID if resolvable, else None.
+    """
+    if translation_repo.exists(requested_translation_id):
+        return requested_translation_id
+
+    alias = requested_translation_id.strip().lower()
+    if alias in {"fin17xx", "fin-17xx"}:
+        if translation_repo.exists("fin-1776"):
+            return "fin-1776"
+
+        for item in translation_repo.get_all():
+            if item["id"].startswith("fin-17"):
+                return item["id"]
+
+    return None
+
+
+def _display_translation_label(requested_id: str, resolved_id: str) -> str:
+    """Build a readable translation label for table headers."""
+    if requested_id == resolved_id:
+        return resolved_id
+    return f"{requested_id} ({resolved_id})"
+
+
+def _word_level_diff_markup(text_a: str, text_b: str) -> str:
+    """Render word-level diff with Rich color markup.
+
+    Removed words are red with "-" prefix, added words green with "+" prefix.
+    """
+    tokens_a = text_a.split()
+    tokens_b = text_b.split()
+    diff_tokens: list[str] = []
+
+    for token in difflib.ndiff(tokens_a, tokens_b):
+        marker = token[:2]
+        word = escape(token[2:])
+        if marker == "- ":
+            diff_tokens.append(f"[red]-{word}[/red]")
+        elif marker == "+ ":
+            diff_tokens.append(f"[green]+{word}[/green]")
+        elif marker == "  ":
+            diff_tokens.append(word)
+
+    if not diff_tokens:
+        return "[dim]No textual difference.[/dim]"
+    return " ".join(diff_tokens)
+
+
 def _render_analysis(console: Console, analysis: dict, scope_label: str) -> None:
     """Render analysis results as Rich tables.
 
@@ -115,6 +177,76 @@ def _render_analysis(console: Console, analysis: dict, scope_label: str) -> None
             trigrams_table.add_row(str(i), trigram, str(count))
 
         console.print(trigrams_table)
+
+
+def _render_comparison(
+    console: Console,
+    comparison: dict,
+    left_label: str,
+    right_label: str,
+) -> None:
+    """Render side-by-side diff table and similarity summary."""
+    console.print(f"\n[bold cyan]Translation Comparison: {comparison['reference']}[/bold cyan]\n")
+
+    table = Table(show_header=True, show_lines=True)
+    table.add_column("Verse", style="dim", no_wrap=True)
+    table.add_column(left_label, overflow="fold")
+    table.add_column(right_label, overflow="fold")
+    table.add_column("Diff", overflow="fold")
+    table.add_column("Similarity", justify="right", no_wrap=True)
+
+    for row in comparison["aligned_verses"]:
+        ref = f"{row['book_id']} {row['chapter']}:{row['verse']}"
+        text_a = row["text_a"] or "[dim]— missing —[/dim]"
+        text_b = row["text_b"] or "[dim]— missing —[/dim]"
+
+        if row["text_a"] and row["text_b"]:
+            diff = _word_level_diff_markup(row["text_a"], row["text_b"])
+        elif row["text_a"]:
+            diff = "[red]Only left translation has this verse.[/red]"
+        else:
+            diff = "[green]Only right translation has this verse.[/green]"
+
+        table.add_row(
+            ref,
+            text_a,
+            text_b,
+            diff,
+            f"{row['similarity'] * 100:.1f}%",
+        )
+
+    console.print(table)
+
+    summary = comparison["summary"]
+    summary_lines = [
+        f"Compared verses: {summary['total_verses']}",
+        f"Aligned on both sides: {summary['fully_aligned_verses']}",
+        (
+            "Exact textual matches: "
+            f"{summary['exact_matches']} ({summary['exact_match_ratio'] * 100:.1f}%)"
+        ),
+        f"Average similarity: {summary['average_similarity'] * 100:.1f}%",
+    ]
+
+    most_similar = summary["most_similar_verse"]
+    if most_similar is not None:
+        summary_lines.append(
+            "Most similar verse: "
+            f"{most_similar['reference']} ({most_similar['similarity'] * 100:.1f}%)"
+        )
+
+    top_shared_words = summary["top_shared_words"]
+    if top_shared_words:
+        top_words_text = ", ".join(f"{word} ({count})" for word, count in top_shared_words[:5])
+        summary_lines.append(f"Top shared vocabulary: {top_words_text}")
+
+    console.print(
+        Panel(
+            "\n".join(summary_lines),
+            title="Similarity Analysis",
+            border_style="cyan",
+        )
+    )
 
 
 @click.command()
@@ -207,3 +339,63 @@ def book(book_name: str, translation_id: str | None, top_n: int) -> None:
 
     analysis = service.analyze_book(book_name, translation_id, top_n)
     _render_analysis(console, analysis, book_name)
+
+
+@click.command()
+@click.argument("ref")
+@click.option(
+    "--left",
+    "translation_a",
+    default="fin-1992",
+    show_default=True,
+    help="Left-side translation ID (default fin-1992).",
+)
+@click.option(
+    "--right",
+    "translation_b",
+    default="fin17xx",
+    show_default=True,
+    help="Right-side translation ID (default fin17xx alias for fin-1776).",
+)
+def compare(ref: str, translation_a: str, translation_b: str) -> None:
+    """Compare two translations side-by-side with diffs and similarity stats.
+
+    Example: clible analytics compare "John 3:16-18"
+    """
+    console = Console()
+    conn = get_connection()
+    translation_repo = TranslationRepo(conn)
+
+    resolved_a = _resolve_compare_translation_id(translation_repo, translation_a)
+    resolved_b = _resolve_compare_translation_id(translation_repo, translation_b)
+
+    missing_ids: list[str] = []
+    if resolved_a is None:
+        missing_ids.append(translation_a)
+    if resolved_b is None:
+        missing_ids.append(translation_b)
+
+    if missing_ids:
+        missing = ", ".join(missing_ids)
+        console.print(
+            "[red]Comparison failed.[/red] Missing translation(s): "
+            f"{missing}. Install them first with:\n"
+            "clible seed install fin-1992\n"
+            "clible seed install fin-1776"
+        )
+        raise SystemExit(1)
+
+    if resolved_a == resolved_b:
+        console.print("[red]Comparison failed.[/red] Left and right translations are the same.")
+        raise SystemExit(1)
+
+    service = _get_analytic_service(resolved_a)
+    comparison = service.compare_translations(ref, resolved_a, resolved_b)
+
+    if not comparison["aligned_verses"]:
+        console.print("[red]No verses found for this reference in the selected translations.[/red]")
+        raise SystemExit(1)
+
+    left_label = _display_translation_label(translation_a, resolved_a)
+    right_label = _display_translation_label(translation_b, resolved_b)
+    _render_comparison(console, comparison, left_label, right_label)
