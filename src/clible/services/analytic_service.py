@@ -403,10 +403,7 @@ class AnalyticService:
                     set(self._tokenize(text_a)) & set(self._tokenize(text_b))
                 )
 
-                if (
-                    most_similar_verse is None
-                    or similarity > most_similar_verse["similarity"]
-                ):
+                if most_similar_verse is None or similarity > most_similar_verse["similarity"]:
                     most_similar_verse = {
                         "reference": f"{row['book_id']} {row['chapter']}:{row['verse']}",
                         "similarity": similarity,
