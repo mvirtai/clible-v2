@@ -35,6 +35,7 @@ def upload_file(
     bucket_name: str,
     object_name: str,
     local_path: Path,
+    timeout: int = 300,
 ) -> str:
     """Upload a local file to a GCS bucket.
 
@@ -42,6 +43,8 @@ def upload_file(
         bucket_name: Name of the GCS bucket.
         object_name: Destination object name (path) inside the bucket.
         local_path: Path to the local file to upload.
+        timeout: Request timeout in seconds (default 300). Increase for large files
+            or slow networks.
 
     Returns:
         The gs:// URI of the uploaded object (gs://bucket/object_name).
@@ -57,7 +60,7 @@ def upload_file(
     client = Client()
     bucket = client.bucket(bucket_name)
     blob = bucket.blob(object_name)
-    blob.upload_from_filename(str(local_path))
+    blob.upload_from_filename(str(local_path), timeout=timeout)
     return f"gs://{bucket_name}/{object_name}"
 
 

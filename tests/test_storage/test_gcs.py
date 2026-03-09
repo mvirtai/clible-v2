@@ -28,7 +28,29 @@ def test_upload_file_calls_client_and_upload(mock_client: MagicMock) -> None:
         assert uri == "gs://my-bucket/backups/clible-20250306-120000.db"
         mock_client.return_value.bucket.assert_called_once_with("my-bucket")
         mock_bucket.blob.assert_called_once_with("backups/clible-20250306-120000.db")
-        mock_blob.upload_from_filename.assert_called_once_with(str(path))
+        mock_blob.upload_from_filename.assert_called_once_with(str(path), timeout=300)
+    finally:
+        path.unlink()
+
+
+@patch("clible.storage.gcs.Client")
+def test_upload_file_passes_custom_timeout(mock_client: MagicMock) -> None:
+    """upload_file passes timeout to the client for large files or slow networks."""
+    mock_bucket = MagicMock()
+    mock_blob = MagicMock()
+    mock_client.return_value.bucket.return_value = mock_bucket
+    mock_bucket.blob.return_value = mock_blob
+
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
+        path = Path(f.name)
+    try:
+        upload_file(
+            bucket_name="my-bucket",
+            object_name="backups/clible.db",
+            local_path=path,
+            timeout=600,
+        )
+        mock_blob.upload_from_filename.assert_called_once_with(str(path), timeout=600)
     finally:
         path.unlink()
 

@@ -29,6 +29,13 @@ This document describes how to use clible with Google Cloud: backing up the data
    clible backup gcs
    ```
 
+   For a large database or slow connection, increase the upload timeout (seconds):
+
+   ```bash
+   export CLIBLE_GCS_UPLOAD_TIMEOUT=600
+   clible backup gcs
+   ```
+
 5. Restore a backup back to the configured local database path:
 
    ```bash
@@ -43,6 +50,7 @@ This document describes how to use clible with Google Cloud: backing up the data
 
 - **`invalid_grant` / "Bad Request"**: Your Application Default Credentials have expired or were revoked. Run `gcloud auth application-default login` again and retry.
 - **"quota project" warning**: If you see a warning about end-user credentials without a quota project, you can set `GOOGLE_CLOUD_PROJECT` to your GCP project ID to silence it, or ignore it if uploads succeed.
+- **Upload timeout**: If the upload fails with "The write operation timed out", set a higher `CLIBLE_GCS_UPLOAD_TIMEOUT` (default 300 seconds), e.g. `export CLIBLE_GCS_UPLOAD_TIMEOUT=600`.
 
 ## Seed from GCS (optional base URL)
 
@@ -80,6 +88,8 @@ You can serve translation XML files from a GCS bucket and point clible at that l
    gcloud auth configure-docker europe-docker.pkg.dev
    ```
 
+   This writes Docker credential helper config so `docker push` uses your gcloud identity. **If you skip this, pushes get 403 Forbidden.**
+
 3. Set the registry prefix (host + project + repo, **without** image name or tag):
    - `CLIBLE_GCP_ARTIFACT_REGISTRY=europe-docker.pkg.dev/YOUR_PROJECT_ID/clible`
 
@@ -93,12 +103,38 @@ You can serve translation XML files from a GCS bucket and point clible at that l
 
    Images will be tagged as `europe-docker.pkg.dev/YOUR_PROJECT_ID/clible/clible-v2:GIT_SHA` and `:latest`.
 
+**Troubleshooting (403 when pushing)**
+
+- **"failed to fetch anonymous token ... 403 Forbidden"**: Docker is not using your GCP credentials. Run:
+  ```bash
+  gcloud auth configure-docker europe-docker.pkg.dev
+  ```
+  Then run `task d-push-gcp` again. If you use a different region (e.g. `us-docker.pkg.dev`), use that host in `configure-docker` and in `CLIBLE_GCP_ARTIFACT_REGISTRY`.
+- **"Permission denied" / 403 after configure-docker**: Ensure the Artifact Registry API is enabled (`gcloud services enable artifactregistry.googleapis.com`) and your account has permission to push (e.g. "Artifact Registry Writer" or `roles/artifactregistry.writer` on the project or repo).
+
+**Troubleshooting (404 when pushing)**
+
+- **"failed to fetch oauth token ... 404 Not Found"**: Can be caused by (1) repository missing or wrong region, or (2) **Application Default Credentials (ADC)** not set or wrong project — the Docker credential helper may use ADC and get 404 when it’s missing or misconfigured.
+  1. **Fix ADC (try this first):**
+     ```bash
+     gcloud auth application-default login
+     gcloud auth application-default set-quota-project clible-v2
+     gcloud auth configure-docker europe-docker.pkg.dev
+     ```
+     Then run `task d-push-gcp` again.
+  2. **If it still fails**, ensure the repository exists in the same region as the host (`europe-docker.pkg.dev` ↔ `europe-north1`):
+     - `gcloud services enable artifactregistry.googleapis.com --project=YOUR_PROJECT_ID`
+     - `gcloud artifacts repositories list --location=europe-north1 --project=YOUR_PROJECT_ID`
+     - If missing: `gcloud artifacts repositories create clible --repository-format=docker --location=europe-north1 --project=YOUR_PROJECT_ID`
+     - Set `CLIBLE_GCP_ARTIFACT_REGISTRY=europe-docker.pkg.dev/YOUR_PROJECT_ID/clible` and retry.
+
 ## Environment variable summary
 
 | Variable | Used by | Description |
 | -------- | ------- | ----------- |
 | `CLIBLE_GCS_BUCKET` | `clible backup gcs` | GCS bucket name for database backups |
 | `CLIBLE_GCS_BACKUP_PREFIX` | `clible backup gcs` | Object prefix (default: `backups`) |
+| `CLIBLE_GCS_UPLOAD_TIMEOUT` | `clible backup gcs` | Upload timeout in seconds (default: 300). Increase for large DB or slow network. |
 | `CLIBLE_SEED_BASE_URL` | `clible seed install` | Base URL for seed XML (e.g. GCS public prefix) |
 | `CLIBLE_GCP_ARTIFACT_REGISTRY` | `task d-push-gcp` | Artifact Registry prefix (e.g. `europe-docker.pkg.dev/PROJECT/REPO`) |
 

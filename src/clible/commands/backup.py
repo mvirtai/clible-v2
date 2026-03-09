@@ -7,6 +7,7 @@ from pathlib import Path
 import click
 from rich.console import Console
 from rich.panel import Panel
+from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from clible.config import get_config
 from clible.storage.gcs import download_file, upload_file
@@ -75,18 +76,32 @@ def backup_gcs() -> None:
 
     prefix = (cfg.gcs_backup_prefix or "backups").strip("/")
     object_name = f"{prefix}/clible-{_timestamp_for_backup()}.db"
+    size_mb = db_path.stat().st_size / (1024 * 1024)
+
     try:
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                category=UserWarning,
-                module="google.auth._default",
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[bold blue]{task.fields[msg]}"),
+            console=console,
+        ) as progress:
+            task = progress.add_task(
+                "gcs-backup",
+                msg=f"Uploading {db_path.name} ({size_mb:.1f} MB) to GCS...",
             )
-            uri = upload_file(
-                bucket_name=cfg.gcs_bucket,
-                object_name=object_name,
-                local_path=db_path,
-            )
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    category=UserWarning,
+                    module="google.auth._default",
+                )
+                uri = upload_file(
+                    bucket_name=cfg.gcs_bucket,
+                    object_name=object_name,
+                    local_path=db_path,
+                    timeout=cfg.gcs_upload_timeout,
+                )
+            progress.update(task, msg="Finalizing backup...")
+
         console.print(
             Panel(
                 f"Backup uploaded successfully.\n{uri}",
@@ -150,13 +165,23 @@ def restore_gcs(gcs_uri: str, force: bool) -> None:
         ) as temp_file:
             temp_path = Path(temp_file.name)
 
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                category=UserWarning,
-                module="google.auth._default",
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[bold blue]{task.fields[msg]}"),
+            console=console,
+        ) as progress:
+            task = progress.add_task(
+                "gcs-restore",
+                msg=f"Downloading backup from GCS to {temp_path.name}...",
             )
-            download_file(gcs_uri, temp_path)
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    category=UserWarning,
+                    module="google.auth._default",
+                )
+                download_file(gcs_uri, temp_path)
+            progress.update(task, msg="Applying restored database locally...")
 
         if db_path.exists():
             backup_path = db_path.with_name(f"{db_path.name}.pre-restore-{timestamp}.bak")
