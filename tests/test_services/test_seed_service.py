@@ -156,3 +156,25 @@ def test_remove_translation_raises_if_not_installed(seed_service):
     """remove_translation raises ValueError for non-installed translation."""
     with pytest.raises(ValueError, match="not installed"):
         seed_service.remove_translation("web")
+
+
+def test_seed_translation_uses_seed_base_url_when_set(seed_service, verse_repo):
+    """When CLIBLE_SEED_BASE_URL is set, seed fetches from base_url + filename."""
+    sample_xml = (Path(__file__).parent.parent / "fixtures" / "sample.usfx.xml").read_bytes()
+    base_url = "https://storage.googleapis.com/my-bucket/seed"
+
+    mock_config = patch("clible.services.seed_service.get_config")
+    mock_get = patch("clible.services.seed_service.requests.get")
+
+    with mock_config as m_config:
+        cfg = m_config.return_value
+        cfg.seed_base_url = base_url
+        with mock_get as m_get:
+            m_get.return_value.status_code = 200
+            m_get.return_value.content = sample_xml
+            m_get.return_value.raise_for_status = lambda: None
+
+            seed_service.seed_translation("web")
+
+    call_args = m_get.call_args
+    assert call_args[0][0] == f"{base_url}/eng-web.usfx.xml"

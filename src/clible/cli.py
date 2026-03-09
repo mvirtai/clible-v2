@@ -4,7 +4,9 @@ import click
 
 from clible.commands.analytics import book as analytics_book
 from clible.commands.analytics import chapter as analytics_chapter
+from clible.commands.analytics import compare as analytics_compare
 from clible.commands.analytics import reference as analytics_reference
+from clible.commands.backup import backup
 from clible.commands.seed import (
     available,
     install,
@@ -43,5 +45,7 @@ seed.add_command(remove)
 analytics.add_command(analytics_reference, "reference")
 analytics.add_command(analytics_chapter, "chapter")
 analytics.add_command(analytics_book, "book")
+analytics.add_command(analytics_compare, "compare")
 
 main.add_command(verse)
+main.add_command(backup)

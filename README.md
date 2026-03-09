@@ -71,9 +71,15 @@ clible analytics chapter Genesis 1 -t kjv
 # Analyze an entire book
 clible analytics book John --top 20
 clible analytics book Genesis -t kjv
+
+# Compare two translations side-by-side with diffs
+clible analytics compare "John 3:16-18"
+clible analytics compare "Psalm 23:1-4" --left fin-1992 --right fin17xx
 ```
 
 **Output per scope:** metrics table (total tokens, unique tokens, type-token ratio) + top-N words, bigrams, and trigrams.
+
+`analytics compare` prints a side-by-side verse table with word-level diffs and a similarity summary (exact match rate, average similarity, shared vocabulary).
 
 - **`-t`, `--translation`:** Translation ID. Defaults to `web` if installed, otherwise first installed.
 - **`--top` / `-n`:** Number of top items to show (default 10).
@@ -86,6 +92,30 @@ Override via environment variables:
 | -------- | ------- | ----------- |
 | `CLIBLE_DB_PATH` | `{data_dir}/clible.db` | SQLite database path |
 | `CLIBLE_DATA_DIR` | `src/clible/data` | Data and config directory |
+
+### Google Cloud (optional)
+
+For GCS backup, seed-from-GCS, and Docker push to Artifact Registry, see **[docs/GCP_SETUP.md](docs/GCP_SETUP.md)**.
+
+| Variable | Description |
+| -------- | ----------- |
+| `CLIBLE_GCS_BUCKET` | GCS bucket for `clible backup gcs` |
+| `CLIBLE_GCS_BACKUP_PREFIX` | Object prefix for backups (default: `backups`) |
+| `CLIBLE_SEED_BASE_URL` | Base URL for seed XML (e.g. public GCS prefix) |
+| `CLIBLE_GCP_ARTIFACT_REGISTRY` | Artifact Registry prefix for `task d-push-gcp` |
+
+### Backup and restore (`clible backup`)
+
+```bash
+# Upload the local SQLite database to GCS
+clible backup gcs
+
+# Restore the local database from a GCS object
+clible backup restore-gcs "gs://my-bucket/backups/clible-20260306-180000.db"
+```
+
+`restore-gcs` asks for confirmation before replacing the local DB. Use `--force`
+to skip the prompt in scripted environments.
 
 ## Architecture
 
@@ -194,6 +224,9 @@ task d-push
 `task d-push` always shows image tags before pushing.
 The target repository can be overridden with `CLIBLE_DOCKER_REPO`.
 
+To push to **Google Cloud Artifact Registry** instead of Docker Hub, set `CLIBLE_GCP_ARTIFACT_REGISTRY` (e.g. `europe-docker.pkg.dev/myproject/clible`) and run `task d-push-gcp`. See [docs/GCP_SETUP.md](docs/GCP_SETUP.md).
+
 ## Documentation
 
 - **[docs/PROJECT_OVERVIEW.md](docs/PROJECT_OVERVIEW.md)** — Architecture, schema, implementation status
+- **[docs/GCP_SETUP.md](docs/GCP_SETUP.md)** — Google Cloud (GCS backup, seed from GCS, Artifact Registry)

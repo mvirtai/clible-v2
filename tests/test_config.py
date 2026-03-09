@@ -21,6 +21,10 @@ def test_default_config_loads_correctly():
         assert cfg.data_dir.name == "data"
         assert cfg.db_path.name == "clible.db"
         assert cfg.db_path.parent == cfg.data_dir
+        assert cfg.gcs_bucket is None
+        assert cfg.gcs_backup_prefix == "backups"
+        assert cfg.gcs_upload_timeout == 300
+        assert cfg.seed_base_url is None
     finally:
         for k, v in saved.items():
             os.environ[k] = v

@@ -1,7 +1,8 @@
-"""Service layer for text analytics: word frequency, n-grams, and concordance."""
+"""Service layer for text analytics: word frequency, n-grams, concordance, comparison."""
 
 import json
 from collections import Counter
+from difflib import SequenceMatcher
 from pathlib import Path
 
 from clible.services.verse_service import VerseService
@@ -70,6 +71,46 @@ class AnalyticService:
             if token and token not in self._stopwords:
                 tokens.append(token)
         return tokens
+
+    def _align_verses(self, verses_a: list[dict], verses_b: list[dict]) -> list[dict]:
+        """Align two verse lists by book/chapter/verse key."""
+        aligned_map: dict[tuple[str, int, int], dict] = {}
+
+        for verse in verses_a:
+            key = (verse["book_id"], verse["chapter"], verse["verse"])
+            aligned_map[key] = {
+                "book_id": verse["book_id"],
+                "chapter": verse["chapter"],
+                "verse": verse["verse"],
+                "text_a": verse["text"],
+                "text_b": "",
+            }
+
+        for verse in verses_b:
+            key = (verse["book_id"], verse["chapter"], verse["verse"])
+            row = aligned_map.get(key)
+            if row is None:
+                aligned_map[key] = {
+                    "book_id": verse["book_id"],
+                    "chapter": verse["chapter"],
+                    "verse": verse["verse"],
+                    "text_a": "",
+                    "text_b": verse["text"],
+                }
+            else:
+                row["text_b"] = verse["text"]
+
+        sorted_keys = sorted(aligned_map.keys(), key=lambda k: (k[0], k[1], k[2]))
+        return [aligned_map[key] for key in sorted_keys]
+
+    def _token_overlap_ratio(self, text_a: str, text_b: str) -> float:
+        """Compute token-set overlap ratio for two texts."""
+        tokens_a = set(self._tokenize(text_a))
+        tokens_b = set(self._tokenize(text_b))
+        union = tokens_a | tokens_b
+        if not union:
+            return 1.0
+        return len(tokens_a & tokens_b) / len(union)
 
     def _get_all_tokens(self, reference: str, translation_id: str | None = None) -> list[str]:
         """Get all tokens from verses in the given reference.
@@ -306,6 +347,91 @@ class AnalyticService:
             "top_words": Counter(all_tokens).most_common(top_n),
             "top_bigrams": self._get_bigrams(all_tokens, top_n),
             "top_trigrams": self._get_trigrams(all_tokens, top_n),
+        }
+
+    def compare_translations(
+        self,
+        reference: str,
+        translation_a: str,
+        translation_b: str,
+    ) -> dict:
+        """Compare two translations for one reference and return similarity analytics."""
+        verses_a = self._verse_service.get_verses(reference, translation_a)
+        verses_b = self._verse_service.get_verses(reference, translation_b)
+        aligned_verses = self._align_verses(verses_a, verses_b)
+
+        if not aligned_verses:
+            return {
+                "reference": reference,
+                "translation_a": translation_a,
+                "translation_b": translation_b,
+                "aligned_verses": [],
+                "summary": {
+                    "total_verses": 0,
+                    "fully_aligned_verses": 0,
+                    "exact_matches": 0,
+                    "exact_match_ratio": 0.0,
+                    "average_similarity": 0.0,
+                    "top_shared_words": [],
+                    "most_similar_verse": None,
+                },
+            }
+
+        shared_tokens_counter: Counter[str] = Counter()
+        exact_matches = 0
+        fully_aligned = 0
+        similarity_sum = 0.0
+        most_similar_verse: dict | None = None
+
+        for row in aligned_verses:
+            text_a = row["text_a"]
+            text_b = row["text_b"]
+            if text_a and text_b:
+                fully_aligned += 1
+                normalized_a = text_a.strip().lower()
+                normalized_b = text_b.strip().lower()
+                is_exact = normalized_a == normalized_b
+                if is_exact:
+                    exact_matches += 1
+
+                sequence_ratio = SequenceMatcher(None, normalized_a, normalized_b).ratio()
+                overlap_ratio = self._token_overlap_ratio(text_a, text_b)
+                similarity = (sequence_ratio + overlap_ratio) / 2
+                similarity_sum += similarity
+
+                shared_tokens_counter.update(
+                    set(self._tokenize(text_a)) & set(self._tokenize(text_b))
+                )
+
+                if most_similar_verse is None or similarity > most_similar_verse["similarity"]:
+                    most_similar_verse = {
+                        "reference": f"{row['book_id']} {row['chapter']}:{row['verse']}",
+                        "similarity": similarity,
+                    }
+            else:
+                is_exact = False
+                similarity = 0.0
+
+            row["similarity"] = similarity
+            row["exact_match"] = is_exact
+
+        average_similarity = similarity_sum / fully_aligned if fully_aligned > 0 else 0.0
+        exact_match_ratio = exact_matches / fully_aligned if fully_aligned > 0 else 0.0
+
+        return {
+            "reference": reference,
+            "translation_a": translation_a,
+            "translation_b": translation_b,
+            "aligned_verses": aligned_verses,
+            "summary": {
+                "total_verses": len(aligned_verses),
+                "fully_aligned_verses": fully_aligned,
+                "exact_matches": exact_matches,
+                "exact_match_ratio": exact_match_ratio,
+                "average_similarity": average_similarity,
+                "top_shared_words": shared_tokens_counter.most_common(8),
+                "most_similar_verse": most_similar_verse,
+            },
         }
 
     def _get_bigrams(self, tokens: list[str], n: int) -> list[tuple[str, int]]:

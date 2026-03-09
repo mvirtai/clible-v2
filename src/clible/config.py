@@ -27,6 +27,14 @@ class Config:
             db_path is placed inside this directory.
         request_timeout: HTTP request timeout in seconds.
         request_delay: Delay in seconds between API calls (rate limiting).
+        gcs_bucket: GCS bucket name for backup (optional). Set via CLIBLE_GCS_BUCKET.
+        gcs_backup_prefix: Object name prefix for backups (e.g. backups). Set via
+            CLIBLE_GCS_BACKUP_PREFIX; default backups.
+        gcs_upload_timeout: Timeout in seconds for GCS upload (large DB or slow network).
+            Set via CLIBLE_GCS_UPLOAD_TIMEOUT; default 300.
+        seed_base_url: Optional base URL for seed XML; when set, seed uses
+            seed_base_url + catalog filename instead of catalog url. Set via
+            CLIBLE_SEED_BASE_URL.
     """
 
     db_path: Path
@@ -35,6 +43,10 @@ class Config:
     data_dir: Path
     request_timeout: int
     request_delay: int
+    gcs_bucket: str | None
+    gcs_backup_prefix: str
+    gcs_upload_timeout: int
+    seed_base_url: str | None
 
 
 _default_data_dir = Path(__file__).resolve().parent / "data"
@@ -46,6 +58,10 @@ _db_path = (
 )
 _translations_raw = os.environ.get("CLIBLE_TRANSLATIONS", "KJV,ESV,NIV")
 _translations = [s.strip() for s in _translations_raw.split(",") if s.strip()]
+_gcs_bucket = os.environ.get("CLIBLE_GCS_BUCKET") or None
+_gcs_backup_prefix = os.environ.get("CLIBLE_GCS_BACKUP_PREFIX", "backups")
+_gcs_upload_timeout = int(os.environ.get("CLIBLE_GCS_UPLOAD_TIMEOUT", "300"))
+_seed_base_url = os.environ.get("CLIBLE_SEED_BASE_URL") or None
 
 config = Config(
     db_path=_db_path,
@@ -54,6 +70,10 @@ config = Config(
     data_dir=_data_dir,
     request_timeout=int(os.environ.get("CLIBLE_REQUEST_TIMEOUT", "10")),
     request_delay=int(os.environ.get("CLIBLE_REQUEST_DELAY", "1")),
+    gcs_bucket=_gcs_bucket,
+    gcs_backup_prefix=_gcs_backup_prefix,
+    gcs_upload_timeout=_gcs_upload_timeout,
+    seed_base_url=_seed_base_url,
 )
 
 
