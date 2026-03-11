@@ -31,3 +31,4 @@ NOT_IN_USE_*
 PR_STORY.md
 *.bak
 *.cast
+src/clible/data/clible.db
