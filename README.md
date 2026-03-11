@@ -224,7 +224,7 @@ task d-push
 `task d-push` always shows image tags before pushing.
 The target repository can be overridden with `CLIBLE_DOCKER_REPO`.
 
-To push to **Google Cloud Artifact Registry** instead of Docker Hub, set `CLIBLE_GCP_ARTIFACT_REGISTRY` (e.g. `europe-docker.pkg.dev/myproject/clible`) and run `task d-push-gcp`. See [docs/GCP_SETUP.md](docs/GCP_SETUP.md).
+To push to **Google Cloud Artifact Registry** instead of Docker Hub, set `CLIBLE_GCP_ARTIFACT_REGISTRY` (e.g. `europe-north1-docker.pkg.dev/myproject/clible`) and run `task d-push-gcp`. See [docs/GCP_SETUP.md](docs/GCP_SETUP.md).
 
 ## Documentation
 

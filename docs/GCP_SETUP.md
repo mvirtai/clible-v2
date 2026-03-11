@@ -85,29 +85,29 @@ You can serve translation XML files from a GCS bucket and point clible at that l
 2. Configure Docker to use Artifact Registry:
 
    ```bash
-   gcloud auth configure-docker europe-docker.pkg.dev
+   gcloud auth configure-docker europe-north1-docker.pkg.dev
    ```
 
    This writes Docker credential helper config so `docker push` uses your gcloud identity. **If you skip this, pushes get 403 Forbidden.**
 
 3. Set the registry prefix (host + project + repo, **without** image name or tag):
-   - `CLIBLE_GCP_ARTIFACT_REGISTRY=europe-docker.pkg.dev/YOUR_PROJECT_ID/clible`
+   - `CLIBLE_GCP_ARTIFACT_REGISTRY=europe-north1-docker.pkg.dev/YOUR_PROJECT_ID/clible`
 
 4. Build and push:
 
    ```bash
    task d-build
-   export CLIBLE_GCP_ARTIFACT_REGISTRY=europe-docker.pkg.dev/YOUR_PROJECT_ID/clible
+   export CLIBLE_GCP_ARTIFACT_REGISTRY=europe-north1-docker.pkg.dev/YOUR_PROJECT_ID/clible
    task d-push-gcp
    ```
 
-   Images will be tagged as `europe-docker.pkg.dev/YOUR_PROJECT_ID/clible/clible-v2:GIT_SHA` and `:latest`.
+   Images will be tagged as `europe-north1-docker.pkg.dev/YOUR_PROJECT_ID/clible/clible-v2dev:GIT_SHA` and `:latest`.
 
 **Troubleshooting (403 when pushing)**
 
 - **"failed to fetch anonymous token ... 403 Forbidden"**: Docker is not using your GCP credentials. Run:
   ```bash
-  gcloud auth configure-docker europe-docker.pkg.dev
+  gcloud auth configure-docker europe-north1-docker.pkg.dev
   ```
   Then run `task d-push-gcp` again. If you use a different region (e.g. `us-docker.pkg.dev`), use that host in `configure-docker` and in `CLIBLE_GCP_ARTIFACT_REGISTRY`.
 - **"Permission denied" / 403 after configure-docker**: Ensure the Artifact Registry API is enabled (`gcloud services enable artifactregistry.googleapis.com`) and your account has permission to push (e.g. "Artifact Registry Writer" or `roles/artifactregistry.writer` on the project or repo).
@@ -118,15 +118,15 @@ You can serve translation XML files from a GCS bucket and point clible at that l
   1. **Fix ADC (try this first):**
      ```bash
      gcloud auth application-default login
-     gcloud auth application-default set-quota-project clible-v2
-     gcloud auth configure-docker europe-docker.pkg.dev
+     gcloud auth application-default set-quota-project clible-v2dev
+     gcloud auth configure-docker europe-north1-docker.pkg.dev
      ```
      Then run `task d-push-gcp` again.
-  2. **If it still fails**, ensure the repository exists in the same region as the host (`europe-docker.pkg.dev` ↔ `europe-north1`):
+  2. **If it still fails**, ensure the repository exists in the same region as the host (`europe-north1-docker.pkg.dev` ↔ `europe-north1`):
      - `gcloud services enable artifactregistry.googleapis.com --project=YOUR_PROJECT_ID`
      - `gcloud artifacts repositories list --location=europe-north1 --project=YOUR_PROJECT_ID`
      - If missing: `gcloud artifacts repositories create clible --repository-format=docker --location=europe-north1 --project=YOUR_PROJECT_ID`
-     - Set `CLIBLE_GCP_ARTIFACT_REGISTRY=europe-docker.pkg.dev/YOUR_PROJECT_ID/clible` and retry.
+     - Set `CLIBLE_GCP_ARTIFACT_REGISTRY=europe-north1-docker.pkg.dev/YOUR_PROJECT_ID/clible` and retry.
 
 ## Environment variable summary
 
@@ -136,7 +136,7 @@ You can serve translation XML files from a GCS bucket and point clible at that l
 | `CLIBLE_GCS_BACKUP_PREFIX` | `clible backup gcs` | Object prefix (default: `backups`) |
 | `CLIBLE_GCS_UPLOAD_TIMEOUT` | `clible backup gcs` | Upload timeout in seconds (default: 300). Increase for large DB or slow network. |
 | `CLIBLE_SEED_BASE_URL` | `clible seed install` | Base URL for seed XML (e.g. GCS public prefix) |
-| `CLIBLE_GCP_ARTIFACT_REGISTRY` | `task d-push-gcp` | Artifact Registry prefix (e.g. `europe-docker.pkg.dev/PROJECT/REPO`) |
+| `CLIBLE_GCP_ARTIFACT_REGISTRY` | `task d-push-gcp` | Artifact Registry prefix (e.g. `europe-north1-docker.pkg.dev/PROJECT/REPO`) |
 
 ## Future options
 

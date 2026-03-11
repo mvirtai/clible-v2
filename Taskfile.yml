@@ -11,8 +11,8 @@ vars:
   IMAGE_TAG_COMMIT: "{{.IMAGE_REPO}}:{{.GIT_SHA}}"
   IMAGE_TAG_LATEST: "{{.IMAGE_REPO}}:latest"
   GCP_REGISTRY: "{{.CLIBLE_GCP_ARTIFACT_REGISTRY}}"
-  GCP_IMAGE_COMMIT: "{{.GCP_REGISTRY}}/clible-v2:{{.GIT_SHA}}"
-  GCP_IMAGE_LATEST: "{{.GCP_REGISTRY}}/clible-v2:latest"
+  GCP_IMAGE_COMMIT: "{{.GCP_REGISTRY}}/clible-v2dev:{{.GIT_SHA}}"
+  GCP_IMAGE_LATEST: "{{.GCP_REGISTRY}}/clible-v2dev:latest"
 
 tasks:
   test:
@@ -96,7 +96,7 @@ tasks:
       - sh: "command -v docker >/dev/null 2>&1"
         msg: "Docker is required to push images."
       - sh: 'test -n "${CLIBLE_GCP_ARTIFACT_REGISTRY}"'
-        msg: "Set CLIBLE_GCP_ARTIFACT_REGISTRY (e.g. europe-docker.pkg.dev/myproject/clible)."
+        msg: "Set CLIBLE_GCP_ARTIFACT_REGISTRY (e.g. europe-north1-docker.pkg.dev/myproject/clible)."
     cmds:
       - echo "Tagging for GCP Artifact Registry..."
       - docker tag {{.IMAGE_TAG_COMMIT}} {{.GCP_IMAGE_COMMIT}}
