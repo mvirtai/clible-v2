@@ -97,11 +97,7 @@ def _filter_verses_by_scope(
             book = matches[0] if matches else None
         if not book:
             return []
-        return [
-            v
-            for v in verses
-            if v["book_id"] == book["id"] and v["chapter"] == chapter_num
-        ]
+        return [v for v in verses if v["book_id"] == book["id"] and v["chapter"] == chapter_num]
 
     if scope == "verse":
         from clible.services.verse_service import _parse_reference
@@ -163,9 +159,7 @@ def _display_scope_label(scope: str, scope_ref: str | None) -> str:
 
 def _render_statistics(stats: dict, word: str, scope_label: str) -> None:
     """Render search statistics as a Rich table."""
-    console.print(
-        f"\n[bold cyan]Search Results: '{word}' in {scope_label}[/bold cyan]\n"
-    )
+    console.print(f"\n[bold cyan]Search Results: '{word}' in {scope_label}[/bold cyan]\n")
 
     table = Table(title="Statistics", show_header=True)
     table.add_column("Metric", style="dim")
@@ -258,9 +252,7 @@ def _display_verses(verses: list[dict], word: str, limit: int | None = None) -> 
 @click.option(
     "--scope",
     "-s",
-    type=click.Choice(
-        ["verse", "chapter", "book", "testament", "bible"], case_sensitive=False
-    ),
+    type=click.Choice(["verse", "chapter", "book", "testament", "bible"], case_sensitive=False),
     default="bible",
     show_default=True,
     help="Search scope: verse range, chapter, book, testament (OT/NT), or whole bible.",
