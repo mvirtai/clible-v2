@@ -5,12 +5,12 @@ import warnings
 from pathlib import Path
 
 import click
-from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from clible.config import get_config
 from clible.storage.gcs import download_file, upload_file
+from clible.ui.console import console
 
 
 def _timestamp_for_backup() -> str:
@@ -47,10 +47,9 @@ def backup_gcs() -> None:
     """Upload the SQLite database to Google Cloud Storage.
 
     Requires CLIBLE_GCS_BUCKET to be set. Optional: CLIBLE_GCS_BACKUP_PREFIX
-    (default: backups). Uses Application Default Credentials or
+    (default: backups).     Uses Application Default Credentials or
     GOOGLE_APPLICATION_CREDENTIALS.
     """
-    console = Console()
     cfg = get_config()
     db_path = _db_path()
     if not cfg.gcs_bucket:
@@ -131,9 +130,8 @@ def restore_gcs(gcs_uri: str, force: bool) -> None:
     """Restore the local SQLite database from a GCS object.
 
     Downloads the remote database to a temporary file, writes a local backup of
-    the current database (if present), and then replaces the configured DB file.
+    the current database (if present),     and then replaces the configured DB file.
     """
-    console = Console()
     db_path = _db_path()
     db_path.parent.mkdir(parents=True, exist_ok=True)
 

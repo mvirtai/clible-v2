@@ -1,7 +1,6 @@
 """Seed subcommands: install, list, available, remove."""
 
 import click
-from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
@@ -13,6 +12,7 @@ from clible.parsers.beblia_parser import BebliaParser
 from clible.parsers.osis_parser import OSISParser
 from clible.parsers.usfx_parser import USFXParser
 from clible.services.seed_service import SeedService
+from clible.ui.console import console
 
 
 def _get_seed_service() -> SeedService:
@@ -39,7 +39,6 @@ def install(translation_id: str) -> None:
     Downloads, parses, and stores the translation locally.
     Supported formats: USFX (web), OSIS (kjv, fin-biblia), BEBLIA (fin-1992, etc.).
     """
-    console = Console()
     try:
         service = _get_seed_service()
         with Progress(
@@ -64,7 +63,6 @@ def install(translation_id: str) -> None:
 @click.command("list")
 def list_installed() -> None:
     """List installed translations."""
-    console = Console()
     service = _get_seed_service()
     installed = service.list_installed()
     if not installed:
@@ -88,7 +86,6 @@ def list_installed() -> None:
 @click.command("available")
 def available() -> None:
     """List available translations from the catalog."""
-    console = Console()
     service = _get_seed_service()
     items = service.list_available()
     table = Table(title="Available translations")
@@ -115,7 +112,6 @@ def remove(translation_id: str) -> None:
 
     Example: clible seed remove web
     """
-    console = Console()
     try:
         service = _get_seed_service()
         service.remove_translation(translation_id)

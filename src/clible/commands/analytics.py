@@ -16,6 +16,7 @@ from clible.db.repositories.translation_repo import TranslationRepo
 from clible.db.repositories.verse_repo import VerseRepo
 from clible.services.analytic_service import AnalyticService
 from clible.services.verse_service import VerseService
+from clible.ui.console import console
 
 _TRANSLATIONS_FILE = Path(__file__).parent.parent / "data" / "translations.json"
 
@@ -261,7 +262,6 @@ def reference(ref: str, translation_id: str | None, top_n: int) -> None:
     Example: clible analytics reference "John 3:16-18"
     Example: clible analytics reference "Genesis 1:1" -t kjv --top 5
     """
-    console = Console()
     service = _get_analytic_service(translation_id)
 
     analysis = service.analyze_reference(ref, translation_id, top_n)
@@ -292,7 +292,6 @@ def chapter(book_name: str, chapter_num: int, translation_id: str | None, top_n:
     Example: clible analytics chapter John 3
     Example: clible analytics chapter Genesis 1 -t kjv --top 5
     """
-    console = Console()
     service = _get_analytic_service(translation_id)
 
     analysis = service.analyze_chapter(book_name, chapter_num, translation_id, top_n)
@@ -323,7 +322,6 @@ def book(book_name: str, translation_id: str | None, top_n: int) -> None:
     Example: clible analytics book John
     Example: clible analytics book Genesis -t kjv --top 5
     """
-    console = Console()
     service = _get_analytic_service(translation_id)
 
     analysis = service.analyze_book(book_name, translation_id, top_n)
@@ -348,7 +346,6 @@ def book(book_name: str, translation_id: str | None, top_n: int) -> None:
 )
 def compare(ref: str, translation_a: str, translation_b: str) -> None:
     """Compare two translations side-by-side with diffs and similarity stats."""
-    console = Console()
     conn = get_connection()
     translation_repo = TranslationRepo(conn)
 
