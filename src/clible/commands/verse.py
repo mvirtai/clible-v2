@@ -1,7 +1,6 @@
 """Verse lookup command: fetch verse from local database."""
 
 import click
-from rich.console import Console
 from rich.panel import Panel
 
 from clible.db.connection import get_connection
@@ -9,6 +8,7 @@ from clible.db.repositories.book_repo import BookRepo
 from clible.db.repositories.translation_repo import TranslationRepo
 from clible.db.repositories.verse_repo import VerseRepo
 from clible.services.verse_service import VerseService
+from clible.ui.console import console
 
 
 def _get_verse_service() -> VerseService:
@@ -40,7 +40,6 @@ def verse(reference: str, translation_id: str | None) -> None:
 
     Requires at least one translation to be installed (clible seed install web).
     """
-    console = Console()
     service = _get_verse_service()
     verses = service.get_verses(reference, translation_id)
 
