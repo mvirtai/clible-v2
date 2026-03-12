@@ -53,6 +53,37 @@ clible verse "1 Corinthians 13:4" -t web
 - **Reference format:** `"Book Chapter:Verse"` or range `"Book Chapter:Start-End"` (e.g. `"Genesis 1:1"`, `"John 3:16-18"`)
 - **`-t`, `--translation`:** Translation ID. Defaults to `web` if installed, otherwise first installed
 
+### Search (`clible search`)
+
+Full-text search with scope control and statistics:
+
+```bash
+# Search entire Bible (default)
+clible search grace
+
+# Search within a book
+clible search love --scope book --reference John
+
+# Search within Old or New Testament
+clible search peace --scope testament --reference NT
+
+# Search within a chapter
+clible search faith --scope chapter --reference "Hebrews 11"
+
+# Search specific verse range
+clible search hope --scope verse --reference "Romans 8:24-25"
+
+# Limit results
+clible search joy --limit 10
+```
+
+Shows statistics (total occurrences, unique verses, top books) before displaying verses. For large result sets (>20 verses), prompts with options: `all` (all verses), `N` (first N verses), or `no` (statistics only).
+
+- **`-s`, `--scope`:** Search scope: `verse`, `chapter`, `book`, `testament`, or `bible` (default)
+- **`-r`, `--reference`:** Scope reference (e.g. "John", "NT", "John 3:16")
+- **`-t`, `--translation`:** Translation ID
+- **`-n`, `--limit`:** Maximum verses to display
+
 ### Text analytics (`clible analytics`)
 
 Analyze token frequencies, lexical diversity, and n-grams for any scope.

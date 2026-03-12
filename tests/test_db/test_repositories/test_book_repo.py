@@ -127,3 +127,28 @@ def test_repo_returns_plain_dicts_not_row(book_repo: BookRepo):
     row = book_repo.get_by_id("GEN")
     assert isinstance(row, dict)
     assert type(row).__name__ != "Row"
+
+
+def test_get_by_testament_returns_ot_books(book_repo: BookRepo):
+    """get_by_testament(OT) returns all Old Testament books."""
+    ot_books = book_repo.get_by_testament(Testament.OT)
+    assert len(ot_books) == 39
+    assert all(b["testament"] == Testament.OT for b in ot_books)
+    assert ot_books[0]["id"] == "GEN"
+    assert ot_books[-1]["id"] == "MAL"
+
+
+def test_get_by_testament_returns_nt_books(book_repo: BookRepo):
+    """get_by_testament(NT) returns all New Testament books."""
+    nt_books = book_repo.get_by_testament(Testament.NT)
+    assert len(nt_books) == 27
+    assert all(b["testament"] == Testament.NT for b in nt_books)
+    assert nt_books[0]["id"] == "MAT"
+    assert nt_books[-1]["id"] == "REV"
+
+
+def test_get_by_testament_ordered_by_position(book_repo: BookRepo):
+    """get_by_testament returns books in canonical order."""
+    ot_books = book_repo.get_by_testament(Testament.OT)
+    positions = [b["position"] for b in ot_books]
+    assert positions == sorted(positions)

@@ -86,3 +86,18 @@ class BookRepo:
             (pattern, pattern),
         )
         return [_row_to_book(row) for row in cursor.fetchall()]
+
+    def get_by_testament(self, testament: Testament) -> list[BookRow]:
+        """Get all books in a testament (OT, NT, or DEU).
+
+        Args:
+            testament: Testament enum value (OT, NT, or DEU).
+
+        Returns:
+            List of BookRow dicts in the testament, ordered by position.
+        """
+        cursor = self.conn.execute(
+            "SELECT * FROM books WHERE testament = ? ORDER BY position",
+            (testament.value,),
+        )
+        return [_row_to_book(row) for row in cursor.fetchall()]
