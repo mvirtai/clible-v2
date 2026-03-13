@@ -21,8 +21,18 @@ def run_migrations(conn: sqlite3.Connection, migrations_dir: Path | None = None)
         )
     """)
 
-    applied = {row[0] for row in cursor.execute("SELECT name FROM _migrations").fetchall()}
     migration_files = sorted(migrations_dir.glob("*.sql"), key=lambda p: p.name)
+    last_migration = migration_files[-1].name if migration_files else None
+
+    # Fast path: check if the last migration is already applied
+    if last_migration:
+        exists = cursor.execute(
+            "SELECT 1 FROM _migrations WHERE name = ?", (last_migration,)
+        ).fetchone()
+        if exists:
+            return
+
+    applied = {row[0] for row in cursor.execute("SELECT name FROM _migrations").fetchall()}
 
     for path in migration_files:
         if path.name in applied:
