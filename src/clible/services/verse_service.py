@@ -1,14 +1,12 @@
 """Verse lookup service: resolve references and fetch from local DB."""
 
-import re
-from typing import TYPE_CHECKING
-
 from collections import Counter
+from typing import TYPE_CHECKING
 
 from clible.services.reference_parser import ReferenceScope, parse_reference
 
 if TYPE_CHECKING:
-    from clible.db.repositories.book_repo import BookRepo, Testament
+    from clible.db.repositories.book_repo import BookRepo
     from clible.db.repositories.translation_repo import TranslationRepo
     from clible.db.repositories.verse_repo import VerseRepo
 
@@ -54,7 +52,7 @@ class VerseService:
 
         book = self._book_repo.get_by_name(parsed.book_name)
         if not book:
-            matches = self._book_repo.search(book_name)
+            matches = self._book_repo.search(parsed.book_name)
             book = matches[0] if matches else None
         if not book:
             return None
@@ -89,7 +87,7 @@ class VerseService:
 
         book = self._book_repo.get_by_name(parsed.book_name)
         if not book:
-            matches = self._book_repo.search(book_name)
+            matches = self._book_repo.search(parsed.book_name)
             book = matches[0] if matches else None
         if not book:
             return []
@@ -231,7 +229,11 @@ class VerseService:
                 book = matches[0] if matches else None
             if not book:
                 return []
-            return [v for v in verses if v["book_id"] == book["id"] and v["chapter"] == parsed.chapter]
+            return [
+                v
+                for v in verses
+                if v["book_id"] == book["id"] and v["chapter"] == parsed.chapter
+            ]
 
         if scope == "verse":
             parsed = parse_reference(scope_value)
