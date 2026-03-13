@@ -1,0 +1,16 @@
+---
+description: Testing conventions — pytest, in-memory SQLite, mocks, fixtures, test layout
+globs: tests/**/*.py
+alwaysApply: false
+---
+
+# Testing rules
+
+- Use pytest, not unittest
+- In-memory SQLite for DB tests: `:memory:`
+- Mock HTTP calls; never make real network requests in tests
+- Test file mirrors source: `src/clible/db/repositories/verse.py` → `tests/test_db/test_verse_repo.py`
+- Test names describe behavior: `test_search_word_is_case_insensitive`
+- Fixtures in `conftest.py` for shared setup (db connection, repos)
+
+Never commit broken tests.

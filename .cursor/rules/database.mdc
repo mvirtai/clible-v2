@@ -1,0 +1,14 @@
+---
+description: Database conventions — SQLite, repositories, migrations, SQL safety
+globs: src/clible/db/**/*.py, src/clible/db/**/*.sql, src/clible/**/repositories/*.py
+alwaysApply: false
+---
+
+# Database rules
+
+- SQLite only, no ORM
+- Raw SQL in repository methods
+- **Parameterized queries only** — never f-strings in SQL: `cursor.execute("... WHERE id = ?", (id,))`
+- Foreign keys enforced: `PRAGMA foreign_keys = ON`
+- Schema changes via numbered migration files in `src/clible/db/migrations/` only
+- UUIDs for primary keys (generate in Python with `uuid.uuid4()`)

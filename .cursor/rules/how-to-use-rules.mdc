@@ -1,0 +1,51 @@
+---
+description: How project rules work — .mdc format, when rules apply, globs, manual invocation
+alwaysApply: false
+---
+
+# How to use project rules
+
+Project rules live in **`.cursor/rules/`** as **`.mdc`** files. They give the agent consistent, scoped context.
+
+## Rule file format (.mdc)
+
+Each rule is a markdown file with **YAML frontmatter** at the top:
+
+```yaml
+---
+description: Short text for "Apply Intelligently" and rule picker
+globs: "**/*.py"        # optional — apply when these files are in context
+alwaysApply: false      # true = apply to every chat
+---
+```
+
+Then the rule content (markdown). Cursor supports both `.md` and `.mdc`; use `.mdc` when you want `description` and `globs`.
+
+## When rules are applied
+
+| Type | Frontmatter | When it runs |
+|------|-------------|--------------|
+| **Always apply** | `alwaysApply: true` | Every chat (e.g. `project-context.mdc`, `architecture.mdc`) |
+| **Apply to specific files** | `globs: "tests/**/*.py"` | When files matching the pattern are in context |
+| **Apply intelligently** | `description: "..."`, no globs | When the agent decides the rule is relevant from the description |
+| **Apply manually** | No globs, `alwaysApply: false` | When you @-mention the rule in chat (e.g. `@how-to-use-rules.mdc`) |
+
+## Rules in this project
+
+| File | Scope | Purpose |
+|------|--------|---------|
+| `project-context.mdc` | Always | Read docs first, role, critical rules, communication |
+| `architecture.mdc` | Always | Layer boundaries (UI → Services → Repos/Parsers → SQLite) |
+| `python-style.mdc` | `src/**/*.py` | Code style, dependencies |
+| `database.mdc` | `src/clible/db/**`, `**/repositories/*.py` | SQLite, migrations, parameterized SQL |
+| `testing.mdc` | `tests/**/*.py` | pytest, fixtures, test layout |
+| `git-commits.mdc` | By relevance / manual | Commits, branches, git switch/restore |
+| `pr-description.mdc` | By relevance / manual | PR description format (PR_DESCRIPTION.md, PR body) |
+| `pr-stories.mdc` | By relevance / manual | PR description format (PR_STORY.md, PR body) |
+| `how-to-use-rules.mdc` | Manual (@mention) | This file |
+
+## Tips
+
+- To force a rule into context: type `@` in chat and choose the rule.
+- Keep rules under ~500 lines; split by topic (as here).
+- See [Cursor Rules docs](https://cursor.com/docs/rules) for more.

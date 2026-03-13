@@ -1,0 +1,21 @@
+---
+description: Layered architecture and layer boundaries — UI, services, repositories, parsers, SQLite
+alwaysApply: true
+---
+
+# Architecture
+
+This project uses a layered architecture. Respect the boundaries:
+
+```
+UI (cli, commands)  →  Services  →  Repositories  →  SQLite
+                            ↕
+                         Parsers (XML → verse dicts)
+```
+
+- **Repositories:** Database only. They receive a connection, execute SQL, return plain dicts. No printing, logging, or network.
+- **Parsers** (USFX, OSIS, Beblia): Read XML and return verse data. They do not touch the database. Data is seeded via `clible seed install`, not a live API.
+- **Services:** Business logic. They coordinate repositories and parsers. Dependencies are injected (no globals).
+- **UI:** Display and user interaction. It calls services and renders results. It does not access the database or parsers directly.
+
+**Do not violate these boundaries.** If you are about to import a repository in the UI layer, stop and rethink.
