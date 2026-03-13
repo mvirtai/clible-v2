@@ -1,0 +1,35 @@
+---
+description: PR description format — when writing PR_STORY.md or pull request body for clible
+alwaysApply: false
+---
+
+# PR stories (PR description format)
+
+When drafting a PR description or updating **PR_STORY.md**, use this structure. PR_STORY.md is gitignored; use it as a local template and copy the content into the PR body (e.g. on GitHub).
+
+## Structure
+
+1. **Title (first line)**  
+   Conventional commit + short summary, e.g.:  
+   `# feat: support verse ranges in verse command (multi-verse lookup)`
+
+2. **Intro paragraph**  
+   One or two sentences: what the PR does and what it builds on (e.g. previous PR or ticket).
+
+3. **## Summary**  
+   Bullet list of main changes (parsing, repos, services, CLI). One line per area; technical but concise.
+
+4. **## Files added**  
+   New files only, with a one-line note per file (e.g. tests for X).
+
+5. **## Files modified**  
+   Changed files with a short note on what changed in each.
+
+6. **## Tests**  
+   How to run the relevant tests and the full suite. Include test count and that they pass, e.g.:  
+   `uv run pytest -v` — **N tests**, all passing.
+
+7. **## Usage** (optional)  
+   Example commands or steps for the new/updated behavior (code block with `bash` or similar).
+
+Keep the whole document short and scannable. Use it to review the PR yourself and to give reviewers a clear picture without reading every diff.

@@ -1,0 +1,25 @@
+---
+description: Python code style and dependency policy for clible
+globs: src/**/*.py
+alwaysApply: false
+---
+
+# Python style
+
+- Python 3.12+
+- Type hints on all function signatures
+- Docstrings on all public functions and classes (Google style, concise)
+- Use `pathlib.Path` for file paths, never string concatenation
+- Use `dataclasses` for data structures when appropriate
+- Prefer stdlib over third-party when reasonable
+- No wildcard imports
+- No mutable default arguments
+- Ruff for linting and formatting
+
+## Dependencies
+
+**Runtime (minimal):** click, rich, requests.
+
+**Dev/test:** pytest, pytest-mock, pytest-cov, ruff.
+
+Do not add dependencies without discussing with the developer first. Ask: "Can stdlib do this?"

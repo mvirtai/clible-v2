@@ -1,164 +1,88 @@
 # Architecture and Conventions Guide
 
-This document explains the architectural decisions, patterns, and conventions
-used in clible v2. It serves as both documentation and as context for any AI
-assistant helping with the project.
+**For AI assistants:** Read this document before writing or changing code. It defines architecture, layer boundaries, and conventions. Use it when working on clible v2 for implementation, refactors, or code review.
 
-If you are an AI assistant: read this entire document before writing any code.
+**Project rules** are in **`.cursor/rules/`** as `.mdc` files (scoped by topic and file globs). See `.cursor/rules/how-to-use-rules.mdc` for when each rule applies and how to @-mention them.
+
+When working on a specific PR or feature, **check the `plans/` folder** for per-PR implementation plans (step-by-step or task breakdown). Use the relevant plan if one exists for the current work.
 
 ---
 
 ## What This Project Is
 
-clible is a command-line Bible study tool. It fetches verses from
-[bible-api.com](https://bible-api.com/), stores them locally in SQLite, and
-provides tools for analysis, comparison, and export.
+clible is a **command-line Bible study tool**. The v2 rebuild is **offline-first**:
 
-This is a **v2 rebuild** of an existing project (ssh: <git@github.com>/mvirtai:clible) The developer already knows
-what the app does. The focus is on building it with proper architecture,
-clean separation of concerns, and thorough testing.
+- **Data source:** Bible text comes from **seeded XML files**, not from any live API. Translations are listed in `src/clible/data/translations.json`; `clible seed install <id>` downloads XML from GitHub (e.g. [seven1m/open-bibles](https://github.com/seven1m/open-bibles), [Beblia/Holy-Bible-XML-Format](https://github.com/Beblia/Holy-Bible-XML-Format)) and parses them into SQLite.
+- **No bible-api.com** — The project does not use bible-api.com or any external verse API. Ignore any legacy `api_base_url` or API client references in config/plan docs.
+- **Focus:** Layered architecture, clear separation of concerns, thorough testing. See `docs/PROJECT_OVERVIEW.md` and `PLAN.md` for current status and plan.
 
 ---
 
 ## Architecture Overview
 
 ```
-┌─────────────────────────────────────────────────┐
-│                   UI Layer                       │
-│         (Click CLI + Rich rendering)             │
-│                                                  │
-│  cli.py          commands/       ui/display.py   │
-└──────────────────────┬──────────────────────────┘
-                       │ calls
-┌──────────────────────▼──────────────────────────┐
-│                Service Layer                     │
-│            (Business logic)                      │
-│                                                  │
-│  VerseService    SessionService    ExportService  │
-│  AnalyticsService    ComparisonService            │
-└───────┬──────────────────────────┬──────────────┘
-        │ uses                     │ uses
-┌───────▼────────┐    ┌───────────▼──────────────┐
-│  Repositories  │    │      API Client          │
-│  (Data access) │    │   (HTTP to bible-api)    │
-│                │    │                          │
-│  VerseRepo     │    │  BibleClient             │
-│  SessionRepo   │    │                          │
-│  BookRepo      │    └──────────────────────────┘
-│  CacheRepo     │
-│  etc.          │
-└───────┬────────┘
-        │
-┌───────▼────────┐
-│    SQLite       │
-│   (clible.db)   │
-└─────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│ UI Layer                                                         │
+│   cli.py, commands/ (seed, verse, search, analytics, backup)      │
+│   Click + Rich                                                   │
+└───────────────────────────────┬─────────────────────────────────┘
+                                │ calls
+┌───────────────────────────────▼─────────────────────────────────┐
+│ Service Layer                                                    │
+│   SeedService, VerseService, AnalyticService, backup (GCS)        │
+└──────────────┬──────────────────────────────┬────────────────────┘
+               │ uses                         │ uses
+┌──────────────▼──────────────┐  ┌────────────▼────────────────────┐
+│ Repositories                 │  │ Parsers                          │
+│   TranslationRepo, BookRepo, │  │   USFXParser, OSISParser,        │
+│   VerseRepo                  │  │   BebliaParser (XML → verse dicts)│
+└──────────────┬──────────────┘  └──────────────────────────────────┘
+               │
+┌──────────────▼──────────────┐
+│ SQLite (clible.db)          │
+│   books, translations,      │
+│   verses, verses_fts (FTS5) │
+└────────────────────────────┘
 ```
 
-### Layer Rulesi
+### Layer Rules
 
-| Layer        | Can access              | Cannot access           |
-|--------------|-------------------------|-------------------------|
-| UI           | Services                | Repos, DB, API Client   |
-| Services     | Repos, API Client       | UI, Click, Rich         |
-| Repositories | SQLite connection       | Services, API, UI       |
-| API Client   | Network (requests)      | DB, Repos, Services, UI |
+| Layer        | Can access              | Cannot access              |
+|--------------|-------------------------|----------------------------|
+| UI           | Services                | Repos, DB, parsers, HTTP   |
+| Services     | Repos, parsers, storage | UI, Click, Rich            |
+| Repositories | SQLite connection       | Services, UI, network      |
+| Parsers      | File system (read XML)  | DB, UI, services internals |
 
-These boundaries exist so that:
-
-- Each layer can be tested independently
-- Changes in one layer don't ripple through the entire codebase
-- The UI framework can be swapped without touching business logic
+Boundaries ensure each layer is testable in isolation and changes do not ripple across the codebase.
 
 ---
 
 ## Key Design Decisions
 
-### 1. Repository pattern instead of a single DB class
+### 1. Repository pattern
 
-**Problem in v1:** One `QueryDB` class with 900+ lines and 40+ methods
-handling translations, books, verses, sessions, caching, and analysis. Hard
-to test, hard to navigate, hard to modify.
+Repositories are small, domain-focused classes. They receive a `sqlite3.Connection` and return plain dicts (or TypedDict). No single “god” DB class.
 
-**v2 approach:** Separate repository classes, each focused on one domain.
-Repositories receive a `sqlite3.Connection` and return plain `dict` objects.
+### 2. Dependency injection
 
-```python
-class VerseRepo:
-    def __init__(self, conn: sqlite3.Connection):
-        self.conn = conn
+Dependencies are passed in constructors. No singletons or global app state. Services receive repos (and parsers where needed); tests inject mocks easily.
 
-    def save_query(self, verse_data: dict) -> str:
-        """Save a query with its verses. Returns query ID."""
-        ...
+### 3. SQL migrations
 
-    def get_query(self, query_id: str) -> dict | None:
-        """Get a single query by ID. Returns None if not found."""
-        ...
-```
+Numbered SQL files in `src/clible/db/migrations/`. The `_migrations` table records applied migrations; only unapplied ones run on startup.
 
-### 2. Dependency injection instead of singletons
+### 4. Static Bible structure
 
-**Problem in v1:** `AppState` singleton accessed from everywhere. Any module
-could read or write global state. Made testing require careful singleton
-reset, and made data flow invisible.
+Book/chapter metadata lives in `data/bible_structure.json`. No network calls to discover structure.
 
-**v2 approach:** Dependencies are passed via constructor arguments.
+### 5. Services own business logic
 
-```python
-class VerseService:
-    def __init__(self, verse_repo: VerseRepo, client: BibleClient):
-        self.verse_repo = verse_repo
-        self.client = client
-```
+Repositories do CRUD only. Parsers turn XML into verse dicts. All orchestration, validation, and business rules live in the service layer.
 
-This means:
-- Tests can inject mocks easily
-- Data flow is visible in the constructor
-- No hidden global state
+### 6. Click subcommands
 
-### 3. SQL migrations instead of CREATE IF NOT EXISTS
-
-**Problem in v1:** Every app startup runs all CREATE TABLE statements. If
-you need to add a column or change a constraint, there's no safe mechanism.
-
-**v2 approach:** Numbered SQL files in `src/clible/db/migrations/`. A
-`_migrations` table tracks which have been applied. On startup, only
-unapplied migrations run.
-
-### 4. Static Bible structure instead of API brute-force
-
-**Problem in v1:** `calculate_max_chapter()` could make up to 150 sequential
-API calls with 1-second delays to figure out how many chapters a book has.
-This is public, static data.
-
-**v2 approach:** Ship a `data/bible_structure.json` with all 66 books, their
-chapter counts, and verse counts per chapter. Simple dictionary lookup instead
-of network calls.
-
-### 5. Services own business logic, not repositories
-
-**Problem in v1:** `queries.py` (the DB layer) imported `console` from the
-UI module and printed directly. Caching logic lived inside `api.py`. Business
-rules were scattered.
-
-**v2 approach:** Repositories only do CRUD. The API client only does HTTP.
-All orchestration, validation, and business rules live in the service layer.
-
-### 6. Click subcommands instead of while-True menu loop
-
-**Problem in v1:** A `while True` loop with numbered menu choices. Not
-composable, not scriptable, mixes control flow with business logic.
-
-**v2 approach:** Click command groups with a clean verb-noun structure:
-```
-clible fetch verse "John 3:16"
-clible search "grace"
-clible sessions list
-clible export markdown
-```
-
-An optional interactive mode can be added later for users who prefer menus.
+Verb-noun CLI: `clible seed install web`, `clible verse "John 3:16"`, `clible search "grace"`, `clible analytics reference "John 1:1"`, `clible backup`.
 
 ---
 
@@ -179,102 +103,69 @@ An optional interactive mode can be added later for users who prefer menus.
 
 ## File and Module Conventions
 
-- One class per file when the class is substantial (repositories, services)
-- Utility functions can share a file (`utils.py`, `config.py`)
-- `__init__.py` files should be empty or contain only public API imports
-- No circular imports — if you have one, the architecture is wrong
+- One substantial class per file for repos and services.
+- Utility functions can share a file (`utils.py`, `config.py`).
+- `__init__.py`: empty or public API imports only. No circular imports.
 
 ---
 
-## Error Handling Strategy
+## Error Handling
 
-- **Repositories:** Raise exceptions for constraint violations. Return `None`
-  for "not found" cases.
-- **API Client:** Raise custom exceptions (`APIError`, `APITimeout`,
-  `APINotFound`). Never return `None` silently for errors.
-- **Services:** Catch repository and API exceptions. Translate them into
-  user-meaningful results or re-raise with context.
-- **UI:** Catch service exceptions. Display user-friendly error messages.
-  Never show raw tracebacks.
+- **Repositories:** Raise on constraint violations; return `None` for “not found”.
+- **Services:** Catch repo/parser errors and turn them into user-meaningful results or re-raise with context.
+- **UI:** Catch service exceptions; show user-friendly messages, never raw tracebacks.
 
 ---
 
-## Testing Conventions
+## Testing
 
-- **Unit tests** for repositories and services (fast, isolated)
-- **Integration tests** for full workflows (fetch → save → search)
-- **No real HTTP** in any test — always mock
-- **In-memory SQLite** for database tests
-- **Fixtures** in `conftest.py` for shared test setup:
-
-```python
-# tests/conftest.py
-@pytest.fixture
-def db_conn():
-    """In-memory SQLite connection with migrations applied."""
-    conn = sqlite3.connect(":memory:")
-    run_migrations(conn)
-    yield conn
-    conn.close()
-
-@pytest.fixture
-def verse_repo(db_conn):
-    return VerseRepo(db_conn)
-```
+- **Unit tests** for repos and services (in-memory SQLite, mocked HTTP where applicable).
+- **Integration tests** for flows (e.g. seed → verse lookup, search).
+- **No real HTTP** in tests — mock any requests. Fixtures in `conftest.py`.
+- **Testing real-time:** Write tests alongside code, not after. Untested code is incomplete. 
+- **CI**: GitHub Actions runs tests and linters on every PR. They must pass before merging. Run tests locally with `uv run pytest -v` and lint with `uv run ruff check .`, also `uv run ruff format --check .` for formatting.
 
 ---
 
 ## What NOT to Do
 
-These are explicit anti-patterns. If you find yourself doing any of these,
-stop and reconsider.
-
-1. **Do not import UI modules in repositories or services.**
-   No `from app.ui import console` in the data layer.
-
-2. **Do not use f-strings in SQL queries.**
-   Always use parameterized queries: `cursor.execute("... WHERE id = ?", (id,))`
-
-3. **Do not add dependencies without justification.**
-   Ask: "Can the standard library do this?" If yes, use stdlib.
-
-4. **Do not write tests after the fact.**
-   Tests are written alongside the code, as part of the same ticket.
-
-5. **Do not use global mutable state.**
-   No singletons, no module-level mutable variables.
-
-6. **Do not put business logic in the CLI layer.**
-   The CLI layer calls services and renders results. That's it.
-
-7. **Do not commit broken tests.**
-   If tests fail, fix them before committing.
-
-8. **Do not generate massive code blocks without explanation.**
-   This is a learning project. The developer must understand every line.
+1. Do not import UI (e.g. `console`) in repositories or services.
+2. Do not use f-strings in SQL; use parameterized queries only.
+3. Do not add dependencies without justification; prefer stdlib when reasonable.
+4. Do not write tests after the fact; tests accompany the implementation.
+5. Do not use global mutable state or singletons.
+6. Do not put business logic in the CLI; CLI calls services and renders only.
+7. Do not commit failing tests.
+8. Do not generate large code blocks without explanation; the developer must be able to explain the code.
+9. Write a single function, class, or module without adding verbose DOCSTRINGS or comments. The code should be self-explanatory. If it’s not, refactor for clarity or add a brief comment explaining the “why” (not the “what”).
+10. Leave marks of AI assistance in the codebase (e.g. “generated by GPT” comments, or code that clearly looks like it was copy-pasted from an AI without understanding). The code should look like it was written by a careful, thoughtful developer who understands every line.
 
 ---
 
-## Cursor Cloud specific instructions
+## Quick Reference (Tooling & Commands)
 
-This project uses **uv** as the package manager. The update script installs uv (if missing) and runs `uv sync --all-groups`.
+| Task        | Command                    |
+|-------------|----------------------------|
+| Install deps| `uv sync --all-groups`     |
+| Run tests   | `uv run pytest -v`         |
+| Lint        | `uv run ruff check .`      |
+| Format check| `uv run ruff format --check .` |
+| CLI help    | `uv run clible --help`     |
+| Verse       | `uv run clible verse "John 3:16"` |
+| Search      | `uv run clible search "grace"`   |
+| Seed install| `uv run clible seed install web` (downloads XML, then verse works) |
 
-### Quick reference
+- **Python:** 3.12+.
+- **Package manager:** uv.
+- **DB:** SQLite at `src/clible/data/clible.db` by default; override with `CLIBLE_DB_PATH`.
+- **Seed:** XML is fetched from GitHub during `seed install`; normal use (verse, search, analytics) is offline.
+- **Backup:** Optional GCS backup; set `CLIBLE_GCS_BUCKET` (see `docs/GCP_SETUP.md` if present).
 
-| Task | Command |
-|------|---------|
-| Install deps | `uv sync --all-groups` |
-| Run tests | `uv run pytest -v` |
-| Lint | `uv run ruff check .` |
-| Format check | `uv run ruff format --check .` |
-| Run CLI | `uv run clible --help` |
-| Look up a verse | `uv run clible verse "John 3:16"` |
+---
 
-### Notes
+## Related Documents
 
-- Python 3.12+ is required (the VM has 3.12.3 at `/usr/bin/python3`).
-- The project is a pure CLI tool — no web server to start. The "hello world" flow is: `clible seed install web` (downloads ~4 MB) then `clible verse "John 3:16"`.
-- SQLite is embedded (stdlib `sqlite3`), no external DB server needed.
-- Bible XML files are downloaded from GitHub during `seed install` — this requires internet but is **not** needed for tests (all HTTP is mocked).
-- The SQLite database lives at `src/clible/data/clible.db` by default (configurable via `CLIBLE_DB_PATH` env var).
-- `pylance` is listed as a runtime dependency in `pyproject.toml` but is actually a dev tool; this is a known quirk of the project's current config.
+- **docs/PROJECT_OVERVIEW.md** — Current implementation status, file map, schema.
+- **PLAN.md** — Phase plan and tickets (some content may still reference an API; actual data path is seed + parsers).
+- **plans/** — Per-PR implementation plans (task breakdowns, step-by-step). Check when working on a feature that has a plan there. Not version-controlled (in .gitignore).
+- **.cursor/rules/** — Project rules by topic (`.mdc` with frontmatter). Always-on: `project-context.mdc`, `architecture.mdc`. File-scoped: `python-style.mdc`, `database.mdc`, `testing.mdc`. See `how-to-use-rules.mdc` for usage.

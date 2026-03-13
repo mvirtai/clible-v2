@@ -19,6 +19,9 @@ wheels/
 # Notes
 notes/
 
+# Per-PR implementation plans (local, not for repo)
+plans/
+
 # Internal / AI context (not for public repo)
 docs/CONTINUATION_GUIDE.md
 AGENTS.md
