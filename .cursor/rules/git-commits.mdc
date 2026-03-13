@@ -12,3 +12,7 @@ alwaysApply: false
 - Branch per phase is fine; merge to main when phase completes
 
 **History quality:** The repo may be used in job applications; evaluators often judge by commit history. Keep it linear, clear, and informative: one logical change per commit, descriptive messages, and branches that tell a coherent story. Prefer creating a new branch from main for a new concern rather than stacking unrelated changes on a feature branch.
+
+**Git commands:** Use `git switch` (not `git checkout`) for branches: `git switch main`, `git switch -c new-branch`. Use `git restore` (not `git checkout`) for files: `git restore file.py`, `git restore --staged file.py`. Git 2.23+ split the old `git checkout` into these clearer commands; checkout is legacy.
+
+**After merge:** After squash and merge, delete the feature branch and use `git switch main` to return to main, `git fetch --all` to update local main and `git reset --hard origin/main` to sync with remote.

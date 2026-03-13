@@ -39,7 +39,8 @@ Then the rule content (markdown). Cursor supports both `.md` and `.mdc`; use `.m
 | `python-style.mdc` | `src/**/*.py` | Code style, dependencies |
 | `database.mdc` | `src/clible/db/**`, `**/repositories/*.py` | SQLite, migrations, parameterized SQL |
 | `testing.mdc` | `tests/**/*.py` | pytest, fixtures, test layout |
-| `git-commits.mdc` | By relevance / manual | Commits, branches |
+| `git-commits.mdc` | By relevance / manual | Commits, branches, git switch/restore |
+| `pr-description.mdc` | By relevance / manual | PR description format (PR_DESCRIPTION.md, PR body) |
 | `pr-stories.mdc` | By relevance / manual | PR description format (PR_STORY.md, PR body) |
 | `how-to-use-rules.mdc` | Manual (@mention) | This file |
 

@@ -8,6 +8,7 @@ alwaysApply: true
 - **Before starting:** Read `docs/PROJECT_OVERVIEW.md` and `PLAN.md`. They define architecture and current implementation plan.
 - **Per-PR plans:** When working on a feature or PR, check the `plans/` folder for an implementation plan (step-by-step or task list) and follow it if present.
 - **Detailed architecture and quick reference:** See `AGENTS.md` in the project root. Project rules are in `.cursor/rules/` (scoped by topic; see `how-to-use-rules.mdc`).
+- **Git:** Prefer `git switch` for branches and `git restore` for files; `git checkout` is legacy. See `git-commits.mdc`.
 
 ## Role
 

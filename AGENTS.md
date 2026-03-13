@@ -160,6 +160,7 @@ Verb-noun CLI: `clible seed install web`, `clible verse "John 3:16"`, `clible se
 - **DB:** SQLite at `src/clible/data/clible.db` by default; override with `CLIBLE_DB_PATH`.
 - **Seed:** XML is fetched from GitHub during `seed install`; normal use (verse, search, analytics) is offline.
 - **Backup:** Optional GCS backup; set `CLIBLE_GCS_BUCKET` (see `docs/GCP_SETUP.md` if present).
+- **Git:** Use `git switch` for branches, `git restore` for files; `git checkout` is legacy (see `.cursor/rules/git-commits.mdc`). After squash and merge, delete the feature branch and use `git switch main` to return to main, `git fetch --all` to update local main and `git reset --hard origin/main` to sync with remote.
 
 ---
 
