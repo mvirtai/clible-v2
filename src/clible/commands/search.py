@@ -36,8 +36,6 @@ def _highlight_word(text: str, word: str) -> str:
     return pattern.sub(repl, text)
 
 
-
-
 def _display_scope_label(scope: str, scope_ref: str | None) -> str:
     """Format scope for display: e.g. testament ref 'ot' -> 'OT'."""
     if scope == "testament" and scope_ref:

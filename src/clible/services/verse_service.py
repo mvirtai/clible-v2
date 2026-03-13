@@ -230,9 +230,7 @@ class VerseService:
             if not book:
                 return []
             return [
-                v
-                for v in verses
-                if v["book_id"] == book["id"] and v["chapter"] == parsed.chapter
+                v for v in verses if v["book_id"] == book["id"] and v["chapter"] == parsed.chapter
             ]
 
         if scope == "verse":
