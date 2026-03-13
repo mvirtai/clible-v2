@@ -287,9 +287,24 @@ def test_search_text_finds_matching_verses(verse_repo, translation_repo):
         }
     )
     verses = [
-        {"book_id": "GEN", "chapter": 1, "verse": 1, "text": "In the beginning God created"},
-        {"book_id": "GEN", "chapter": 1, "verse": 2, "text": "And the earth was without form"},
-        {"book_id": "JHN", "chapter": 1, "verse": 1, "text": "In the beginning was the Word"},
+        {
+            "book_id": "GEN",
+            "chapter": 1,
+            "verse": 1,
+            "text": "In the beginning God created",
+        },
+        {
+            "book_id": "GEN",
+            "chapter": 1,
+            "verse": 2,
+            "text": "And the earth was without form",
+        },
+        {
+            "book_id": "JHN",
+            "chapter": 1,
+            "verse": 1,
+            "text": "In the beginning was the Word",
+        },
     ]
     verse_repo.save_verses(verses, "web")
 
@@ -310,7 +325,14 @@ def test_search_text_is_case_insensitive(verse_repo, translation_repo):
         }
     )
     verse_repo.save_verses(
-        [{"book_id": "GEN", "chapter": 1, "verse": 1, "text": "God created the heavens"}],
+        [
+            {
+                "book_id": "GEN",
+                "chapter": 1,
+                "verse": 1,
+                "text": "God created the heavens",
+            }
+        ],
         "web",
     )
 
@@ -338,10 +360,20 @@ def test_search_text_filters_by_translation(verse_repo, translation_repo):
         }
     )
     verses_web = [
-        {"book_id": "GEN", "chapter": 1, "verse": 1, "text": "In the beginning God created"},
+        {
+            "book_id": "GEN",
+            "chapter": 1,
+            "verse": 1,
+            "text": "In the beginning God created",
+        },
     ]
     verses_kjv = [
-        {"book_id": "GEN", "chapter": 1, "verse": 1, "text": "In the beginning God made"},
+        {
+            "book_id": "GEN",
+            "chapter": 1,
+            "verse": 1,
+            "text": "In the beginning God made",
+        },
     ]
     verse_repo.save_verses(verses_web, "web")
     verse_repo.save_verses(verses_kjv, "kjv")

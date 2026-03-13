@@ -7,7 +7,9 @@ Uses in-memory SQLite with full schema via conftest db_conn fixture.
 from clible.db.repositories.translation_repo import TranslationRepo
 
 
-def test_get_all_returns_empty_list_when_no_translations(translation_repo: TranslationRepo):
+def test_get_all_returns_empty_list_when_no_translations(
+    translation_repo: TranslationRepo,
+):
     """Fresh database has no translations; get_all returns empty list."""
     result = translation_repo.get_all()
     assert result == []

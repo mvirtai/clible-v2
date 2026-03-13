@@ -76,9 +76,19 @@ def test_get_verse_with_range_returns_first_verse(verse_service, verse_repo, tra
     )
     verse_repo.save_verses(
         [
-            {"book_id": "JHN", "chapter": 3, "verse": 16, "text": "For God so loved..."},
+            {
+                "book_id": "JHN",
+                "chapter": 3,
+                "verse": 16,
+                "text": "For God so loved...",
+            },
             {"book_id": "JHN", "chapter": 3, "verse": 17, "text": "For God sent..."},
-            {"book_id": "JHN", "chapter": 3, "verse": 18, "text": "Whoever believes..."},
+            {
+                "book_id": "JHN",
+                "chapter": 3,
+                "verse": 18,
+                "text": "Whoever believes...",
+            },
         ],
         "web",
     )

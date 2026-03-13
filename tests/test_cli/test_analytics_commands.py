@@ -121,7 +121,9 @@ def test_analytics_compare_fails_when_required_translations_missing(cli_uses_tem
     assert "Missing translation(s): fin17xx" in result.output
 
 
-def test_analytics_compare_fails_when_same_translation_used_on_both_sides(cli_uses_temp_db):
+def test_analytics_compare_fails_when_same_translation_used_on_both_sides(
+    cli_uses_temp_db,
+):
     """analytics compare rejects identical left and right translation IDs."""
     conn = get_connection()
     translation_repo = TranslationRepo(conn)
@@ -138,7 +140,15 @@ def test_analytics_compare_fails_when_same_translation_used_on_both_sides(cli_us
     runner = CliRunner()
     result = runner.invoke(
         main,
-        ["analytics", "compare", "John 3:16", "--left", "fin-1992", "--right", "fin-1992"],
+        [
+            "analytics",
+            "compare",
+            "John 3:16",
+            "--left",
+            "fin-1992",
+            "--right",
+            "fin-1992",
+        ],
     )
 
     assert result.exit_code != 0

@@ -35,6 +35,7 @@ real engineering skills, not AI-generated boilerplate.
 ## Concept Familiarity
 
 ### Comfortable with (can explain and apply)
+
 - Git fundamentals (branching, merging, rebasing, stashing)
 - Python standard library (pathlib, dataclasses, typing, json, sqlite3)
 - Basic SQL (SELECT, INSERT, JOIN, GROUP BY, WHERE, ORDER BY)
@@ -47,6 +48,7 @@ real engineering skills, not AI-generated boilerplate.
 - Linux terminal workflows
 
 ### Learning (understands concept, needs practice)
+
 - Repository pattern and layered architecture
 - Database migrations
 - Dependency injection
@@ -58,6 +60,7 @@ real engineering skills, not AI-generated boilerplate.
 - Clean architecture principles
 
 ### Exposure only (has seen, needs explanation)
+
 - async/await in Python
 - ORMs (SQLAlchemy, etc.) — not used in this project by design
 - Design patterns beyond basics (Observer, Strategy, Factory)
