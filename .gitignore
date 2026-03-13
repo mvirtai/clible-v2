@@ -35,3 +35,5 @@ PR_STORY.md
 *.bak
 *.cast
 src/clible/data/clible.db
+
+.env*
