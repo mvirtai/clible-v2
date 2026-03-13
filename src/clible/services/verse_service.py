@@ -8,6 +8,12 @@ if TYPE_CHECKING:
     from clible.db.repositories.translation_repo import TranslationRepo
     from clible.db.repositories.verse_repo import VerseRepo
 
+# IDEA (AI): The reference parsing is currently quite strict and tied to VerseService.
+# Consider creating a dedicated ReferenceParser class or utility that can handle:
+# 1. "John" (Full book)
+# 2. "John 3" (Full chapter)
+# 3. "John 3:16" (Single verse)
+# 4. "John 3:16-18" (Verse range)
 # Matches "Book 1:2" or "Book 1:2-5" (group 4 is optional end verse)
 _REFERENCE_PATTERN = re.compile(
     r"^\s*(.+?)\s+(\d+):(\d+)(?:-(\d+))?\s*$",
@@ -195,4 +201,8 @@ class VerseService:
             List of verse dicts that contain the word,
             ordered by book/chapter/verse.
         """
+        # IDEA (AI): Expand this to support scoping (bible, testament, book, chapter).
+        # Currently, the search command handles scoping by filtering the full result set.
+        # Moving that logic here (and possibly into the repository for more efficient
+        # SQL filtering) would be a significant architectural improvement.
         return self._verse_repo.search_text(word, translation_id)

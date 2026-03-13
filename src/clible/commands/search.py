@@ -25,6 +25,9 @@ def _get_verse_service() -> VerseService:
     )
 
 
+# IDEA (AI): This logic should ideally be moved to VerseService.
+# The UI layer (commands) should focus on display and user interaction,
+# while the service layer should handle reference parsing and filtering.
 def _parse_chapter_reference(reference: str) -> tuple[str, int] | None:
     """Parse 'John 3' -> (book_name, chapter). Returns None if invalid."""
     pattern = re.compile(r"^\s*(.+?)\s+(\d+)\s*$", re.IGNORECASE)
@@ -46,6 +49,10 @@ def _highlight_word(text: str, word: str) -> str:
     return pattern.sub(repl, text)
 
 
+# IDEA (AI): Move this to VerseService.search_text() or a separate service method.
+# Filtering search results by scope is a business logic concern.
+# By moving it to the service, it becomes reusable by other parts of the app
+# (e.g., an API or a different UI) and easier to test in isolation.
 def _filter_verses_by_scope(
     verses: list[dict],
     scope: str,
@@ -125,6 +132,9 @@ def _filter_verses_by_scope(
     return verses
 
 
+# IDEA (AI): Consider moving statistics calculation to VerseService.
+# This would allow the service to return a structured SearchResult object
+# containing both the verses and the computed statistics.
 def _build_statistics(verses: list[dict], word: str) -> dict:
     """Build search statistics from matching verses.
 
