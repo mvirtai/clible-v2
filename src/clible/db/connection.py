@@ -21,6 +21,10 @@ def get_connection(db_path: Path | str | None = None) -> sqlite3.Connection:
     conn.execute("PRAGMA foreign_keys=ON")
     conn.row_factory = sqlite3.Row
 
+    # IDEA (AI): Running migrations and seed checks on every connection might
+    # slow down the CLI as the database grows. Consider a mechanism to skip
+    # these checks if they've already been performed in the current session
+    # or if a "schema version" check passes quickly.
     run_migrations(conn)
     seed_books_if_empty(conn)  # Populate books table from JSON if empty
 

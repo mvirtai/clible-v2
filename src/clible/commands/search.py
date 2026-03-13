@@ -1,14 +1,13 @@
 """Search command: find verses by word using FTS5 with scope and statistics."""
 
 import re
-from collections import Counter
 
 import click
 from rich.panel import Panel
 from rich.table import Table
 
 from clible.db.connection import get_connection
-from clible.db.repositories.book_repo import BookRepo, Testament
+from clible.db.repositories.book_repo import BookRepo
 from clible.db.repositories.translation_repo import TranslationRepo
 from clible.db.repositories.verse_repo import VerseRepo
 from clible.services.verse_service import VerseService
@@ -25,15 +24,6 @@ def _get_verse_service() -> VerseService:
     )
 
 
-def _parse_chapter_reference(reference: str) -> tuple[str, int] | None:
-    """Parse 'John 3' -> (book_name, chapter). Returns None if invalid."""
-    pattern = re.compile(r"^\s*(.+?)\s+(\d+)\s*$", re.IGNORECASE)
-    m = pattern.match(reference.strip())
-    if not m:
-        return None
-    return (m.group(1).strip(), int(m.group(2)))
-
-
 def _highlight_word(text: str, word: str) -> str:
     """Wrap each occurrence of word in Rich bold/yellow markup (case-insensitive)."""
     if not word.strip():
@@ -44,110 +34,6 @@ def _highlight_word(text: str, word: str) -> str:
         return f"[bold yellow]{match.group(0)}[/bold yellow]"
 
     return pattern.sub(repl, text)
-
-
-def _filter_verses_by_scope(
-    verses: list[dict],
-    scope: str,
-    scope_value: str | None,
-) -> list[dict]:
-    """Filter verses based on scope type and value.
-
-    Args:
-        verses: All matching verses from FTS search.
-        scope: One of: verse, chapter, book, testament, bible.
-        scope_value: Reference/name for the scope (e.g. "John 3:16", "John", "OT").
-
-    Returns:
-        Filtered list of verses matching the scope.
-    """
-    if scope == "bible":
-        return verses
-
-    if scope == "testament":
-        testament_str = scope_value.upper() if scope_value else "OT"
-        conn = get_connection()
-        book_repo = BookRepo(conn)
-        testament_books = book_repo.get_by_testament(Testament(testament_str))
-        book_ids = {b["id"] for b in testament_books}
-        return [v for v in verses if v["book_id"] in book_ids]
-
-    if scope == "book":
-        book_name = scope_value or ""
-        conn = get_connection()
-        book_repo = BookRepo(conn)
-        book = book_repo.get_by_name(book_name)
-        if not book:
-            matches = book_repo.search(book_name)
-            book = matches[0] if matches else None
-        if not book:
-            return []
-        return [v for v in verses if v["book_id"] == book["id"]]
-
-    if scope == "chapter":
-        parsed = _parse_chapter_reference(scope_value or "")
-        if not parsed:
-            return []
-        book_name, chapter_num = parsed
-        conn = get_connection()
-        book_repo = BookRepo(conn)
-        book = book_repo.get_by_name(book_name)
-        if not book:
-            matches = book_repo.search(book_name)
-            book = matches[0] if matches else None
-        if not book:
-            return []
-        return [v for v in verses if v["book_id"] == book["id"] and v["chapter"] == chapter_num]
-
-    if scope == "verse":
-        from clible.services.verse_service import _parse_reference
-
-        parsed = _parse_reference(scope_value or "")
-        if not parsed:
-            return []
-        book_name, chapter_num, verse_start, verse_end = parsed
-        conn = get_connection()
-        book_repo = BookRepo(conn)
-        book = book_repo.get_by_name(book_name)
-        if not book:
-            matches = book_repo.search(book_name)
-            book = matches[0] if matches else None
-        if not book:
-            return []
-        return [
-            v
-            for v in verses
-            if v["book_id"] == book["id"]
-            and v["chapter"] == chapter_num
-            and verse_start <= v["verse"] <= verse_end
-        ]
-
-    return verses
-
-
-def _build_statistics(verses: list[dict], word: str) -> dict:
-    """Build search statistics from matching verses.
-
-    Returns:
-        Dict with total_occurrences, unique_verses, books_with_matches,
-        top_books (list of tuples), etc.
-    """
-    total_occurrences = 0
-    book_counter: Counter[str] = Counter()
-
-    for v in verses:
-        text_lower = v["text"].lower()
-        word_lower = word.lower()
-        count_in_verse = text_lower.count(word_lower)
-        total_occurrences += count_in_verse
-        book_counter[v["book_id"]] += count_in_verse
-
-    return {
-        "total_occurrences": total_occurrences,
-        "unique_verses": len(verses),
-        "books_with_matches": len(book_counter),
-        "top_books": book_counter.most_common(5),
-    }
 
 
 def _display_scope_label(scope: str, scope_ref: str | None) -> str:
@@ -315,9 +201,12 @@ def search(
         raise SystemExit(1)
 
     service = _get_verse_service()
-    all_verses = service.search_text(word, translation_id)
-
-    filtered_verses = _filter_verses_by_scope(all_verses, scope, scope_ref)
+    filtered_verses = service.search_text(
+        word,
+        translation_id=translation_id,
+        scope=scope,
+        scope_ref=scope_ref,
+    )
 
     if not filtered_verses:
         scope_label = _display_scope_label(scope, scope_ref)
@@ -328,7 +217,7 @@ def search(
         return
 
     scope_label = _display_scope_label(scope, scope_ref)
-    stats = _build_statistics(filtered_verses, word)
+    stats = service.get_search_statistics(filtered_verses, word)
     _render_statistics(stats, word, scope_label)
 
     verse_count = len(filtered_verses)

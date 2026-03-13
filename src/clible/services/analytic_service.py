@@ -48,6 +48,10 @@ class AnalyticService:
             data = json.load(f)
             return set(data.get(language, {}).get("words", []))
 
+    # IDEA (AI): The current tokenization is simple (splitting by whitespace).
+    # For more accurate analytics, consider using a regular expression that
+    # extracts words while handling edge cases like apostrophes (e.g., "don't")
+    # or mixed punctuation more robustly.
     def _tokenize(self, text: str) -> list[str]:
         """Tokenize text into normalized words.
 
