@@ -11,6 +11,11 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from clible.config import get_config
 from clible.storage.gcs import download_file, upload_file
 from clible.ui.console import console
+from clible.ui.help_texts import (
+    BACKUP_GCS_HELP,
+    BACKUP_HELP,
+    BACKUP_RESTORE_GCS_HELP,
+)
 
 
 def _timestamp_for_backup() -> str:
@@ -20,9 +25,14 @@ def _timestamp_for_backup() -> str:
     return datetime.now().strftime("%Y%m%d-%H%M%S")
 
 
-@click.group("backup")
-def backup() -> None:
+@click.group("backup", add_help_option=False, context_settings={"help_option_names": []})
+@click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
+def backup(show_help: bool) -> None:
     """Backup database and data to remote storage."""
+    if show_help:
+        console.print(BACKUP_HELP)
+        return
+
     pass
 
 
@@ -42,14 +52,23 @@ def _gcs_error_hint(error: Exception) -> str:
     return ""
 
 
-@backup.command("gcs")
-def backup_gcs() -> None:
+@backup.command(
+    "gcs",
+    add_help_option=False,
+    context_settings={"help_option_names": []},
+)
+@click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
+def backup_gcs(show_help: bool) -> None:
     """Upload the SQLite database to Google Cloud Storage.
 
     Requires CLIBLE_GCS_BUCKET to be set. Optional: CLIBLE_GCS_BACKUP_PREFIX
     (default: backups).     Uses Application Default Credentials or
     GOOGLE_APPLICATION_CREDENTIALS.
     """
+    if show_help:
+        console.print(BACKUP_GCS_HELP)
+        return
+
     cfg = get_config()
     db_path = _db_path()
     if not cfg.gcs_bucket:
@@ -119,19 +138,32 @@ def backup_gcs() -> None:
         raise SystemExit(1)
 
 
-@backup.command("restore-gcs")
-@click.argument("gcs_uri")
+@backup.command(
+    "restore-gcs",
+    add_help_option=False,
+    context_settings={"help_option_names": []},
+)
+@click.argument("gcs_uri", required=False)
 @click.option(
     "--force",
     is_flag=True,
     help="Skip the confirmation prompt before replacing the local database.",
 )
-def restore_gcs(gcs_uri: str, force: bool) -> None:
+@click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
+def restore_gcs(gcs_uri: str | None, force: bool, show_help: bool) -> None:
     """Restore the local SQLite database from a GCS object.
 
     Downloads the remote database to a temporary file, writes a local backup of
     the current database (if present),     and then replaces the configured DB file.
     """
+    if show_help:
+        console.print(BACKUP_RESTORE_GCS_HELP)
+        return
+
+    if gcs_uri is None:
+        console.print("[red]GCS URI is required.[/red]")
+        raise SystemExit(1)
+
     db_path = _db_path()
     db_path.parent.mkdir(parents=True, exist_ok=True)
 

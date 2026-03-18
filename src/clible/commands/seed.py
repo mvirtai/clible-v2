@@ -13,6 +13,12 @@ from clible.parsers.osis_parser import OSISParser
 from clible.parsers.usfx_parser import USFXParser
 from clible.services.seed_service import SeedService
 from clible.ui.console import console
+from clible.ui.help_texts import (
+    SEED_AVAILABLE_HELP,
+    SEED_INSTALL_HELP,
+    SEED_LIST_HELP,
+    SEED_REMOVE_HELP,
+)
 
 
 def _get_seed_service() -> SeedService:
@@ -28,9 +34,10 @@ def _get_seed_service() -> SeedService:
     )
 
 
-@click.command("install")
-@click.argument("translation_id")
-def install(translation_id: str) -> None:
+@click.command("install", add_help_option=False, context_settings={"help_option_names": []})
+@click.argument("translation_id", required=False)
+@click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
+def install(translation_id: str | None, show_help: bool) -> None:
     """Install a Bible translation by ID.
 
     Example: clible seed install web
@@ -39,6 +46,14 @@ def install(translation_id: str) -> None:
     Downloads, parses, and stores the translation locally.
     Supported formats: USFX (web), OSIS (kjv, fin-biblia), BEBLIA (fin-1992, etc.).
     """
+    if show_help:
+        console.print(SEED_INSTALL_HELP)
+        return
+
+    if translation_id is None:
+        console.print("[red]Translation ID is required.[/red]")
+        raise SystemExit(1)
+
     try:
         service = _get_seed_service()
         with Progress(
@@ -60,9 +75,14 @@ def install(translation_id: str) -> None:
         raise SystemExit(1)
 
 
-@click.command("list")
-def list_installed() -> None:
+@click.command("list", add_help_option=False, context_settings={"help_option_names": []})
+@click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
+def list_installed(show_help: bool) -> None:
     """List installed translations."""
+    if show_help:
+        console.print(SEED_LIST_HELP)
+        return
+
     service = _get_seed_service()
     installed = service.list_installed()
     if not installed:
@@ -83,9 +103,14 @@ def list_installed() -> None:
     console.print(table)
 
 
-@click.command("available")
-def available() -> None:
+@click.command("available", add_help_option=False, context_settings={"help_option_names": []})
+@click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
+def available(show_help: bool) -> None:
     """List available translations from the catalog."""
+    if show_help:
+        console.print(SEED_AVAILABLE_HELP)
+        return
+
     service = _get_seed_service()
     items = service.list_available()
     table = Table(title="Available translations")
@@ -105,13 +130,22 @@ def available() -> None:
     console.print(table)
 
 
-@click.command("remove")
-@click.argument("translation_id")
-def remove(translation_id: str) -> None:
+@click.command("remove", add_help_option=False, context_settings={"help_option_names": []})
+@click.argument("translation_id", required=False)
+@click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
+def remove(translation_id: str | None, show_help: bool) -> None:
     """Remove an installed translation.
 
     Example: clible seed remove web
     """
+    if show_help:
+        console.print(SEED_REMOVE_HELP)
+        return
+
+    if translation_id is None:
+        console.print("[red]Translation ID is required.[/red]")
+        raise SystemExit(1)
+
     try:
         service = _get_seed_service()
         service.remove_translation(translation_id)

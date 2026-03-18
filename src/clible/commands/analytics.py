@@ -17,22 +17,18 @@ from clible.db.repositories.verse_repo import VerseRepo
 from clible.services.analytic_service import AnalyticService
 from clible.services.verse_service import VerseService
 from clible.ui.console import console
+from clible.ui.help_texts import (
+    ANALYTICS_BOOK_HELP,
+    ANALYTICS_CHAPTER_HELP,
+    ANALYTICS_COMPARE_HELP,
+    ANALYTICS_REFERENCE_HELP,
+)
 
 _TRANSLATIONS_FILE = Path(__file__).parent.parent / "data" / "translations.json"
 
 
 def _language_for_translation(translation_id: str) -> str:
-    """Look up the language code for a given translation ID.
-
-    Reads the static translations catalog. Returns "en" if the translation
-    is not found or the file is missing.
-
-    Args:
-        translation_id: Translation ID (e.g. "web", "fin-biblia").
-
-    Returns:
-        ISO 639-1 language code (e.g. "en", "fi").
-    """
+    """Look up the language code for a given translation ID."""
     if not _TRANSLATIONS_FILE.exists():
         return "en"
     with open(_TRANSLATIONS_FILE, encoding="utf-8") as f:
@@ -41,14 +37,7 @@ def _language_for_translation(translation_id: str) -> str:
 
 
 def _get_analytic_service(translation_id: str | None) -> AnalyticService:
-    """Build AnalyticService with real dependencies.
-
-    Resolves the stopword language automatically from the translation:
-    if translation_id is None, the installed default is used.
-
-    Args:
-        translation_id: Translation ID passed by the user, or None for default.
-    """
+    """Build AnalyticService with real dependencies."""
     conn = get_connection()
     translation_repo = TranslationRepo(conn)
 
@@ -116,13 +105,7 @@ def _word_level_diff_markup(text_a: str, text_b: str) -> str:
 
 
 def _render_analysis(console: Console, analysis: dict, scope_label: str) -> None:
-    """Render analysis results as Rich tables.
-
-    Args:
-        console: Rich console for output.
-        analysis: Analysis dict with metrics and top-N lists.
-        scope_label: Label for the scope (e.g. "John 3:16-18", "John 3", "John").
-    """
+    """Render analysis results as Rich tables."""
     console.print(f"\n[bold cyan]Text Analysis: {scope_label}[/bold cyan]\n")
 
     metrics_table = Table(title="Metrics", show_header=True)
@@ -239,97 +222,133 @@ def _render_comparison(
     )
 
 
-@click.command()
-@click.argument("ref")
+@click.command(
+    "reference",
+    add_help_option=False,
+    context_settings={"help_option_names": []},
+)
+@click.argument("ref", required=False)
 @click.option(
-    "--translation",
     "-t",
+    "--translation",
     "translation_id",
     default=None,
     help="Translation ID (e.g. web). Defaults to installed default.",
 )
 @click.option(
-    "--top",
     "-n",
+    "--top",
     "top_n",
     default=10,
     type=int,
     help="Number of top items to show (default 10).",
 )
-def reference(ref: str, translation_id: str | None, top_n: int) -> None:
-    """Analyze verses in a reference (e.g. 'John 3:16' or 'John 3:16-18').
+@click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
+def reference(
+    ref: str | None,
+    translation_id: str | None,
+    top_n: int,
+    show_help: bool,
+) -> None:
+    """Analyze verses in a reference (e.g. 'John 3:16' or 'John 3:16-18')."""
+    if show_help:
+        console.print(ANALYTICS_REFERENCE_HELP)
+        return
 
-    Example: clible analytics reference "John 3:16-18"
-    Example: clible analytics reference "Genesis 1:1" -t kjv --top 5
-    """
+    if ref is None:
+        console.print("[red]Reference is required.[/red]")
+        raise SystemExit(1)
+
     service = _get_analytic_service(translation_id)
-
     analysis = service.analyze_reference(ref, translation_id, top_n)
     _render_analysis(console, analysis, ref)
 
 
-@click.command()
-@click.argument("book_name")
-@click.argument("chapter_num", type=int)
+@click.command("chapter", add_help_option=False, context_settings={"help_option_names": []})
+@click.argument("book_name", required=False)
+@click.argument("chapter_num", type=int, required=False)
 @click.option(
-    "--translation",
     "-t",
+    "--translation",
     "translation_id",
     default=None,
     help="Translation ID (e.g. web). Defaults to installed default.",
 )
 @click.option(
-    "--top",
     "-n",
+    "--top",
     "top_n",
     default=10,
     type=int,
     help="Number of top items to show (default 10).",
 )
-def chapter(book_name: str, chapter_num: int, translation_id: str | None, top_n: int) -> None:
-    """Analyze all verses in a chapter.
+@click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
+def chapter(
+    book_name: str | None,
+    chapter_num: int | None,
+    translation_id: str | None,
+    top_n: int,
+    show_help: bool,
+) -> None:
+    """Analyze all verses in a chapter."""
+    if show_help:
+        console.print(ANALYTICS_CHAPTER_HELP)
+        return
 
-    Example: clible analytics chapter John 3
-    Example: clible analytics chapter Genesis 1 -t kjv --top 5
-    """
+    if book_name is None or chapter_num is None:
+        console.print("[red]Book and chapter are required.[/red]")
+        raise SystemExit(1)
+
     service = _get_analytic_service(translation_id)
-
     analysis = service.analyze_chapter(book_name, chapter_num, translation_id, top_n)
     scope_label = f"{book_name} {chapter_num}"
     _render_analysis(console, analysis, scope_label)
 
 
-@click.command()
-@click.argument("book_name")
+@click.command("book", add_help_option=False, context_settings={"help_option_names": []})
+@click.argument("book_name", required=False)
 @click.option(
-    "--translation",
     "-t",
+    "--translation",
     "translation_id",
     default=None,
     help="Translation ID (e.g. web). Defaults to installed default.",
 )
 @click.option(
-    "--top",
     "-n",
+    "--top",
     "top_n",
     default=10,
     type=int,
     help="Number of top items to show (default 10).",
 )
-def book(book_name: str, translation_id: str | None, top_n: int) -> None:
-    """Analyze all verses in a book.
+@click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
+def book(
+    book_name: str | None,
+    translation_id: str | None,
+    top_n: int,
+    show_help: bool,
+) -> None:
+    """Analyze all verses in a book."""
+    if show_help:
+        console.print(ANALYTICS_BOOK_HELP)
+        return
 
-    Example: clible analytics book John
-    Example: clible analytics book Genesis -t kjv --top 5
-    """
+    if book_name is None:
+        console.print("[red]Book name is required.[/red]")
+        raise SystemExit(1)
+
     service = _get_analytic_service(translation_id)
-
     analysis = service.analyze_book(book_name, translation_id, top_n)
     _render_analysis(console, analysis, book_name)
 
 
-@click.command()
-@click.argument("ref")
+@click.command(
+    "compare",
+    add_help_option=False,
+    context_settings={"help_option_names": []},
+)
+@click.argument("ref", required=False)
 @click.option(
     "--left",
     "translation_a",
@@ -344,8 +363,27 @@ def book(book_name: str, translation_id: str | None, top_n: int) -> None:
     show_default=True,
     help="Right-side translation ID (default fin17xx alias for fin-1776).",
 )
-def compare(ref: str, translation_a: str, translation_b: str) -> None:
+@click.option(
+    "--help",
+    "show_help",
+    is_flag=True,
+    help="Show this message and exit.",
+)
+def compare(
+    ref: str | None,
+    translation_a: str,
+    translation_b: str,
+    show_help: bool,
+) -> None:
     """Compare two translations side-by-side with diffs and similarity stats."""
+    if show_help:
+        console.print(ANALYTICS_COMPARE_HELP)
+        return
+
+    if ref is None:
+        console.print("[red]Reference is required.[/red]")
+        raise SystemExit(1)
+
     conn = get_connection()
     translation_repo = TranslationRepo(conn)
 
