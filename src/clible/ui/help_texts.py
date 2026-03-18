@@ -23,6 +23,9 @@ ANALYTICS_REFERENCE_HELP = """
                           primary installed translation.
   -n, --top INTEGER       Number of top items to show for words and n-grams.
                           [default: 10]
+  --output PATH           Write results to a file. Format is inferred from
+                          extension: .json/.csv/.html/.md
+                          
   --help                  Show this message and exit.
 
 [bold]Examples:[/bold]
@@ -51,6 +54,8 @@ ANALYTICS_CHAPTER_HELP = """
                           primary installed translation.
   -n, --top INTEGER       Number of top items to show for words and n-grams.
                           [default: 10]
+  --output PATH           Write results to a file. Format is inferred from
+                          extension: .json/.csv/.html/.md
   --help                  Show this message and exit.
 
 [bold]Examples:[/bold]
@@ -78,6 +83,8 @@ ANALYTICS_BOOK_HELP = """
                           primary installed translation.
   -n, --top INTEGER       Number of top items to show for words and n-grams.
                           [default: 10]
+  --output PATH           Write results to a file. Format is inferred from
+                          extension: .json/.csv/.html/.md
   --help                  Show this message and exit.
 
 [bold]Examples:[/bold]
@@ -106,6 +113,8 @@ ANALYTICS_COMPARE_HELP = """
   --right TEXT   The translation to compare against the base.
                  [default: fin17xx (alias for fin-1776)]
 
+  --output PATH  Write results to a file. Format is inferred from extension:
+                 .json/.csv/.html/.md
   --help         Show this message and exit.
 
 [bold]Examples:[/bold]
