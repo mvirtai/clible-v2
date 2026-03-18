@@ -378,9 +378,7 @@ def test_analytics_reference_output_html_creates_file(cli_uses_temp_db, tmp_path
     assert "Text Analysis" in content
 
 
-def test_analytics_reference_output_rejects_unsupported_extension(
-    cli_uses_temp_db, tmp_path: Path
-):
+def test_analytics_reference_output_rejects_unsupported_extension(cli_uses_temp_db, tmp_path: Path):
     """analytics reference fails with unsupported output extension and does not create a file."""
     out_path = tmp_path / "analysis.txt"
     runner = CliRunner()

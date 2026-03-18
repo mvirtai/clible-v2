@@ -325,9 +325,7 @@ def reference(
     analysis = service.analyze_reference(ref, translation_id, top_n)
 
     if output_path is not None:
-        _export_analysis_if_requested(
-            analysis=analysis, scope_label=ref, output_path=output_path
-        )
+        _export_analysis_if_requested(analysis=analysis, scope_label=ref, output_path=output_path)
         return
     _render_analysis(console, analysis, ref)
 

@@ -4,6 +4,7 @@ Analytics export helpers.
 This module converts analytics result dictionaries into a user-selected file
 format. It performs no database access and no network calls.
 """
+
 from __future__ import annotations
 
 import csv
@@ -192,7 +193,9 @@ def _analysis_to_html(analysis: dict[str, Any], scope_label: str) -> str:
 
     if analysis.get("top_words"):
         parts.append("<h2>Top Words</h2>")
-        parts.append("<table><thead><tr><th>Rank</th><th>Word</th><th>Count</th></tr></thead><tbody>")
+        parts.append(
+            "<table><thead><tr><th>Rank</th><th>Word</th><th>Count</th></tr></thead><tbody>"
+        )
         for i, (word, count) in enumerate(analysis.get("top_words", []), start=1):
             parts.append(
                 "<tr>"
@@ -203,7 +206,9 @@ def _analysis_to_html(analysis: dict[str, Any], scope_label: str) -> str:
 
     if analysis.get("top_bigrams"):
         parts.append("<h2>Top Bigrams</h2>")
-        parts.append("<table><thead><tr><th>Rank</th><th>Bigram</th><th>Count</th></tr></thead><tbody>")
+        parts.append(
+            "<table><thead><tr><th>Rank</th><th>Bigram</th><th>Count</th></tr></thead><tbody>"
+        )
         for i, (bigram, count) in enumerate(analysis.get("top_bigrams", []), start=1):
             parts.append(
                 "<tr>"
@@ -214,7 +219,9 @@ def _analysis_to_html(analysis: dict[str, Any], scope_label: str) -> str:
 
     if analysis.get("top_trigrams"):
         parts.append("<h2>Top Trigrams</h2>")
-        parts.append("<table><thead><tr><th>Rank</th><th>Trigram</th><th>Count</th></tr></thead><tbody>")
+        parts.append(
+            "<table><thead><tr><th>Rank</th><th>Trigram</th><th>Count</th></tr></thead><tbody>"
+        )
         for i, (trigram, count) in enumerate(analysis.get("top_trigrams", []), start=1):
             parts.append(
                 "<tr>"
@@ -416,7 +423,7 @@ def _compare_to_html(comparison: dict[str, Any]) -> str:
     parts.append("</tr></thead><tbody>")
 
     for row in comparison.get("aligned_verses", []):
-        verse_ref = f"{row.get('book_id','')} {row.get('chapter','')}:{row.get('verse','')}"
+        verse_ref = f"{row.get('book_id', '')} {row.get('chapter', '')}:{row.get('verse', '')}"
         similarity = row.get("similarity", 0.0)
         parts.append(
             "<tr>"
@@ -461,11 +468,10 @@ def _compare_to_md(comparison: dict[str, Any]) -> str:
     lines.append("| Verse | Left | Right | Similarity |")
     lines.append("|---|---|---|---:|")
     for row in comparison.get("aligned_verses", []):
-        verse_ref = f"{row.get('book_id','')} {row.get('chapter','')}:{row.get('verse','')}"
+        verse_ref = f"{row.get('book_id', '')} {row.get('chapter', '')}:{row.get('verse', '')}"
         left = str(row.get("text_a", ""))
         right = str(row.get("text_b", ""))
         similarity = row.get("similarity", 0.0)
         lines.append(f"| {verse_ref} | {left} | {right} | {_stringify_number(similarity)} |")
     lines.append("")
     return "\n".join(lines).rstrip() + "\n"
-
