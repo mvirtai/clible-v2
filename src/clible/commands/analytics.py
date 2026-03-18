@@ -243,6 +243,8 @@ def _export_analysis_if_requested(
         fmt = detect_format(out_path)
         content = export_analysis(analysis, scope_label=scope_label, format=fmt)
         write_text(out_path, content)
+        resolved = out_path.resolve()
+        console.print(f"[green]Exported analytics as {fmt} to[/green] {resolved}")
     except ValueError as e:
         console.print(f"[red]{e}[/red]")
         raise SystemExit(1)
@@ -265,6 +267,8 @@ def _export_compare_if_requested(
         fmt = detect_format(out_path)
         content = export_compare(comparison, format=fmt)
         write_text(out_path, content)
+        resolved = out_path.resolve()
+        console.print(f"[green]Exported analytics as {fmt} to[/green] {resolved}")
     except ValueError as e:
         console.print(f"[red]{e}[/red]")
         raise SystemExit(1)

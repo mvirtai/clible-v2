@@ -25,6 +25,7 @@ ANALYTICS_REFERENCE_HELP = """
                           [default: 10]
   --output PATH           Write results to a file. Format is inferred from
                           extension: .json/.csv/.html/.md
+                          
   --help                  Show this message and exit.
 
 [bold]Examples:[/bold]
