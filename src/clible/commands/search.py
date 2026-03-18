@@ -12,6 +12,7 @@ from clible.db.repositories.translation_repo import TranslationRepo
 from clible.db.repositories.verse_repo import VerseRepo
 from clible.services.verse_service import VerseService
 from clible.ui.console import console
+from clible.ui.help_texts import SEARCH_HELP
 
 
 def _get_verse_service() -> VerseService:
@@ -133,8 +134,8 @@ def _display_verses(verses: list[dict], word: str, limit: int | None = None) -> 
         console.print(f"\n[dim]... and {remaining} more verses.[/dim]")
 
 
-@click.command()
-@click.argument("word")
+@click.command(add_help_option=False, context_settings={"help_option_names": []})
+@click.argument("word", required=False)
 @click.option(
     "--scope",
     "-s",
@@ -165,12 +166,14 @@ def _display_verses(verses: list[dict], word: str, limit: int | None = None) -> 
     default=None,
     help="Maximum number of verses to display. If not set, asks for confirmation when >20.",
 )
+@click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
 def search(
-    word: str,
+    word: str | None,
     scope: str,
     scope_ref: str | None,
     translation_id: str | None,
     result_limit: int | None,
+    show_help: bool,
 ) -> None:
     """Search for verses containing a word with scope and statistics.
 
@@ -187,6 +190,10 @@ def search(
         clible search peace --scope testament --reference NT -t web
         clible search faith --scope verse --reference "Hebrews 11:1"
     """
+    if show_help:
+        console.print(SEARCH_HELP)
+        return
+
     if not word or not word.strip():
         console.print("[red]Search word cannot be empty.[/red]")
         raise SystemExit(1)

@@ -9,6 +9,7 @@ from clible.db.repositories.translation_repo import TranslationRepo
 from clible.db.repositories.verse_repo import VerseRepo
 from clible.services.verse_service import VerseService
 from clible.ui.console import console
+from clible.ui.help_texts import VERSE_HELP
 
 
 def _get_verse_service() -> VerseService:
@@ -21,8 +22,8 @@ def _get_verse_service() -> VerseService:
     )
 
 
-@click.command()
-@click.argument("reference")
+@click.command(add_help_option=False, context_settings={"help_option_names": []})
+@click.argument("reference", required=False)
 @click.option(
     "--translation",
     "-t",
@@ -30,7 +31,8 @@ def _get_verse_service() -> VerseService:
     default=None,
     help="Translation ID (e.g. web). Defaults to installed default.",
 )
-def verse(reference: str, translation_id: str | None) -> None:
+@click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
+def verse(reference: str | None, translation_id: str | None, show_help: bool) -> None:
     """Display verse(s) from the local database.
 
     Supports single verse or range: "John 3:16" or "John 3:1-6".
@@ -40,6 +42,14 @@ def verse(reference: str, translation_id: str | None) -> None:
 
     Requires at least one translation to be installed (clible seed install web).
     """
+    if show_help:
+        console.print(VERSE_HELP)
+        return
+
+    if reference is None:
+        console.print("[red]Reference is required.[/red]")
+        raise SystemExit(1)
+
     service = _get_verse_service()
     verses = service.get_verses(reference, translation_id)
 
