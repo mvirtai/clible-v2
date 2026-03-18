@@ -34,5 +34,5 @@ jobs:
       - name: Build Docker image
         run: docker build --target runtime -t clible-v2:ci .
 
-      - name: Push Docker image
-        run: docker push clible-v2:ci
+      # - name: Push Docker image
+      #   run: docker push clible-v2:ci
