@@ -34,7 +34,10 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 COPY --from=builder /app/dist/*.whl /tmp/
-RUN pip install --no-cache-dir /tmp/*.whl && rm /tmp/*.whl
+RUN python -m pip install --no-cache-dir --upgrade "pip>=25.3" \
+    && rm -f /usr/local/lib/python*/ensurepip/_bundled/pip-*.whl \
+    && python -m pip install --no-cache-dir /tmp/*.whl \
+    && rm /tmp/*.whl
 
 ENTRYPOINT ["clible"]
 CMD ["--help"]
