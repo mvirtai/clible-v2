@@ -52,13 +52,14 @@ tasks:
   format-check:
     desc: Check formatting without modifying files
     cmds:
-      - uv run ruff format --check .
+      - uv run ruff check . --fix
 
   check:
     desc: Run lint, format check, and tests
     deps: [lint, format-check, test]
 
-  d-build:
+
+  build:
     desc: Build Docker image with latest and commit tags
     deps: [check]
     preconditions:
@@ -66,9 +67,9 @@ tasks:
         msg: "Docker is required to build images."
     cmds:
       - docker build --target runtime -t {{.IMAGE_TAG_COMMIT}} -t {{.IMAGE_TAG_LATEST}} .
-      - task d-show-tags
+      - task show-tags
 
-  d-show-tags:
+  show-tags:
     desc: Show local tags for the clible image
     preconditions:
       - sh: "command -v docker >/dev/null 2>&1"
@@ -78,20 +79,20 @@ tasks:
       - docker image inspect {{.IMAGE_TAG_COMMIT}} --format "{{`{{range .RepoTags}}{{println .}}{{end}}`}}"
       - docker image inspect {{.IMAGE_TAG_LATEST}} --format "{{`{{range .RepoTags}}{{println .}}{{end}}`}}"
 
-  d-push:
+  push-to-docker-hub:
     desc: Build image, show tags, and push commit + latest to Docker Hub
-    deps: [d-build]
+    deps: [build]
     preconditions:
       - sh: "command -v docker >/dev/null 2>&1"
         msg: "Docker is required to push images."
     cmds:
-      - task d-show-tags
+      - task show-tags
       - docker push {{.IMAGE_TAG_COMMIT}}
       - docker push {{.IMAGE_TAG_LATEST}}
 
-  d-push-gcp:
+  push-to-gcp:
     desc: Build image, tag for GCP Artifact Registry, and push (requires CLIBLE_GCP_ARTIFACT_REGISTRY)
-    deps: [d-build]
+    deps: [build]
     preconditions:
       - sh: "command -v docker >/dev/null 2>&1"
         msg: "Docker is required to push images."

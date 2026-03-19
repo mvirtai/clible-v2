@@ -75,6 +75,8 @@ You can serve translation XML files from a GCS bucket and point clible at that l
 
 ## Docker image: Artifact Registry
 
+### Local push (manual)
+
 1. Enable the Artifact Registry API and create a repository:
 
    ```bash
@@ -102,6 +104,44 @@ You can serve translation XML files from a GCS bucket and point clible at that l
    ```
 
    Images will be tagged as `europe-north1-docker.pkg.dev/YOUR_PROJECT_ID/clible/clible-v2dev:GIT_SHA` and `:latest`.
+
+### CI push (GitHub Actions with Terraform)
+
+The GitHub Actions CI workflow (`.github/workflows/ci.yml`) pushes Docker images to Artifact Registry on `main` branch pushes using **Workload Identity Federation (WIF/OIDC)**.
+
+**Setup (one-time):**
+
+1. Create the WIF resources using Terraform:
+
+   ```bash
+   cd infra/terraform/gcp-ci-wif
+   terraform init
+   terraform plan
+   terraform apply
+   ```
+
+   See `infra/terraform/gcp-ci-wif/README.md` for details.
+
+2. Get the Terraform outputs:
+
+   ```bash
+   terraform output -json
+   ```
+
+3. Add GitHub Secrets (Settings → Secrets and variables → Actions → Secrets):
+   - `WIF_PROVIDER` = `terraform output -raw wif_provider_resource_name`
+   - `GCP_SERVICE_ACCOUNT` = `terraform output -raw service_account_email`
+   - `GCP_PROJECT_ID` = `terraform output -raw project_id`
+   - `CLIBLE_GCP_ARTIFACT_REGISTRY` = `terraform output -raw artifact_registry_prefix`
+
+4. Push to `main` and verify the CI workflow succeeds.
+
+**Workflow behavior:**
+
+- **Pull requests:** Runs `task check` and `task build` only (no push).
+- **Push to `main`:** Also authenticates to GCP and runs `task push-to-gcp`.
+
+Images are tagged with both the commit SHA (immutable) and `:latest`.
 
 **Troubleshooting (403 when pushing)**
 
