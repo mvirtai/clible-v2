@@ -35,3 +35,9 @@ PR_STORY.md
 *.bak
 *.cast
 src/clible/data/clible.db
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl

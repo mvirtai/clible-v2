@@ -9,6 +9,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -16,6 +19,9 @@ jobs:
         uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
+      
+      - name: Install Task
+        uses: go-task/setup-task@v1
 
       - name: Set up Python
         run: uv python install 3.12
@@ -23,16 +29,35 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-groups
 
-      - name: Lint
-        run: |
-          uv run ruff check .
-          uv run ruff format --check .
-
-      - name: Test
-        run: uv run pytest -v
+      - name: Run checks (test, lint, format)
+        run: task check
 
       - name: Build Docker image
-        run: docker build --target runtime -t clible-v2:ci .
+        run: task build
 
-      # - name: Push Docker image
-      #   run: docker push clible-v2:ci
+      - name: Authenticate to Google Cloud (Artifact Registry)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: google-github-actions/auth@v2
+        with:
+          token_format: access_token
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Set up gcloud
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          CLIBLE_GCP_ARTIFACT_REGISTRY: ${{ secrets.CLIBLE_GCP_ARTIFACT_REGISTRY }}
+        run: |
+          REGISTRY_HOST="${CLIBLE_GCP_ARTIFACT_REGISTRY%%/*}"
+          gcloud auth configure-docker "${REGISTRY_HOST}"
+
+      - name: Push Docker image to GCP
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          export CLIBLE_GCP_ARTIFACT_REGISTRY=${{ secrets.CLIBLE_GCP_ARTIFACT_REGISTRY }}
+          task push-to-gcp
