@@ -43,6 +43,15 @@ class DiscoveredTranslation:
 
 _SLUG_RE = re.compile(r"[^a-z0-9]+")
 
+_BYTES_PER_MB = 1024 * 1024
+
+
+def _bytes_to_mb(size_bytes: Any) -> float:
+    """Convert GitHub `tree` blob size (bytes) to MB (1 decimal)."""
+    if isinstance(size_bytes, (int, float)) and size_bytes > 0:
+        return round(float(size_bytes) / _BYTES_PER_MB, 1)
+    return 0.0
+
 
 def slugify_id(text: str) -> str:
     """Convert arbitrary filename-like text into a stable lowercase slug."""
@@ -166,13 +175,19 @@ def merge_translations_catalog(
                 tid = candidate
 
         existing_entry = out.get(tid, {})
+        # If upstream size metadata is missing, keep existing value.
+        merged_size_mb = (
+            item.size_mb
+            if item.size_mb > 0
+            else float(existing_entry.get("size_mb", 0.0) or 0.0)
+        )
         out[tid] = {
             "name": existing_entry.get("name") or item.name,
             "language": existing_entry.get("language") or item.language,
             "format": item.format,
             "filename": item.filename,
             "url": item.url,
-            "size_mb": item.size_mb,
+            "size_mb": merged_size_mb,
         }
         used_ids.add(tid)
 
@@ -230,6 +245,7 @@ def discover_openbibles_translations(
             continue
         fmt, base = inferred
         filename = path
+        size_mb = _bytes_to_mb(entry.get("size"))
         language = guess_language_from_openbibles_base(base)
         name = _titleize_from_base(base)
         discovered.append(
@@ -245,7 +261,7 @@ def discover_openbibles_translations(
                     _OPEN_BIBLES_REF,
                     filename,
                 ),
-                size_mb=0.0,  # Size is optional; keep numeric for schema stability.
+                size_mb=size_mb,
                 base=base,
             )
         )
@@ -283,6 +299,7 @@ def discover_beblia_translations(
             continue
         fmt, base = inferred
         filename = path
+        size_mb = _bytes_to_mb(entry.get("size"))
         language = guess_language_from_beblia_base(base)
         name = _titleize_from_base(base)
         discovered.append(
@@ -298,7 +315,7 @@ def discover_beblia_translations(
                     _BEBLIA_REF,
                     filename,
                 ),
-                size_mb=0.0,
+                size_mb=size_mb,
                 base=base,
             )
         )
