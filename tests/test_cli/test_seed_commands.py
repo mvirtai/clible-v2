@@ -41,6 +41,49 @@ def test_seed_available_filter_zefania(cli_uses_temp_db):
     assert "test-zefania" in result.output
 
 
+def test_seed_available_filter_language_fi(cli_uses_temp_db):
+    """seed available supports filtering by language code."""
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        ["seed", "available", "--language", "fi", "--limit", "0"],
+    )
+    assert result.exit_code == 0
+    assert "fin-1992" in result.output
+
+
+def test_seed_available_query_world_english_bible_uses_default_limit(cli_uses_temp_db):
+    """seed available search by name works with default limit."""
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        ["seed", "available", "--query", "World English Bible"],
+    )
+    assert result.exit_code == 0
+    assert "web" in result.output
+    assert "World English Bible" in result.output
+
+
+def test_seed_available_offset_past_matches_shows_no_rows(cli_uses_temp_db):
+    """seed available offset skips matches and can produce an empty table."""
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        [
+            "seed",
+            "available",
+            "--query",
+            "World English Bible",
+            "--limit",
+            "1",
+            "--offset",
+            "1",
+        ],
+    )
+    assert result.exit_code == 0
+    assert "web" not in result.output
+
+
 def test_seed_list_empty_shows_hint(cli_uses_temp_db):
     """seed list shows hint when no translations installed."""
     runner = CliRunner()
