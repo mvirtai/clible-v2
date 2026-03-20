@@ -46,5 +46,13 @@
     "filename": "FinnishSTLKBible.xml",
     "url": "https://raw.githubusercontent.com/Beblia/Holy-Bible-XML-Format/master/FinnishSTLKBible.xml",
     "size_mb": 4.9
+  },
+  "test-zefania": {
+    "name": "Zefania XML fixture",
+    "language": "en",
+    "format": "ZEFANIA",
+    "filename": "sample.zefania.xml",
+    "url": "http://localhost:8000/sample.zefania.xml",
+    "size_mb": 0.0
   }
 }
