@@ -177,9 +177,7 @@ def merge_translations_catalog(
         existing_entry = out.get(tid, {})
         # If upstream size metadata is missing, keep existing value.
         merged_size_mb = (
-            item.size_mb
-            if item.size_mb > 0
-            else float(existing_entry.get("size_mb", 0.0) or 0.0)
+            item.size_mb if item.size_mb > 0 else float(existing_entry.get("size_mb", 0.0) or 0.0)
         )
         out[tid] = {
             "name": existing_entry.get("name") or item.name,
@@ -348,9 +346,7 @@ def sync_translations_catalog(
     openbibles_items = discover_openbibles_translations(
         github_token=token, timeout_seconds=timeout_seconds
     )
-    beblia_items = discover_beblia_translations(
-        github_token=token, timeout_seconds=timeout_seconds
-    )
+    beblia_items = discover_beblia_translations(github_token=token, timeout_seconds=timeout_seconds)
 
     discovered = [*openbibles_items, *beblia_items]
 
@@ -366,4 +362,3 @@ def sync_translations_catalog(
         "discovered_count": len(discovered),
         "merged_count": len(merged),
     }
-

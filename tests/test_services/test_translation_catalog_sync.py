@@ -115,8 +115,6 @@ def test_merge_avoids_id_collision_by_suffix():
     assert "foo-usfx" in merged
     # Collision should have happened; because the filename differs, it must get a suffix.
     assert any(
-        tid != "foo-usfx"
-        and merged[tid].get("filename") == "foo2.osis.xml"
+        tid != "foo-usfx" and merged[tid].get("filename") == "foo2.osis.xml"
         for tid in merged.keys()
     )
-
