@@ -5,22 +5,18 @@ from unittest.mock import patch
 
 import pytest
 
-from clible.parsers.beblia_parser import BebliaParser
-from clible.parsers.osis_parser import OSISParser
-from clible.parsers.usfx_parser import USFXParser
+from clible.parsers.factory import create_parser
 from clible.services.seed_service import SeedService
 
 
 @pytest.fixture
 def seed_service(translation_repo, verse_repo, book_repo):
-    """SeedService with real parsers and repo fixtures."""
+    """SeedService with parser factory and repo fixtures."""
     return SeedService(
         translation_repo=translation_repo,
         verse_repo=verse_repo,
         book_repo=book_repo,
-        usfx_parser=USFXParser(),
-        osis_parser=OSISParser(),
-        beblia_parser=BebliaParser(),
+        parser_factory=create_parser,
     )
 
 
@@ -81,12 +77,12 @@ def test_seed_translation_raises_if_already_installed(seed_service):
 
 
 def test_seed_translation_raises_for_unsupported_format(seed_service):
-    """seed_translation raises ValueError for formats other than USFX/OSIS/BEBLIA."""
+    """seed_translation raises ValueError for formats other than USFX/OSIS/BEBLIA/ZEFANIA."""
     fake_catalog = {
         "bad": {
             "name": "Bad",
             "language": "en",
-            "format": "Zefania",
+            "format": "UNKNOWN",
             "url": "http://example.com/bad.xml",
         },
     }
