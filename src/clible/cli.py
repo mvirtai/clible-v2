@@ -13,6 +13,7 @@ from clible.commands.seed import (
     install,
     list_installed,
     remove,
+    sync_catalog,
 )
 from clible.commands.verse import verse
 
@@ -41,6 +42,7 @@ def analytics() -> None:
 seed.add_command(install)
 seed.add_command(list_installed, "list")
 seed.add_command(available)
+seed.add_command(sync_catalog)
 seed.add_command(remove)
 
 analytics.add_command(analytics_reference, "reference")

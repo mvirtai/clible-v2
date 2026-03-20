@@ -10,12 +10,17 @@ from clible.db.repositories.translation_repo import TranslationRepo
 from clible.db.repositories.verse_repo import VerseRepo
 from clible.parsers.factory import create_parser
 from clible.services.seed_service import SeedService
+from clible.services.translation_catalog_sync import (
+    TranslationCatalogSyncError,
+    sync_translations_catalog,
+)
 from clible.ui.console import console
 from clible.ui.help_texts import (
     SEED_AVAILABLE_HELP,
     SEED_INSTALL_HELP,
     SEED_LIST_HELP,
     SEED_REMOVE_HELP,
+    SEED_SYNC_CATALOG_HELP,
 )
 
 
@@ -38,9 +43,11 @@ def install(translation_id: str | None, show_help: bool) -> None:
 
     Example: clible seed install web
     Example: clible seed install kjv
+    Example: clible seed install test-zefania
 
     Downloads, parses, and stores the translation locally.
-    Supported formats: USFX (web), OSIS (kjv, fin-biblia), BEBLIA (fin-1992, etc.).
+    Supported formats: USFX (e.g. web), OSIS (e.g. kjv), BEBLIA (e.g. fin-1992),
+    ZEFANIA (e.g. test-zefania).
     """
     if show_help:
         console.print(SEED_INSTALL_HELP)
@@ -124,6 +131,28 @@ def available(show_help: bool) -> None:
             str(t.get("size_mb", "—")),
         )
     console.print(table)
+
+
+@click.command("sync-catalog", add_help_option=False, context_settings={"help_option_names": []})
+@click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
+def sync_catalog(show_help: bool) -> None:
+    """Sync the local catalog (`src/clible/data/translations.json`) from upstream repos."""
+    if show_help:
+        console.print(SEED_SYNC_CATALOG_HELP)
+        return
+
+    try:
+        stats = sync_translations_catalog()
+    except TranslationCatalogSyncError as e:
+        console.print(f"[red]Error: {e}[/red]")
+        raise SystemExit(1)
+
+    console.print(
+        f"[green]Catalog synced:[/green] "
+        f"existing={stats['existing_count']} "
+        f"discovered={stats['discovered_count']} "
+        f"merged={stats['merged_count']}"
+    )
 
 
 @click.command("remove", add_help_option=False, context_settings={"help_option_names": []})
