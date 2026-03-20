@@ -10,12 +10,17 @@ from clible.db.repositories.translation_repo import TranslationRepo
 from clible.db.repositories.verse_repo import VerseRepo
 from clible.parsers.factory import create_parser
 from clible.services.seed_service import SeedService
+from clible.services.translation_catalog_sync import (
+    TranslationCatalogSyncError,
+    sync_translations_catalog,
+)
 from clible.ui.console import console
 from clible.ui.help_texts import (
     SEED_AVAILABLE_HELP,
     SEED_INSTALL_HELP,
     SEED_LIST_HELP,
     SEED_REMOVE_HELP,
+    SEED_SYNC_CATALOG_HELP,
 )
 
 
@@ -38,9 +43,11 @@ def install(translation_id: str | None, show_help: bool) -> None:
 
     Example: clible seed install web
     Example: clible seed install kjv
+    Example: clible seed install test-zefania
 
     Downloads, parses, and stores the translation locally.
-    Supported formats: USFX (web), OSIS (kjv, fin-biblia), BEBLIA (fin-1992, etc.).
+    Supported formats: USFX (e.g. web), OSIS (e.g. kjv), BEBLIA (e.g. fin-1992),
+    ZEFANIA (e.g. test-zefania).
     """
     if show_help:
         console.print(SEED_INSTALL_HELP)
@@ -101,21 +108,106 @@ def list_installed(show_help: bool) -> None:
 
 @click.command("available", add_help_option=False, context_settings={"help_option_names": []})
 @click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
-def available(show_help: bool) -> None:
+@click.option(
+    "--format",
+    "format_filters",
+    multiple=True,
+    type=click.Choice(["USFX", "OSIS", "BEBLIA", "ZEFANIA"], case_sensitive=False),
+    help="Filter by XML format. Can be repeated.",
+)
+@click.option(
+    "--language",
+    "language_filters",
+    multiple=True,
+    type=str,
+    help="Filter by language code (e.g. fi, en). Can be repeated.",
+)
+@click.option(
+    "--query",
+    "query_text",
+    default=None,
+    type=str,
+    help="Search by ID or name (case-insensitive).",
+)
+@click.option(
+    "--limit",
+    "limit",
+    type=int,
+    default=50,
+    show_default=True,
+    help="Max number of rows to show after filtering. Use 0 to show all.",
+)
+@click.option(
+    "--offset",
+    "offset",
+    type=int,
+    default=0,
+    show_default=True,
+    help="Skip first N matches after filtering.",
+)
+def available(
+    show_help: bool,
+    format_filters: tuple[str, ...],
+    language_filters: tuple[str, ...],
+    query_text: str | None,
+    limit: int,
+    offset: int,
+) -> None:
     """List available translations from the catalog."""
     if show_help:
         console.print(SEED_AVAILABLE_HELP)
         return
 
     service = _get_seed_service()
+
+    if limit < 0:
+        console.print("[red]Error: --limit must be >= 0.[/red]")
+        raise SystemExit(1)
+    if offset < 0:
+        console.print("[red]Error: --offset must be >= 0.[/red]")
+        raise SystemExit(1)
+
     items = service.list_available()
+
+    if format_filters:
+        allowed_formats = {f.upper() for f in format_filters}
+        items = [t for t in items if t.get("format", "").upper() in allowed_formats]
+
+    if language_filters:
+        allowed_langs = {lang.lower() for lang in language_filters}
+        items = [t for t in items if str(t.get("language", "")).lower() in allowed_langs]
+
+    if query_text:
+        q = query_text.strip().lower()
+        if q:
+            items = [
+                t
+                for t in items
+                if q in str(t.get("id", "")).lower() or q in str(t.get("name", "")).lower()
+            ]
+
+    total_matches = len(items)
+    if offset:
+        items = items[offset:]
+
+    if limit == 0:
+        items_to_show = items
+    else:
+        items_to_show = items[:limit]
+
     table = Table(title="Available translations")
     table.add_column("ID", style="cyan")
     table.add_column("Name", style="white")
     table.add_column("Language")
     table.add_column("Format")
     table.add_column("Size (MB)")
-    for t in items:
+    if total_matches != len(items_to_show):
+        console.print(
+            f"[dim]Showing {len(items_to_show)}/{total_matches} translations "
+            f"(offset={offset}, limit={limit}).[/dim]"
+        )
+
+    for t in items_to_show:
         table.add_row(
             t["id"],
             t["name"],
@@ -124,6 +216,28 @@ def available(show_help: bool) -> None:
             str(t.get("size_mb", "—")),
         )
     console.print(table)
+
+
+@click.command("sync-catalog", add_help_option=False, context_settings={"help_option_names": []})
+@click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
+def sync_catalog(show_help: bool) -> None:
+    """Sync the local catalog (`src/clible/data/translations.json`) from upstream repos."""
+    if show_help:
+        console.print(SEED_SYNC_CATALOG_HELP)
+        return
+
+    try:
+        stats = sync_translations_catalog()
+    except TranslationCatalogSyncError as e:
+        console.print(f"[red]Error: {e}[/red]")
+        raise SystemExit(1)
+
+    console.print(
+        f"[green]Catalog synced:[/green] "
+        f"existing={stats['existing_count']} "
+        f"discovered={stats['discovered_count']} "
+        f"merged={stats['merged_count']}"
+    )
 
 
 @click.command("remove", add_help_option=False, context_settings={"help_option_names": []})

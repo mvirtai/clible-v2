@@ -41,6 +41,7 @@ Supported formats:
 - **USFX**: `web`
 - **OSIS**: `kjv`, `fin-biblia-33-38`
 - **BEBLIA**: `fin-1992`, `fin-1776`, `fin-stlk`
+- **ZEFANIA**: `test-zefania`
 
 ### Verse lookup (`clible verse`)
 
