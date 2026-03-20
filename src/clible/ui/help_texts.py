@@ -156,6 +156,12 @@ SEED_AVAILABLE_HELP = """
   translation IDs, names, and source formats (e.g., OSIS, USFX).
 
 [bold]Options:[/bold]
+  --format TEXT   Filter by format (USFX/OSIS/BEBLIA/ZEFANIA). Can be repeated.
+  --language TEXT Filter by language code (e.g. fi, en). Can be repeated.
+  --query TEXT    Search by ID or name (case-insensitive).
+  --limit INTEGER Max number of rows to show after filtering. [default: 50]
+                  Use 0 to show all.
+  --offset INTEGER Skip first N matches after filtering. [default: 0]
   --help  Show this message and exit.
 """
 

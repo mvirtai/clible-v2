@@ -27,10 +27,18 @@ def cli_uses_temp_db(monkeypatch):
 def test_seed_available_outputs_table(cli_uses_temp_db):
     """seed available prints a table of translations."""
     runner = CliRunner()
-    result = runner.invoke(main, ["seed", "available"])
+    result = runner.invoke(main, ["seed", "available", "--query", "web", "--limit", "0"])
     assert result.exit_code == 0
     assert "web" in result.output
     assert "World English Bible" in result.output
+
+
+def test_seed_available_filter_zefania(cli_uses_temp_db):
+    """seed available supports filtering by ZEFANIA format."""
+    runner = CliRunner()
+    result = runner.invoke(main, ["seed", "available", "--format", "ZEFANIA", "--limit", "0"])
+    assert result.exit_code == 0
+    assert "test-zefania" in result.output
 
 
 def test_seed_list_empty_shows_hint(cli_uses_temp_db):
