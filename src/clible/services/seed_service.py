@@ -5,11 +5,12 @@ import tempfile
 import time
 from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING
 
 import requests
 
 from clible.config import get_config
+from clible.parsers.protocol import XMLParserProtocol
 
 if TYPE_CHECKING:
     from clible.db.repositories.book_repo import BookRepo
@@ -20,16 +21,7 @@ if TYPE_CHECKING:
 # USFX book_id variants that map to canonical books table (ENG-WEB uses NAM for Nahum)
 _BOOK_ID_ALIASES = {"NAM": "NAH"}
 
-
-class USFXParserProtocol(Protocol):
-    """Protocol for XML parsers that return verse dicts (USFX, OSIS)."""
-
-    def parse_file(self, xml_path: Path) -> list[dict]:
-        """Parse XML file. Returns list of verse dicts with book_id, chapter, verse, text."""
-        ...
-
-
-_SUPPORTED_FORMATS = ("USFX", "OSIS", "BEBLIA")
+_SUPPORTED_FORMATS = ("USFX", "OSIS", "BEBLIA", "ZEFANIA")
 
 
 def _load_translations_catalog() -> dict:
@@ -47,17 +39,13 @@ class SeedService:
         translation_repo: "TranslationRepo",
         verse_repo: "VerseRepo",
         book_repo: "BookRepo",
-        usfx_parser: USFXParserProtocol,
-        osis_parser: USFXParserProtocol,
-        beblia_parser: USFXParserProtocol,
+        parser_factory: Callable[[Path], XMLParserProtocol],
     ):
-        """Initialize with injected repositories and parsers (USFX, OSIS, Beblia)."""
+        """Initialize with injected repositories and parser factory."""
         self._translation_repo = translation_repo
         self._verse_repo = verse_repo
         self._book_repo = book_repo
-        self._usfx_parser = usfx_parser
-        self._osis_parser = osis_parser
-        self._beblia_parser = beblia_parser
+        self._parser_factory = parser_factory
 
     def list_available(self) -> list[dict]:
         """List all translations from the catalog.
@@ -97,7 +85,7 @@ class SeedService:
 
         Raises:
             ValueError: If translation_id not in catalog, already installed,
-                or format is not USFX, OSIS, or BEBLIA.
+                or format is not USFX, OSIS, BEBLIA, or ZEFANIA.
         """
         catalog = _load_translations_catalog()
         if translation_id not in catalog:
@@ -107,14 +95,8 @@ class SeedService:
         if self._translation_repo.exists(translation_id):
             raise ValueError(f"Translation '{translation_id}' is already installed")
 
-        fmt = meta.get("format")
-        if fmt == "USFX":
-            parser = self._usfx_parser
-        elif fmt == "OSIS":
-            parser = self._osis_parser
-        elif fmt == "BEBLIA":
-            parser = self._beblia_parser
-        else:
+        fmt = meta.get("format", "").upper()
+        if fmt not in _SUPPORTED_FORMATS:
             raise ValueError(
                 f"Format '{fmt}' not supported (supported: {', '.join(_SUPPORTED_FORMATS)})"
             )
@@ -136,6 +118,7 @@ class SeedService:
         with tempfile.NamedTemporaryFile(suffix=".xml", delete=True) as tmp:
             tmp.write(response.content)
             tmp.flush()
+            parser = self._parser_factory(Path(tmp.name))
             verses = parser.parse_file(Path(tmp.name))
 
         valid_book_ids = {b["id"] for b in self._book_repo.get_all()}

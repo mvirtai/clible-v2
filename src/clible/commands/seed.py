@@ -8,9 +8,7 @@ from clible.db.connection import get_connection
 from clible.db.repositories.book_repo import BookRepo
 from clible.db.repositories.translation_repo import TranslationRepo
 from clible.db.repositories.verse_repo import VerseRepo
-from clible.parsers.beblia_parser import BebliaParser
-from clible.parsers.osis_parser import OSISParser
-from clible.parsers.usfx_parser import USFXParser
+from clible.parsers.factory import create_parser
 from clible.services.seed_service import SeedService
 from clible.ui.console import console
 from clible.ui.help_texts import (
@@ -28,9 +26,7 @@ def _get_seed_service() -> SeedService:
         translation_repo=TranslationRepo(conn),
         verse_repo=VerseRepo(conn),
         book_repo=BookRepo(conn),
-        usfx_parser=USFXParser(),
-        osis_parser=OSISParser(),
-        beblia_parser=BebliaParser(),
+        parser_factory=create_parser,
     )
 
 
