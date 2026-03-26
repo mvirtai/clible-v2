@@ -10,8 +10,8 @@ The structured checklist in [`.cursor/rules/pr-stories.mdc`](../.cursor/rules/pr
 
 ## Naming
 
-- Preferred: `pr-<github-pr-number>-<short-slug>.md` (example: `pr-34-migration-004-drop-verses-text-index.md`).
-- If the PR is not opened yet: `<slug>.md` or `pr-TBD-<slug>.md`; rename when the PR number is known.
+- Preferred: `pr-<github-pr-number>-<short-slug>.md` (example: [`pr-34-migration-004-drop-verses-text-index.md`](pr-34-migration-004-drop-verses-text-index.md)).
+- If the PR is not opened yet: `<slug>.md` or `pr-TBD-<slug>.md`; rename to include the PR number after `gh pr create`.
 
 ## Workflow
 
