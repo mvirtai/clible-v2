@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from clible.db.repositories.translation_repo import TranslationRepo
     from clible.db.repositories.verse_repo import VerseRepo
 
+
 class VerseService:
     """Look up verses from the local database by reference."""
 
