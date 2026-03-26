@@ -86,7 +86,7 @@ values.
 - `DB_PATH` — path to SQLite database (with sensible default)
 - `API_BASE_URL` — bible-api.com base URL
 - `TRANSLATIONS` — list of supported translation codes and names
-- `DATA_DIR` — path to data directory (exports, stop words)
+- `DATA_DIR` — path to data directory (config files, translation catalog, stop words)
 - `REQUEST_TIMEOUT` — HTTP timeout in seconds
 - `REQUEST_DELAY` — delay between API calls (rate limiting)
 
@@ -562,13 +562,15 @@ faster and teaches CLI design fundamentals.
 Set up Click-based CLI with command groups:
 
 ```
-clible fetch verse "John 3:16" --translation web
-clible fetch chapter "John 3" --translation kjv
-clible fetch random
+clible verse "John 3:16" --translation web
+clible verse "John 3:16-18"
 clible search "grace"
+clible search "peace" --scope book --reference John
+clible analytics reference "John 3:16"
+clible analytics chapter John 3
+clible analytics compare "John 3:16" --left web --right kjv
 clible sessions list
 clible sessions start "Evening study"
-clible export markdown --query-id abc123
 ```
 
 **Acceptance criteria:**
@@ -644,15 +646,25 @@ Connect session management commands.
 
 ---
 
-### Ticket 4.6: Wire up export commands
+### Ticket 4.6: Export results to file
 
-Connect export functionality.
+Add `--export` / `-exp` flag to verse, search, and analytics commands for saving output to files.
+
+**Design:** Export is a UI-layer concern (not a separate command). The flag accepts key=value pairs for PATH, FILENAME, and FORMAT (csv, html, json, md, txt, xml).
+
+**Implementation:**
+- `src/clible/ui/export_cli.py` — parse `--export` key=value syntax
+- `src/clible/ui/analytics_export.py` — serializers for analytics/compare output
+- `src/clible/ui/verse_search_export.py` — serializers for verse lookup and search results
 
 **Acceptance criteria:**
 
-- [ ] `clible export markdown` exports saved verses
-- [ ] `clible export text` exports as plain text
-- [ ] Output path printed after export
+- [ ] `clible verse "John 3:16" --export "FORMAT=json"` writes to timestamped JSON file
+- [ ] `clible search "grace" --export "PATH=./out,FILENAME=results,FORMAT=csv"` exports matches
+- [ ] `clible analytics reference "John 3:16" --export "FORMAT=html"` writes analysis report
+- [ ] `clible analytics compare "John 3:16" --export "FORMAT=md"` writes comparison table
+- [ ] Output path printed after successful export
+- [ ] All formats work: csv, html, json, md, txt, xml
 
 ---
 

@@ -23,6 +23,9 @@ uv run clible seed install fin-1992          # Finnish Bible 1992 (BEBLIA)
 uv run clible verse "John 3:16"
 uv run clible verse "Genesis 1:1"
 uv run clible verse "John 3:16-18"
+
+# Optional: export verse, search, or analytics output to a file
+uv run clible verse "John 3:16" --export "PATH=./exports,FILENAME=john316,FORMAT=json"
 ```
 
 ## Commands
@@ -53,6 +56,7 @@ clible verse "1 Corinthians 13:4" -t web
 
 - **Reference format:** `"Book Chapter:Verse"` or range `"Book Chapter:Start-End"` (e.g. `"Genesis 1:1"`, `"John 3:16-18"`)
 - **`-t`, `--translation`:** Translation ID. Defaults to `web` if installed, otherwise first installed
+- **`-exp`, `--export`:** Write verses to a file instead of printing panels. See [Export](#export-results).
 
 ### Search (`clible search`)
 
@@ -84,6 +88,7 @@ Shows statistics (total occurrences, unique verses, top books) before displaying
 - **`-r`, `--reference`:** Scope reference (e.g. "John", "NT", "John 3:16")
 - **`-t`, `--translation`:** Translation ID
 - **`-n`, `--limit`:** Maximum verses to display
+- **`-exp`, `--export`:** Write all matches to a file (skips the interactive “how many verses” prompt). See [Export](#export-results).
 
 ### Text analytics (`clible analytics`)
 
@@ -117,6 +122,28 @@ clible analytics compare "Psalm 23:1-4" --left fin-1992 --right fin17xx
 - **Requirements:** both translations must be installed locally; command errors if either side is missing or both sides resolve to the same translation.
 - **`-t`, `--translation`:** Translation ID. Defaults to `web` if installed, otherwise first installed.
 - **`--top` / `-n`:** Number of top items to show (default 10).
+- **`-exp`, `--export`:** Write analysis or comparison to a file instead of terminal tables. See [Export](#export-results).
+
+### Export results
+
+`verse`, `search`, and every `analytics` subcommand accept **`-exp` / `--export`** with a single string of **key=value** pairs (comma- or space-separated; keys case-insensitive):
+
+| Key | Meaning | Default if omitted |
+| --- | --- | --- |
+| **PATH** | Destination directory | `.` (current directory) |
+| **FILENAME** | File stem (extension is added from FORMAT) | timestamped `export_YYYYMMDD_HHMMSS` |
+| **FORMAT** | Output type: `csv`, `html`, `json`, `md`, `txt`, `xml` | `md` |
+
+Example:
+
+```bash
+clible verse "Psalm 23:1" --export "PATH=~/bible-notes,FILENAME=ps23,FORMAT=md"
+clible search grace --scope book --reference John --export "PATH=./out,FILENAME=grace_john,FORMAT=json"
+clible analytics reference "John 3:16" --export "FILENAME=john316_stats,FORMAT=html"
+clible analytics compare "John 3:16" --left web --right kjv --export "PATH=/tmp,FILENAME=compare,FORMAT=xml"
+```
+
+Serialization lives in `src/clible/ui/analytics_export.py`, `src/clible/ui/verse_search_export.py`, and the shared parser in `src/clible/ui/export_cli.py` (UI layer only; no DB access).
 
 ## Configuration
 
