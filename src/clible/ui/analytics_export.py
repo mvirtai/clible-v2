@@ -11,10 +11,13 @@ import csv
 import html
 import io
 import json
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
-_SUPPORTED_FORMATS: set[str] = {"json", "csv", "html", "md"}
+# Public: used by CLI and other export modules.
+SUPPORTED_EXPORT_FORMATS: frozenset[str] = frozenset({"json", "csv", "html", "md", "txt", "xml"})
+_SUPPORTED_FORMATS: set[str] = set(SUPPORTED_EXPORT_FORMATS)
 
 
 def detect_format(output_path: Path) -> str:
@@ -24,14 +27,19 @@ def detect_format(output_path: Path) -> str:
         output_path: Output file path. Format is inferred from the extension.
 
     Returns:
-        A lower-case format string: one of ``json/csv/html/md``.
+        A lower-case format string: one of the supported export formats.
 
     Raises:
         ValueError: If the extension is missing or unsupported.
     """
     suffix = output_path.suffix.lower().lstrip(".")
+    if suffix == "htm":
+        return "html"
     if not suffix:
-        raise ValueError("Missing file extension for --output. Use .json/.csv/.html/.md.")
+        raise ValueError(
+            "Missing file extension for --output. "
+            "Add an extension or use --export with a path (extension optional)."
+        )
     if suffix not in _SUPPORTED_FORMATS:
         raise ValueError(
             f"Unsupported --output format '.{suffix}'. Use one of: "
@@ -39,6 +47,42 @@ def detect_format(output_path: Path) -> str:
             + "."
         )
     return suffix
+
+
+def resolve_output_path(output_path: str, export_format: str | None) -> tuple[Path, str]:
+    """Resolve destination path and format from CLI arguments.
+
+    If ``export_format`` is set, it selects the serializer and normalizes the
+    file suffix. If only ``output_path`` is set, the format is inferred from
+    the extension (``.htm`` maps to ``html``).
+
+    Args:
+        output_path: User-provided output path.
+        export_format: Optional explicit format from ``--export`` / ``-exp``.
+
+    Returns:
+        Tuple of ``(path, format)``.
+
+    Raises:
+        ValueError: If the path or format cannot be resolved.
+    """
+    path = Path(output_path)
+    if export_format is not None:
+        fmt = validate_export_format(export_format)
+        path = path.with_suffix(f".{fmt}")
+        return path, fmt
+    return path, detect_format(path)
+
+
+def validate_export_format(format_name: str) -> str:
+    """Return normalized format name or raise ValueError."""
+    fmt = format_name.lower().strip()
+    if fmt == "htm":
+        fmt = "html"
+    if fmt not in _SUPPORTED_FORMATS:
+        supported = ", ".join(sorted(_SUPPORTED_FORMATS))
+        raise ValueError(f"Unsupported format '{format_name}'. Use one of: {supported}.")
+    return fmt
 
 
 def write_text(path: Path, content: str) -> None:
@@ -58,7 +102,7 @@ def export_analysis(analysis: dict[str, Any], *, scope_label: str, format: str) 
     Args:
         analysis: Result of ``AnalyticService.analyze_reference/analyze_chapter/analyze_book``.
         scope_label: Human-readable scope string (e.g. ``"John 3:16-18"``).
-        format: Output format string (``json/csv/html/md``).
+        format: Output format string (``json``/``csv``/``html``/``md``/``txt``/``xml``).
 
     Returns:
         Serialized output as a string.
@@ -70,6 +114,10 @@ def export_analysis(analysis: dict[str, Any], *, scope_label: str, format: str) 
         return _analysis_to_csv(analysis, scope_label)
     if fmt == "html":
         return _analysis_to_html(analysis, scope_label)
+    if fmt == "txt":
+        return _analysis_to_txt(analysis, scope_label)
+    if fmt == "xml":
+        return _analysis_to_xml(analysis, scope_label)
     return _analysis_to_md(analysis, scope_label)
 
 
@@ -78,7 +126,7 @@ def export_compare(comparison: dict[str, Any], *, format: str) -> str:
 
     Args:
         comparison: Result of ``AnalyticService.compare_translations``.
-        format: Output format string (``json/csv/html/md``).
+        format: Output format string (``json``/``csv``/``html``/``md``/``txt``/``xml``).
 
     Returns:
         Serialized output as a string.
@@ -90,15 +138,21 @@ def export_compare(comparison: dict[str, Any], *, format: str) -> str:
         return _compare_to_csv(comparison)
     if fmt == "html":
         return _compare_to_html(comparison)
+    if fmt == "txt":
+        return _compare_to_txt(comparison)
+    if fmt == "xml":
+        return _compare_to_xml(comparison)
     return _compare_to_md(comparison)
 
 
 def _validate_format(format: str) -> str:
-    fmt = format.lower().strip()
-    if fmt not in _SUPPORTED_FORMATS:
-        supported = ", ".join(sorted(_SUPPORTED_FORMATS))
-        raise ValueError(f"Unsupported format '{format}'. Use one of: {supported}.")
-    return fmt
+    return validate_export_format(format)
+
+
+def _xml_document(root: ET.Element) -> str:
+    ET.indent(root, space="  ")
+    body = ET.tostring(root, encoding="unicode")
+    return '<?xml version="1.0" encoding="UTF-8"?>\n' + body
 
 
 def _analysis_metrics(analysis: dict[str, Any]) -> list[tuple[str, Any]]:
@@ -262,6 +316,138 @@ def _analysis_to_md(analysis: dict[str, Any], scope_label: str) -> str:
     _token_table("Top Bigrams", analysis.get("top_bigrams", []), "Bigram")
     _token_table("Top Trigrams", analysis.get("top_trigrams", []), "Trigram")
     return "\n".join(lines).rstrip() + "\n"
+
+
+def _analysis_to_txt(analysis: dict[str, Any], scope_label: str) -> str:
+    lines: list[str] = [
+        f"Text analysis: {scope_label}",
+        "",
+        "Metrics",
+        "-" * 40,
+    ]
+    for metric, value in _analysis_metrics(analysis):
+        lines.append(f"  {metric}: {_stringify_number(value)}")
+    lines.append("")
+
+    def _section(title: str, rows: list[tuple[str, int]], label: str) -> None:
+        if not rows:
+            return
+        lines.append(title)
+        lines.append("-" * 40)
+        for i, (token, count) in enumerate(rows, start=1):
+            lines.append(f"  {i:>3}. {label}: {token!r}  count={_stringify_number(count)}")
+        lines.append("")
+
+    _section("Top words", analysis.get("top_words", []), "word")
+    _section("Top bigrams", analysis.get("top_bigrams", []), "bigram")
+    _section("Top trigrams", analysis.get("top_trigrams", []), "trigram")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def _analysis_to_xml(analysis: dict[str, Any], scope_label: str) -> str:
+    root = ET.Element("analysis")
+    root.set("type", "token-stats")
+    scope_el = ET.SubElement(root, "scope")
+    scope_el.text = scope_label
+
+    metrics_el = ET.SubElement(root, "metrics")
+    for metric, value in _analysis_metrics(analysis):
+        m = ET.SubElement(metrics_el, "metric")
+        m.set("name", metric)
+        m.text = _stringify_number(value)
+
+    def _add_ranked(parent: ET.Element, tag: str, rows: list[tuple[str, int]]) -> None:
+        block = ET.SubElement(parent, tag)
+        for i, (token, count) in enumerate(rows, start=1):
+            item = ET.SubElement(block, "item")
+            item.set("rank", str(i))
+            item.set("count", _stringify_number(count))
+            item.text = token
+
+    _add_ranked(root, "top_words", analysis.get("top_words", []))
+    _add_ranked(root, "top_bigrams", analysis.get("top_bigrams", []))
+    _add_ranked(root, "top_trigrams", analysis.get("top_trigrams", []))
+    return _xml_document(root)
+
+
+def _compare_to_txt(comparison: dict[str, Any]) -> str:
+    reference = str(comparison.get("reference", ""))
+    translation_a = str(comparison.get("translation_a", ""))
+    translation_b = str(comparison.get("translation_b", ""))
+    summary = comparison.get("summary", {}) or {}
+
+    lines: list[str] = [
+        f"Translation comparison: {reference}",
+        f"Left: {translation_a}",
+        f"Right: {translation_b}",
+        "",
+        "Summary",
+        "-" * 40,
+    ]
+    for key in [
+        "total_verses",
+        "fully_aligned_verses",
+        "exact_matches",
+        "exact_match_ratio",
+        "average_similarity",
+    ]:
+        if key in summary:
+            lines.append(f"  {key}: {_stringify_number(summary.get(key))}")
+    lines.append("")
+    lines.append("Aligned verses")
+    lines.append("-" * 40)
+
+    for row in comparison.get("aligned_verses", []):
+        ref = f"{row.get('book_id', '')} {row.get('chapter', '')}:{row.get('verse', '')}"
+        lines.append(f"[{ref}]")
+        lines.append(f"  A: {row.get('text_a', '')}")
+        lines.append(f"  B: {row.get('text_b', '')}")
+        lines.append(f"  similarity: {_stringify_number(row.get('similarity', 0.0))}")
+        lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def _compare_to_xml(comparison: dict[str, Any]) -> str:
+    root = ET.Element("comparison")
+    root.set("type", "translation-compare")
+    ET.SubElement(root, "reference").text = str(comparison.get("reference", ""))
+    ET.SubElement(root, "translation_a").text = str(comparison.get("translation_a", ""))
+    ET.SubElement(root, "translation_b").text = str(comparison.get("translation_b", ""))
+
+    summary = comparison.get("summary", {}) or {}
+    sum_el = ET.SubElement(root, "summary")
+    for key in [
+        "total_verses",
+        "fully_aligned_verses",
+        "exact_matches",
+        "exact_match_ratio",
+        "average_similarity",
+    ]:
+        if key in summary:
+            child = ET.SubElement(sum_el, key.replace("_", "-"))
+            child.text = _stringify_number(summary.get(key))
+
+    if "top_shared_words" in summary:
+        tsw = ET.SubElement(sum_el, "top-shared-words")
+        for word, count in summary.get("top_shared_words", []):
+            w = ET.SubElement(tsw, "word")
+            w.set("count", _stringify_number(count))
+            w.text = str(word)
+
+    av = ET.SubElement(root, "aligned-verses")
+    for row in comparison.get("aligned_verses", []):
+        v = ET.SubElement(av, "verse")
+        v.set("book", str(row.get("book_id", "")))
+        v.set("chapter", _stringify_number(row.get("chapter", "")))
+        v.set("verse", _stringify_number(row.get("verse", "")))
+        v.set("similarity", _stringify_number(row.get("similarity", 0.0)))
+        v.set("exact-match", str(bool(row.get("exact_match", False))).lower())
+        ta = ET.SubElement(v, "text-a")
+        ta.text = str(row.get("text_a", ""))
+        tb = ET.SubElement(v, "text-b")
+        tb.text = str(row.get("text_b", ""))
+
+    return _xml_document(root)
 
 
 def _compare_to_json(comparison: dict[str, Any]) -> str:
