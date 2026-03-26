@@ -31,13 +31,28 @@ FROM python:3.12-slim AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
+ARG APP_USER=clible
+ARG APP_UID=10001
+ARG APP_GID=10001
+
+RUN groupadd --gid "${APP_GID}" "${APP_USER}" \
+    && useradd --uid "${APP_UID}" --gid "${APP_GID}" \
+       --create-home --home-dir "/home/${APP_USER}" \
+       --shell /usr/sbin/nologin "${APP_USER}" \
+    && mkdir -p /app \
+    && chown "${APP_USER}:${APP_USER}" /app
+
 WORKDIR /app
 
-COPY --from=builder /app/dist/*.whl /tmp/
-RUN python -m pip install --no-cache-dir --upgrade "pip>=25.3" \
-    && rm -f /usr/local/lib/python*/ensurepip/_bundled/pip-*.whl \
-    && python -m pip install --no-cache-dir /tmp/*.whl \
+COPY --from=builder --chown=${APP_USER}:${APP_USER} /app/dist/*.whl /tmp/
+
+USER ${APP_USER}:${APP_USER}
+RUN python -m venv "/home/${APP_USER}/.venv" \
+    && "/home/${APP_USER}/.venv/bin/pip" install --no-cache-dir --upgrade "pip>=25.3" \
+    && "/home/${APP_USER}/.venv/bin/pip" install --no-cache-dir /tmp/*.whl \
     && rm /tmp/*.whl
+
+ENV PATH="/home/${APP_USER}/.venv/bin:${PATH}"
 
 ENTRYPOINT ["clible"]
 CMD ["--help"]
