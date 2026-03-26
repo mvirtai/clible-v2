@@ -108,4 +108,4 @@ def test_parse_export_with_tilde_expands_home_dir():
     config = parse_export_string("PATH=~/exports,FORMAT=json")
 
     assert "~" not in str(config.path)
-    assert str(config.path).startswith("/home") or str(config.path).startswith("/Users")
+    assert config.path == Path.home() / "exports"
