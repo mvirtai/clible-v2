@@ -80,9 +80,7 @@ def test_verse_chapter_second_page(cli_uses_temp_db):
             "format": "USFX",
         }
     )
-    rows = [
-        {"book_id": "JHN", "chapter": 3, "verse": n, "text": f"V{n}"} for n in range(1, 6)
-    ]
+    rows = [{"book_id": "JHN", "chapter": 3, "verse": n, "text": f"V{n}"} for n in range(1, 6)]
     verse_repo.save_verses(rows, "kjv")
     conn.close()
 
