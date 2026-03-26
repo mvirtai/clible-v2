@@ -5,7 +5,13 @@ alwaysApply: false
 
 # PR stories (PR description format)
 
-When drafting a PR description or updating **PR_STORY.md**, use this structure. PR_STORY.md is gitignored; use it as a local template and copy the content into the PR body (e.g. on GitHub).
+**Templates:** Short and Long formats are in `.cursor/rules/pr-templates.md`.
+
+**Tracked storage:** For each PR, add a file under **`pr_stories/`** (version controlled). Follow naming in `pr_stories/README.md`. Paste the same content into the GitHub PR description. Short Format for routine PRs; Long Format for releases or complex changes.
+
+**Local draft:** `PR_STORY.md` at the repo root remains gitignored for scratch work; prefer committing the final text under `pr_stories/`.
+
+When drafting a PR description or updating **PR_STORY.md**, you may use the structure below. Copy the content into the PR body (e.g. on GitHub).
 
 ## Structure
 

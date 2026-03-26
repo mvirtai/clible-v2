@@ -47,3 +47,5 @@ src/clible/data/clible.db
 
 # test outputs
 outputs/
+
+# Root-level PR draft only; tracked PR bodies in pr_stories/
