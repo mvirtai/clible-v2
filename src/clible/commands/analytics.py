@@ -16,8 +16,8 @@ from clible.db.repositories.translation_repo import TranslationRepo
 from clible.db.repositories.verse_repo import VerseRepo
 from clible.services.analytic_service import AnalyticService
 from clible.services.verse_service import VerseService
-from clible.ui.analytics_export import export_analysis, export_compare, write_text
 from clible.ui.console import console
+from clible.ui.export import export_analysis, export_compare, write_text
 from clible.ui.export_cli import EXPORT_PARAM, ExportConfig
 from clible.ui.help_texts import (
     ANALYTICS_BOOK_HELP,

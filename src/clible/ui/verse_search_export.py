@@ -9,13 +9,25 @@ import json
 import xml.etree.ElementTree as ET
 from typing import Any, Literal
 
-from clible.ui.analytics_export import validate_export_format
+from clible.ui.export import render_html_document, validate_export_format
+from clible.ui.export.shared import format_title_with_acronym, full_verse_ref
 
 ExportKind = Literal["verse", "search"]
 
 
 def _verse_ref(v: dict[str, Any]) -> str:
     return f"{v.get('book_id', '')} {v.get('chapter', '')}:{v.get('verse', '')}"
+
+
+def _format_number(value: Any) -> str:
+    if isinstance(value, float):
+        return f"{value:.6f}".rstrip("0").rstrip(".") if value != int(value) else str(int(value))
+    return str(value)
+
+
+def _full_verse_ref(v: dict[str, Any]) -> tuple[str, str]:
+    """Return (full_ref, acronym_ref) for a verse dict."""
+    return full_verse_ref(v)
 
 
 def _xml_doc(root: ET.Element) -> str:
@@ -255,47 +267,95 @@ def _to_html(
     scope_ref: str | None,
     stats: dict[str, Any] | None,
 ) -> str:
-    parts: list[str] = [
-        "<!doctype html>",
-        "<html><head><meta charset='utf-8'>",
-        f"<title>{html.escape(title)}</title>",
-        "<style>"
-        "body{font-family:Arial,Helvetica,sans-serif;max-width:880px;"
-        "margin:24px auto;line-height:1.45}"
-        "article{border-bottom:1px solid #e0e0e0;padding:16px 0}"
-        "table{border-collapse:collapse;margin:12px 0}"
-        "th,td{border:1px solid #ddd;padding:6px 10px}"
-        "th{background:#f5f5f5;text-align:left}"
-        "</style>",
-        "</head><body>",
-        f"<h1>{html.escape(title)}</h1>",
-    ]
+    fragments: list[str] = []
+    if kind == "verse" and verses:
+        first_verse = verses[0]
+        full_title, acronym = format_title_with_acronym(
+            first_verse.get("book_id", ""),
+            first_verse.get("chapter", 0),
+            first_verse.get("verse", 0),
+        )
+        eyebrow = "Verse export"
+    else:
+        full_title = title
+        acronym = ""
+        eyebrow = "Search results" if kind == "search" else "Verse export"
+
+    fragments.append(
+        "<section class='page-card glow'>"
+        "<div class='title-stack'>"
+        f"<p class='eyebrow'>{eyebrow}</p>"
+        f"<h1>{html.escape(full_title)}</h1>"
+        + (f"<p class='title-acronym'>{html.escape(acronym)}</p>" if acronym else "")
+        + "</div>"
+        "<p class='section-title'><span>Readable, export-ready format</span></p>"
+        "</section>"
+    )
+
     if translation_id:
-        parts.append(f"<p><strong>Translation:</strong> {html.escape(translation_id)}</p>")
+        fragments.append(
+            "<section class='page-card'><div class='summary-row'>"
+            "<span class='summary-label'>Translation</span>"
+            f"<span class='summary-value'>{html.escape(translation_id)}</span></div></section>"
+        )
+
+    def _meta_row(label: str, value: str) -> str:
+        return (
+            "<div class='summary-row'>"
+            f"<span class='summary-label'>{html.escape(label)}</span>"
+            f"<span class='summary-value'>{html.escape(value)}</span>"
+            "</div>"
+        )
+
     if kind == "search":
-        parts.append(f"<p><strong>Query:</strong> {html.escape(str(search_word or ''))}</p>")
-        scope_bits = [html.escape(str(scope or ""))]
-        if scope_ref:
-            scope_bits.append(html.escape(str(scope_ref)))
-        parts.append(f"<p><strong>Scope:</strong> {' — '.join(scope_bits)}</p>")
+        meta_fragments = [
+            _meta_row("Query", str(search_word or "")),
+            _meta_row("Scope", " — ".join(filter(bool, [scope or "", scope_ref or ""]))),
+        ]
         if stats:
-            parts.append("<h2>Statistics</h2><table>")
-            parts.append("<thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody>")
-            parts.append(
-                f"<tr><td>Total occurrences</td><td>{stats.get('total_occurrences', 0)}</td></tr>"
+            meta_fragments.append(
+                _meta_row("Total occurrences", _format_number(stats.get("total_occurrences", 0)))
             )
-            parts.append(f"<tr><td>Unique verses</td><td>{stats.get('unique_verses', 0)}</td></tr>")
-            parts.append(
-                f"<tr><td>Books with matches</td><td>{stats.get('books_with_matches', 0)}</td></tr>"
+            meta_fragments.append(
+                _meta_row("Unique verses", _format_number(stats.get("unique_verses", 0)))
             )
-            parts.append("</tbody></table>")
-    parts.append("<h2>Verses</h2>")
-    for v in verses:
-        ref = html.escape(_verse_ref(v))
+            meta_fragments.append(
+                _meta_row(
+                    "Books with matches",
+                    _format_number(stats.get("books_with_matches", 0)),
+                )
+            )
+        fragments.append(
+            "<section class='page-card'>"
+            "<div class='section-title'>"
+            "<h2>Search statistics</h2>"
+            "<span>Scope & performance</span>"
+            "</div>"
+            "<div class='glow'>" + "".join(meta_fragments) + "</div>"
+            "</section>"
+        )
+
+    def _verse_card(v: dict[str, Any]) -> str:
+        full_ref, acronym_ref = _full_verse_ref(v)
         text = html.escape(v.get("text", ""))
-        parts.append(f"<article><h3>{ref}</h3><p>{text}</p></article>")
-    parts.append("</body></html>")
-    return "".join(parts)
+        return (
+            "<article class='verse-pair'>"
+            "<div class='title-stack'>"
+            f"<h3>{html.escape(full_ref)}</h3>"
+            f"<p class='title-acronym'>{html.escape(acronym_ref)}</p>"
+            "</div>"
+            f"<p class='verse-text'>{text}</p>"
+            "</article>"
+        )
+
+    fragments.append(
+        "<section class='page-card'>"
+        "<div class='section-title'><h2>Verses</h2><span>Study-ready text</span></div>"
+        + "".join(_verse_card(v) for v in verses)
+        + "</section>"
+    )
+
+    return render_html_document(title, fragments)
 
 
 def _to_xml(

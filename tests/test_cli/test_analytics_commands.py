@@ -540,5 +540,11 @@ def test_analytics_compare_export_with_only_format_uses_defaults(cli_uses_temp_d
     assert len(html_files) == 1
 
     content = html_files[0].read_text(encoding="utf-8").lower()
-    assert "<table" in content
+    assert "<!doctype html>" in content
     assert "aligned verses" in content
+    assert "summary statistics" in content
+    assert "<h3>left</h3>" not in content
+    assert "<h3>right</h3>" not in content
+    assert "left:" not in content
+    assert "right:" not in content
+    assert "john 3:16" in content

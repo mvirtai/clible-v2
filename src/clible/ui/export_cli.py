@@ -9,7 +9,7 @@ from pathlib import Path
 
 import click
 
-from clible.ui.analytics_export import SUPPORTED_EXPORT_FORMATS
+from clible.ui.export import SUPPORTED_EXPORT_FORMATS
 
 
 @dataclass

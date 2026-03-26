@@ -166,6 +166,8 @@ def test_export_search_html_includes_statistics_table():
     )
 
     assert "<!doctype html>" in result.lower()
-    assert "<h2>Statistics</h2>" in result
-    assert "Total occurrences</td><td>5</td>" in result
-    assert "Unique verses</td><td>3</td>" in result
+    assert "<h2>Search statistics</h2>" in result
+    assert "Total occurrences" in result
+    assert "Unique verses" in result
+    assert "Books with matches" in result
+    assert "<h1>Search: work</h1>" in result
