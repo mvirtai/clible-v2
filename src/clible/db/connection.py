@@ -5,8 +5,6 @@ from clible.config import get_config
 from clible.db.migrations import run_migrations
 from clible.db.seed_books import seed_books_if_empty
 
-db_path = get_config().db_path
-
 
 def get_connection(db_path: Path | str | None = None) -> sqlite3.Connection:
     """Return a configured connection to the database.
@@ -21,10 +19,7 @@ def get_connection(db_path: Path | str | None = None) -> sqlite3.Connection:
     conn.execute("PRAGMA foreign_keys=ON")
     conn.row_factory = sqlite3.Row
 
-    # IDEA (AI): Running migrations and seed checks on every connection might
-    # slow down the CLI as the database grows. Consider a mechanism to skip
-    # these checks if they've already been performed in the current session
-    # or if a "schema version" check passes quickly.
+    # TODO: skip migrations/seed if schema version is already current
     run_migrations(conn)
     seed_books_if_empty(conn)  # Populate books table from JSON if empty
 

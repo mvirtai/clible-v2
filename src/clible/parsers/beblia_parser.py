@@ -6,21 +6,10 @@ Book number is canonical order: 1=Genesis, 66=Revelation. We map to clible book 
 using the same order as bible_structure.json.
 """
 
-import json
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-
-def _ordered_book_ids() -> list[str]:
-    """Return clible book IDs in canonical order (position 1-66)."""
-    path = Path(__file__).resolve().parent.parent / "data" / "bible_structure.json"
-    with open(path, encoding="utf-8") as f:
-        data = json.load(f)
-    books = sorted(data["books"], key=lambda b: b["position"])
-    return [b["id"] for b in books]
-
-
-_BOOK_IDS = _ordered_book_ids()
+from clible.parsers.book_ids import ordered_book_ids
 
 
 class BebliaParser:
@@ -50,9 +39,10 @@ class BebliaParser:
                 book_num = int(book_elem.get("number", 0))
             except (TypeError, ValueError):
                 continue
-            if book_num < 1 or book_num > len(_BOOK_IDS):
+            book_ids = ordered_book_ids()
+            if book_num < 1 or book_num > len(book_ids):
                 continue
-            book_id = _BOOK_IDS[book_num - 1]
+            book_id = book_ids[book_num - 1]
 
             for chapter_elem in book_elem.findall("chapter"):
                 try:
