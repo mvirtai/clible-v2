@@ -2,10 +2,15 @@
 .venv
 .direnv
 __pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
 *.pyc
 *.pyo
 *.pyd
 *.db
+.coverage
+htmlcov/
 dist/
 build/
 *.egg-info/
@@ -17,3 +22,7 @@ SKILLS.md
 .env
 .envrc
 PR_STORY.md
+plans/
+outputs/
+clible_demo.cast
+demo.cast

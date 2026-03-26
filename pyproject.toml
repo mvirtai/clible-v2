@@ -14,10 +14,8 @@ requires-python = ">=3.12"
 dependencies = [
     "click>=8.1.0",
     "google-cloud-storage>=2.14.0",
-    "pylance>=2.0.1",
     "requests>=2.31.0",
     "rich>=13.0.0",
-    "ruff>=0.15.1",
 ]
 
 [project.scripts]
@@ -25,6 +23,7 @@ clible = "clible.cli:main"
 
 [dependency-groups]
 dev = [
+    "ruff>=0.15.1",
     "pytest>=8.0.0",
     "pytest-mock>=3.12.0",
 ]
