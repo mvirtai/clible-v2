@@ -22,3 +22,15 @@ def test_get_connection(tmp_path):
     assert conn.row_factory is sqlite3.Row
 
     conn.close()
+
+
+def test_migrations_drop_redundant_verses_text_index(tmp_path):
+    """Migration 004 removes idx_verses_search; FTS5 (verses_fts) handles text search."""
+    conn = get_connection(tmp_path / "test.db")
+    rows = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='verses' ORDER BY name"
+    ).fetchall()
+    names = [r[0] for r in rows]
+    assert "idx_verses_search" not in names
+    assert "idx_verses_lookup" in names
+    conn.close()
