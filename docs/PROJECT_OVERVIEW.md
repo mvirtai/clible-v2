@@ -185,7 +185,8 @@ Index: `idx_verses_lookup` (redundant `idx_verses_search` on `text` removed in m
 
 - **Config:** `get_config()` from `clible.config`; override via `CLIBLE_*` env vars
 - **DB:** `get_connection()` or `get_connection(":memory:")`; repos receive `conn` in constructor
-- **Repos:** Return plain dicts (or TypedDict like BookRow); no sqlite3.Row leakage
+- **Repos:** Return TypedDict row types (`BookRow`, `TranslationRow`, `VerseRow`); no sqlite3.Row leakage
+- **PEP 561:** `src/clible/py.typed` marks the installable package as carrying inline type information for downstream type checkers
 - **Default translation:** `web` if installed, otherwise first installed translation
 - **Analytics stopwords:** language picked from `translations.json` (`language` field), fallback `en`
 - **Tests:** In-memory SQLite, mocked HTTP; fixtures in `conftest.py`
@@ -197,3 +198,17 @@ Index: `idx_verses_lookup` (redundant `idx_verses_search` on `text` removed in m
 
 - **README.md** — User-facing usage and installation
 - **PLAN.md** — Original phase plan (API-based; seed path supersedes for now)
+
+---
+
+## What’s Next (Backlog)
+
+Backlog is tracked in:
+- `notes/code-review-2026-03-26.md` (what is still change-worthy)
+- `plans/future-directions_2026-03-26.plan.md` (feature direction by theme)
+- `PLAN.md` (original ticket breakdown / learning order)
+
+High-impact remaining items (as of `2026-03-26`):
+- **Verse search performance**: push scope filtering into `VerseRepo` SQL instead of filtering all FTS matches in Python.
+- **CLI connection management refactor**: use Click context to keep a single DB connection per command invocation.
+- **Export deduplication**: consolidate shared export flow/helpers across verse/search/analytics.
