@@ -16,14 +16,12 @@ from clible.commands.seed import (
     sync_catalog,
 )
 from clible.commands.verse import verse
+from clible.ui.help_texts import CLI_ROOT_HELP
 
 
-@click.group()
+@click.group(help=CLI_ROOT_HELP)
 def main() -> None:
-    """clible — Bible study tool for the command line.
-
-    Manage translations, search verses, analyze text, and export to files.
-    """
+    """Entry point for the clible CLI (see CLI_ROOT_HELP for `clible --help` text)."""
     pass
 
 

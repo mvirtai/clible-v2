@@ -3,6 +3,16 @@
 # Note: Using ''' for docstrings and """ for multiline f-strings or other text.
 # This helps avoid escaping issues with rich markup.
 
+# --- Root CLI (`clible --help`) --- #
+# Plain text for Click (no Rich markup). Details live on each command's --help.
+
+CLI_ROOT_HELP = """clible — Bible study tool for the command line.
+
+Run `clible <command> --help` for detailed options.
+
+Export is available on verse, search, and analytics via --export / -exp.
+"""
+
 # --- Analytics Commands --- #
 
 ANALYTICS_REFERENCE_HELP = """
@@ -23,9 +33,10 @@ ANALYTICS_REFERENCE_HELP = """
                           primary installed translation.
   -n, --top INTEGER       Number of top items to show for words and n-grams.
                           [default: 10]
-  --output PATH           Write results to a file. Format is inferred from
-                          extension: .json/.csv/.html/.md
-                          
+  -exp, --export TEXT     Export results to file. Key=value pairs (comma/space-separated):
+                          PATH (dir), FILENAME (stem), FORMAT (csv/html/json/md/txt/xml).
+                          All keys optional; defaults: PATH=., FILENAME=timestamp, FORMAT=md.
+                          Example: 'PATH=~/exports,FILENAME=analysis,FORMAT=json'
   --help                  Show this message and exit.
 
 [bold]Examples:[/bold]
@@ -34,6 +45,9 @@ ANALYTICS_REFERENCE_HELP = """
 
   2. Analyze a range of verses in the KJV and show the top 5 items:
      [cyan]clible analytics reference "Genesis 1:1-5" -t kjv --top 5[/cyan]
+
+  3. Export analysis to JSON in a custom directory:
+     [cyan]clible analytics reference "John 3:16" --export "PATH=~/bible_exports,FORMAT=json"[/cyan]
 """
 
 ANALYTICS_CHAPTER_HELP = """
@@ -54,8 +68,7 @@ ANALYTICS_CHAPTER_HELP = """
                           primary installed translation.
   -n, --top INTEGER       Number of top items to show for words and n-grams.
                           [default: 10]
-  --output PATH           Write results to a file. Format is inferred from
-                          extension: .json/.csv/.html/.md
+  -exp, --export TEXT     Export to file (see analytics reference for syntax).
   --help                  Show this message and exit.
 
 [bold]Examples:[/bold]
@@ -64,6 +77,9 @@ ANALYTICS_CHAPTER_HELP = """
 
   2. Analyze chapter 1 of Genesis in the KJV and show the top 5 items:
      [cyan]clible analytics chapter Genesis 1 -t kjv --top 5[/cyan]
+
+  3. Export chapter analysis as HTML:
+     [cyan]clible analytics chapter John 3 --export "FILENAME=john_ch3,FORMAT=html"[/cyan]
 """
 
 ANALYTICS_BOOK_HELP = """
@@ -83,8 +99,7 @@ ANALYTICS_BOOK_HELP = """
                           primary installed translation.
   -n, --top INTEGER       Number of top items to show for words and n-grams.
                           [default: 10]
-  --output PATH           Write results to a file. Format is inferred from
-                          extension: .json/.csv/.html/.md
+  -exp, --export TEXT     Export to file (see analytics reference for syntax).
   --help                  Show this message and exit.
 
 [bold]Examples:[/bold]
@@ -93,6 +108,9 @@ ANALYTICS_BOOK_HELP = """
 
   2. Analyze the book of Genesis in the KJV and show the top 15 items:
      [cyan]clible analytics book Genesis -t kjv --top 15[/cyan]
+
+  3. Export full book analysis as CSV:
+     [cyan]clible analytics book Genesis --export "PATH=~/exports,FORMAT=csv"[/cyan]
 """
 
 ANALYTICS_COMPARE_HELP = """
@@ -113,8 +131,7 @@ ANALYTICS_COMPARE_HELP = """
   --right TEXT   The translation to compare against the base.
                  [default: fin17xx (alias for fin-1776)]
 
-  --output PATH  Write results to a file. Format is inferred from extension:
-                 .json/.csv/.html/.md
+  -exp, --export TEXT     Export to file (see analytics reference for syntax).
   --help         Show this message and exit.
 
 [bold]Examples:[/bold]
@@ -123,6 +140,9 @@ ANALYTICS_COMPARE_HELP = """
 
   2. Compare the entire book of Genesis between KJV and WEB:
      [cyan]clible analytics compare "Genesis" --left kjv --right web[/cyan]
+
+  3. Export comparison as XML:
+     [cyan]clible analytics compare "Genesis 1" --export "FILENAME=compare_gen1,FORMAT=xml"[/cyan]
 """
 
 # --- Seed Commands --- #
@@ -218,6 +238,10 @@ VERSE_HELP = """
 [bold]Options:[/bold]
   -t, --translation TEXT  Translation ID (e.g. 'web'). Defaults to the
                           primary installed translation.
+  -exp, --export TEXT     Export verses to file. Key=value pairs (comma/space-separated):
+                          PATH (dir), FILENAME (stem), FORMAT (csv/html/json/md/txt/xml).
+                          All keys optional; defaults: PATH=., FILENAME=timestamp, FORMAT=md.
+                          Example: 'PATH=~/verses,FILENAME=john316,FORMAT=json'
   --help                  Show this message and exit.
 
 [bold]Examples:[/bold]
@@ -229,6 +253,9 @@ VERSE_HELP = """
 
   3. Look up a verse in a specific translation (KJV):
      [cyan]clible verse "John 3:16" -t kjv[/cyan]
+
+  4. Export verse to markdown with custom filename:
+     [cyan]clible verse "John 3:16" --export "FILENAME=john_three_sixteen,FORMAT=md"[/cyan]
 """
 
 SEARCH_HELP = """
@@ -252,6 +279,9 @@ SEARCH_HELP = """
   -t, --translation TEXT          The translation to search in. Defaults to
                                   the primary translation.
   -n, --limit INTEGER             Maximum number of verses to display.
+  -exp, --export TEXT             Export all matches to file (skips interactive prompt).
+                                  Syntax: 'PATH=~/searches,FILENAME=grace,FORMAT=json'.
+                                  All keys optional; see verse command for details.
   --help                          Show this message and exit.
 
 [bold]Examples:[/bold]
@@ -263,6 +293,9 @@ SEARCH_HELP = """
 
   3. Search for 'faith' in the New Testament and limit results to 5:
      [cyan]clible search faith -s testament -r NT -n 5[/cyan]
+
+  4. Export all 'grace' matches to HTML:
+     [cyan]clible search grace --export "FILENAME=grace_search,FORMAT=html"[/cyan]
 """
 
 BACKUP_HELP = """

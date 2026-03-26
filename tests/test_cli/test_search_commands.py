@@ -1,6 +1,8 @@
 """CLI integration tests for search command."""
 
+import json
 import tempfile
+from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
@@ -415,3 +417,96 @@ def test_search_interactive_confirmation_all_shows_everything(cli_uses_temp_db):
     assert "JHN 1:1" in result.output
     assert "JHN 1:24" in result.output
     assert "more verses" not in result.output
+
+
+def test_search_export_json_includes_statistics(cli_uses_temp_db, tmp_path: Path):
+    """search --export creates JSON with verses and statistics."""
+    conn = get_connection()
+    translation_repo = TranslationRepo(conn)
+    verse_repo = VerseRepo(conn)
+    translation_repo.create(
+        {
+            "id": "web",
+            "name": "World English Bible",
+            "language": "en",
+            "format": "USFX",
+        }
+    )
+    verse_repo.save_verses(
+        [
+            {"book_id": "JHN", "chapter": 1, "verse": 14, "text": "Full of grace and truth"},
+            {"book_id": "JHN", "chapter": 1, "verse": 17, "text": "Grace and truth came"},
+        ],
+        "web",
+    )
+    conn.close()
+
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        [
+            "search",
+            "grace",
+            "-t",
+            "web",
+            "--export",
+            f"PATH={tmp_path},FILENAME=search_grace,FORMAT=json",
+        ],
+    )
+
+    assert result.exit_code == 0
+    out_path = tmp_path / "search_grace.json"
+    assert out_path.exists()
+
+    data = json.loads(out_path.read_text(encoding="utf-8"))
+    assert data["type"] == "search"
+    assert data["query"] == "grace"
+    assert data["scope"] == "bible"
+    assert len(data["verses"]) == 2
+    assert "statistics" in data
+    assert data["statistics"]["total_occurrences"] == 2
+
+
+def test_search_export_md_all_keys_explicit(cli_uses_temp_db, tmp_path: Path):
+    """search --export with all keys explicit creates markdown."""
+    conn = get_connection()
+    translation_repo = TranslationRepo(conn)
+    verse_repo = VerseRepo(conn)
+    translation_repo.create(
+        {
+            "id": "web",
+            "name": "World English Bible",
+            "language": "en",
+            "format": "USFX",
+        }
+    )
+    verse_repo.save_verses(
+        [
+            {"book_id": "JHN", "chapter": 3, "verse": 16, "text": "For God so loved"},
+        ],
+        "web",
+    )
+    conn.close()
+
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        [
+            "search",
+            "loved",
+            "-t",
+            "web",
+            "--export",
+            f"PATH={tmp_path},FILENAME=search_loved,FORMAT=md",
+        ],
+    )
+
+    assert result.exit_code == 0
+    out_path = tmp_path / "search_loved.md"
+    assert out_path.exists()
+
+    content = out_path.read_text(encoding="utf-8")
+    assert content.startswith("# Search:")
+    assert "loved" in content
+    assert "## Statistics" in content
+    assert "## Verses" in content

@@ -73,6 +73,7 @@ clible is a command-line Bible study tool. The v2 rebuild aims for:
 | **VerseService** | `src/clible/services/verse_service.py` | get_verse/get_verses (single + range), chapter/book retrieval, FTS search |
 | **AnalyticService** | `src/clible/services/analytic_service.py` | token metrics, top words, bigrams, trigrams, concordance |
 | **CLI** | `src/clible/cli.py`, `commands/` | seed (install/list/available/remove), verse, search, analytics (reference/chapter/book/compare), backup |
+| **Export (UI)** | `src/clible/ui/export_cli.py`, `analytics_export.py`, `verse_search_export.py` | Unified `--export` parsing; serializers for analytics + verse/search (no DB in these modules) |
 | **Data files** | `src/clible/data/` | bible_structure.json, translations.json, stopwords.json, progress_quotes.json |
 | **Tests** | `tests/` | Repos, parsers, services, CLI; in-memory SQLite, mocked HTTP |
 | **CI** | `.github/workflows/ci.yml` | uv, ruff, pytest on push/PR |
@@ -83,7 +84,6 @@ clible is a command-line Bible study tool. The v2 rebuild aims for:
 
 | Area | Notes |
 | ---- | ----- |
-| **Export** | Markdown, plain text export |
 | **Sessions** | From original PLAN.md |
 
 ---
@@ -122,6 +122,10 @@ clible-v2/
 │   │   ├── analytic_service.py
 │   │   ├── seed_service.py
 │   │   └── verse_service.py
+│   ├── ui/
+│   │   ├── export_cli.py        # --export key=value parsing (PATH, FILENAME, FORMAT)
+│   │   ├── analytics_export.py  # analytics/compare → file formats
+│   │   └── verse_search_export.py  # verse lookup + search → file formats
 │   └── data/
 │       ├── bible_structure.json   # 66 books metadata
 │       ├── translations.json      # Catalog (web, kjv, fin-biblia-33-38, fin-1992, ...)
