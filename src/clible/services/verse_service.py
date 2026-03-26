@@ -73,31 +73,45 @@ class VerseService:
         reference: str,
         translation_id: str | None = None,
     ) -> list[dict]:
-        """Get verses by reference (e.g. 'John 3:16' or 'John 3:16-18').
+        """Get verses by reference.
+
+        Supports verse or range (``John 3:16``, ``John 3:1-6``), a chapter
+        (``John 3``), or a whole book (``John``).
 
         Args:
-            reference: Bible reference like 'John 3:16', 'John 3:1-6'.
+            reference: Bible reference string.
             translation_id: Translation to use. Defaults to installed default.
 
         Returns:
-            List of verse dicts in order (one for single reference, multiple for range).
-            Empty list if not found or invalid reference.
+            Verse dicts in canonical order. Empty list if not found or invalid.
         """
         parsed = parse_reference(reference)
-        if not parsed or parsed.scope != ReferenceScope.VERSE:
-            return []
-
-        book = self._resolve_book(parsed.book_name)
-        if not book:
+        if not parsed:
             return []
 
         tid = self._resolve_translation_id(translation_id)
         if not tid:
             return []
 
-        return self._verse_repo.get_verses_in_range(
-            tid, book["id"], parsed.chapter, parsed.verse_start, parsed.verse_end
-        )
+        if parsed.scope == ReferenceScope.VERSE:
+            if parsed.chapter is None or parsed.verse_start is None or parsed.verse_end is None:
+                return []
+            book = self._resolve_book(parsed.book_name)
+            if not book:
+                return []
+            return self._verse_repo.get_verses_in_range(
+                tid, book["id"], parsed.chapter, parsed.verse_start, parsed.verse_end
+            )
+
+        if parsed.scope == ReferenceScope.CHAPTER:
+            if parsed.chapter is None:
+                return []
+            return self.get_chapter_verses(parsed.book_name, parsed.chapter, translation_id)
+
+        if parsed.scope == ReferenceScope.BOOK:
+            return self.get_book_verses(parsed.book_name, translation_id)
+
+        return []
 
     def get_chapter_verses(
         self,

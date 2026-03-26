@@ -154,6 +154,57 @@ def test_get_verses_returns_single_verse_for_single_reference(
     assert "For God so loved" in result[0]["text"]
 
 
+def test_get_verses_returns_chapter_when_reference_is_chapter(
+    verse_service, verse_repo, translation_repo
+):
+    """get_verses with chapter reference returns all verses in that chapter."""
+    translation_repo.create(
+        {
+            "id": "web",
+            "name": "World English Bible",
+            "language": "en",
+            "format": "USFX",
+        }
+    )
+    verse_repo.save_verses(
+        [
+            {"book_id": "JHN", "chapter": 3, "verse": 1, "text": "A"},
+            {"book_id": "JHN", "chapter": 3, "verse": 2, "text": "B"},
+            {"book_id": "JHN", "chapter": 4, "verse": 1, "text": "Other"},
+        ],
+        "web",
+    )
+    result = verse_service.get_verses("John 3", translation_id="web")
+    assert len(result) == 2
+    assert [r["verse"] for r in result] == [1, 2]
+
+
+def test_get_verses_returns_book_when_reference_is_book_only(
+    verse_service, verse_repo, translation_repo
+):
+    """get_verses with book-only reference returns all verses in the book."""
+    translation_repo.create(
+        {
+            "id": "web",
+            "name": "World English Bible",
+            "language": "en",
+            "format": "USFX",
+        }
+    )
+    verse_repo.save_verses(
+        [
+            {"book_id": "JHN", "chapter": 1, "verse": 1, "text": "Start"},
+            {"book_id": "JHN", "chapter": 21, "verse": 25, "text": "End"},
+            {"book_id": "GEN", "chapter": 1, "verse": 1, "text": "Gen"},
+        ],
+        "web",
+    )
+    result = verse_service.get_verses("John", translation_id="web")
+    assert len(result) == 2
+    assert result[0]["chapter"] == 1
+    assert result[1]["chapter"] == 21
+
+
 def test_get_verses_returns_multiple_verses_for_range(verse_service, verse_repo, translation_repo):
     """get_verses with range (e.g. John 3:1-6) returns all verses in order."""
     translation_repo.create(

@@ -229,15 +229,19 @@ SEED_REMOVE_HELP = """
 VERSE_HELP = """
 [bold]Usage: clible verse [REFERENCE] [OPTIONS][/bold]
 
-  Displays the text of a specific Bible verse or a range of verses.
+  Displays Bible text for a verse, verse range, whole chapter, or whole book.
 
 [bold]Arguments:[/bold]
-  [REFERENCE]  The biblical reference to look up.
-               Examples: "John 3:16", "John 3:1-6", "Genesis 1:1-5".
+  [REFERENCE]  What to look up.
+               Examples: "John 3:16", "John 3:1-6", "John 3" (chapter), "John" (book).
 
 [bold]Options:[/bold]
   -t, --translation TEXT  Translation ID (e.g. 'web'). Defaults to the
                           primary installed translation.
+  --page INTEGER          Page index for chapter or whole-book (1-based).
+                          [default: 1]
+  --page-size INTEGER     Verses per page for chapter or book; 0 shows all.
+                          [default: 50]
   -exp, --export TEXT     Export verses to file. Key=value pairs (comma/space-separated):
                           PATH (dir), FILENAME (stem), FORMAT (csv/html/json/md/txt/xml).
                           All keys optional; defaults: PATH=., FILENAME=timestamp, FORMAT=md.
@@ -251,11 +255,17 @@ VERSE_HELP = """
   2. Look up a range of verses:
      [cyan]clible verse "Genesis 1:1-5"[/cyan]
 
-  3. Look up a verse in a specific translation (KJV):
+  3. Whole chapter (paginated by default):
+     [cyan]clible verse "John 3"[/cyan]
+
+  4. Whole book, second page:
+     [cyan]clible verse "Psalms" --page 2[/cyan]
+
+  5. Look up a verse in a specific translation (KJV):
      [cyan]clible verse "John 3:16" -t kjv[/cyan]
 
-  4. Export verse to markdown with custom filename:
-     [cyan]clible verse "John 3:16" --export "FILENAME=john_three_sixteen,FORMAT=md"[/cyan]
+  6. Export chapter to markdown:
+     [cyan]clible verse "John 3" --export "FILENAME=john3,FORMAT=md"[/cyan]
 """
 
 SEARCH_HELP = """
