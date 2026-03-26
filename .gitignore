@@ -41,3 +41,6 @@ src/clible/data/clible.db
 *.tfstate.*
 .terraform/
 .terraform.lock.hcl
+
+# Cursor internal state (local)
+.cursor/worktrees.json

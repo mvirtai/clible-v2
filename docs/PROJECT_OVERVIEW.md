@@ -1,6 +1,6 @@
 # clible v2 — Project Overview
 
-**Last updated:** 2026-03-05
+**Last updated:** 2026-03-26
 
 This document provides a comprehensive picture of the clible v2 application: what it is, its architecture, current implementation status, and where all the pieces live.
 
@@ -18,17 +18,18 @@ clible is a command-line Bible study tool. The v2 rebuild aims for:
 
 ## Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │ UI Layer                                                        │
 │   cli.py, commands/seed.py, commands/verse.py,                   │
-│   commands/analytics.py (Click + Rich)                           │
+│   commands/search.py, commands/analytics.py, commands/backup.py  │
+│   (Click + Rich)                                                 │
 └───────────────────────────────┬─────────────────────────────────┘
                                 │
 ┌───────────────────────────────▼─────────────────────────────────┐
 │ Service Layer                                                    │
 │   SeedService (install/list/remove), VerseService (lookup/search),│
-│   AnalyticService (token stats, n-grams, concordance)            │
+│   AnalyticService (token stats, n-grams, compare, concordance)   │
 └──────────────┬──────────────────────────────┬───────────────────┘
                │                              │
 ┌──────────────▼──────────────┐  ┌─────────────▼──────────────────┐
@@ -54,7 +55,7 @@ clible is a command-line Bible study tool. The v2 rebuild aims for:
 ### Done ✅
 
 | Component | Location | Notes |
-|-----------|----------|-------|
+| --------- | -------- | ----- |
 | **Config** | `src/clible/config.py` | Config dataclass, env overrides (CLIBLE_*) |
 | **DB connection** | `src/clible/db/connection.py` | WAL, foreign_keys, row_factory, migrations, seed_books |
 | **Migrations** | `src/clible/db/migrations.py` | `_migrations` table, ordered `.sql` execution |
@@ -71,7 +72,7 @@ clible is a command-line Bible study tool. The v2 rebuild aims for:
 | **SeedService** | `src/clible/services/seed_service.py` | list_available, list_installed, seed_translation, remove_translation |
 | **VerseService** | `src/clible/services/verse_service.py` | get_verse/get_verses (single + range), chapter/book retrieval, FTS search |
 | **AnalyticService** | `src/clible/services/analytic_service.py` | token metrics, top words, bigrams, trigrams, concordance |
-| **CLI** | `src/clible/cli.py`, `commands/` | seed (install, list, available, remove), verse, analytics (reference/chapter/book) |
+| **CLI** | `src/clible/cli.py`, `commands/` | seed (install/list/available/remove), verse, search, analytics (reference/chapter/book/compare), backup |
 | **Data files** | `src/clible/data/` | bible_structure.json, translations.json, stopwords.json, progress_quotes.json |
 | **Tests** | `tests/` | Repos, parsers, services, CLI; in-memory SQLite, mocked HTTP |
 | **CI** | `.github/workflows/ci.yml` | uv, ruff, pytest on push/PR |
@@ -81,8 +82,7 @@ clible is a command-line Bible study tool. The v2 rebuild aims for:
 ### Planned (not yet implemented)
 
 | Area | Notes |
-|------|-------|
-| **Search command UX** | FTS backend exists; dedicated `clible search` command not yet added |
+| ---- | ----- |
 | **Export** | Markdown, plain text export |
 | **Sessions** | From original PLAN.md |
 
@@ -90,15 +90,17 @@ clible is a command-line Bible study tool. The v2 rebuild aims for:
 
 ## File Map
 
-```
+```text
 clible-v2/
 ├── src/clible/
-│   ├── cli.py                 # Entry point, seed + verse + analytics groups
+│   ├── cli.py                 # Entry point, CLI groups
 │   ├── config.py              # Configuration (env overrides)
 │   ├── commands/
 │   │   ├── seed.py            # seed install, list, available, remove
 │   │   ├── verse.py           # verse "reference" -t translation
-│   │   └── analytics.py       # analytics reference/chapter/book
+│   │   ├── search.py          # search "query" with scope controls
+│   │   ├── analytics.py       # analytics reference/chapter/book/compare
+│   │   └── backup.py          # backup gcs, restore-gcs
 │   ├── db/
 │   │   ├── connection.py      # get_connection, migrations, seed_books
 │   │   ├── migrations.py      # run_migrations()
@@ -147,14 +149,17 @@ clible-v2/
 ## Database Schema (002_seed_architecture + 003_add_verse_fts)
 
 **books** — Static reference (66 books)
+
 - `id` TEXT PK (e.g. GEN, JHN)
 - `name`, `testament`, `position`, `chapters`
 
 **translations** — Installed Bible translations
+
 - `id` TEXT PK (e.g. web, kjv)
 - `name`, `language`, `format`, `source_url`, `installed_at`
 
 **verses** — Actual Bible text
+
 - `id` TEXT PK (UUID)
 - `translation_id` FK, `book_id` FK
 - `chapter`, `verse`, `text`
@@ -163,6 +168,7 @@ clible-v2/
 Indexes: `idx_verses_lookup`, `idx_verses_search`
 
 **verses_fts** — FTS5 index for full-text search
+
 - Virtual table linked to `verses(text)`
 - Triggers keep index synced on INSERT/UPDATE/DELETE
 - Used by `VerseRepo.search_text()` and analytics concordance
