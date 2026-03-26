@@ -11,8 +11,11 @@ from clible.db.repositories.book_repo import BookRepo
 from clible.db.repositories.translation_repo import TranslationRepo
 from clible.db.repositories.verse_repo import VerseRepo
 from clible.services.verse_service import VerseService
+from clible.ui.analytics_export import write_text
 from clible.ui.console import console
+from clible.ui.export_cli import EXPORT_PARAM, ExportConfig
 from clible.ui.help_texts import SEARCH_HELP
+from clible.ui.verse_search_export import export_verses_bundle
 
 
 def _get_verse_service() -> VerseService:
@@ -166,6 +169,13 @@ def _display_verses(verses: list[dict], word: str, limit: int | None = None) -> 
     default=None,
     help="Maximum number of verses to display. If not set, asks for confirmation when >20.",
 )
+@click.option(
+    "--export",
+    "-exp",
+    type=EXPORT_PARAM,
+    default=None,
+    help="Export to file: 'PATH=~/out,FILENAME=search,FORMAT=json' (all optional).",
+)
 @click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
 def search(
     word: str | None,
@@ -173,6 +183,7 @@ def search(
     scope_ref: str | None,
     translation_id: str | None,
     result_limit: int | None,
+    export: ExportConfig | None,
     show_help: bool,
 ) -> None:
     """Search for verses containing a word with scope and statistics.
@@ -225,6 +236,42 @@ def search(
 
     scope_label = _display_scope_label(scope, scope_ref)
     stats = service.get_search_statistics(filtered_verses, word)
+
+    if export is not None:
+        try:
+            out_path = export.resolve()
+            resolved_t = translation_id
+            if resolved_t is None:
+                conn = get_connection()
+                default = TranslationRepo(conn).get_default()
+                conn.close()
+                resolved_t = default["id"] if default else None
+            title = f'Search: "{word}" in {scope_label}'
+            content = export_verses_bundle(
+                filtered_verses,
+                kind="search",
+                title=title,
+                format=export.format,
+                translation_id=resolved_t,
+                search_word=word,
+                scope=scope,
+                scope_ref=scope_ref,
+                stats=stats,
+            )
+            write_text(out_path, content)
+            console.print(
+                f"[green]Exported {export.format} to[/green] {out_path.resolve()}\n"
+                f"[dim]PATH={export.path}, FILENAME={export.filename}, "
+                f"FORMAT={export.format}[/dim]"
+            )
+        except ValueError as e:
+            console.print(f"[red]{e}[/red]")
+            raise SystemExit(1)
+        except OSError as e:
+            console.print(f"[red]Failed to write output file: {e}[/red]")
+            raise SystemExit(1)
+        return
+
     _render_statistics(stats, word, scope_label)
 
     verse_count = len(filtered_verses)
