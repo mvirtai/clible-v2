@@ -6,26 +6,14 @@ import click
 from rich.panel import Panel
 from rich.table import Table
 
+from clible.commands import get_verse_service
 from clible.db.connection import get_connection
-from clible.db.repositories.book_repo import BookRepo
 from clible.db.repositories.translation_repo import TranslationRepo
-from clible.db.repositories.verse_repo import VerseRepo
-from clible.services.verse_service import VerseService
 from clible.ui.console import console
 from clible.ui.export import write_text
 from clible.ui.export_cli import EXPORT_PARAM, ExportConfig
 from clible.ui.help_texts import SEARCH_HELP
 from clible.ui.verse_search_export import export_verses_bundle
-
-
-def _get_verse_service() -> VerseService:
-    """Build VerseService with real dependencies."""
-    conn = get_connection()
-    return VerseService(
-        verse_repo=VerseRepo(conn),
-        book_repo=BookRepo(conn),
-        translation_repo=TranslationRepo(conn),
-    )
 
 
 def _highlight_word(text: str, word: str) -> str:
@@ -218,7 +206,7 @@ def search(
         )
         raise SystemExit(1)
 
-    service = _get_verse_service()
+    service = get_verse_service()
     filtered_verses = service.search_text(
         word,
         translation_id=translation_id,

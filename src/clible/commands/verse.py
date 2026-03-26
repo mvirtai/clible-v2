@@ -3,26 +3,14 @@
 import click
 from rich.panel import Panel
 
+from clible.commands import get_verse_service
 from clible.db.connection import get_connection
-from clible.db.repositories.book_repo import BookRepo
 from clible.db.repositories.translation_repo import TranslationRepo
-from clible.db.repositories.verse_repo import VerseRepo
-from clible.services.verse_service import VerseService
 from clible.ui.console import console
 from clible.ui.export import write_text
 from clible.ui.export_cli import EXPORT_PARAM, ExportConfig
 from clible.ui.help_texts import VERSE_HELP
 from clible.ui.verse_search_export import export_verses_bundle
-
-
-def _get_verse_service() -> VerseService:
-    """Build VerseService with real dependencies."""
-    conn = get_connection()
-    return VerseService(
-        verse_repo=VerseRepo(conn),
-        book_repo=BookRepo(conn),
-        translation_repo=TranslationRepo(conn),
-    )
 
 
 @click.command(add_help_option=False, context_settings={"help_option_names": []})
@@ -65,7 +53,7 @@ def verse(
         console.print("[red]Reference is required.[/red]")
         raise SystemExit(1)
 
-    service = _get_verse_service()
+    service = get_verse_service()
     verses = service.get_verses(reference, translation_id)
 
     if not verses:
