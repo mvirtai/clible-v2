@@ -61,6 +61,7 @@ clible is a command-line Bible study tool. The v2 rebuild aims for:
 | **Migrations** | `src/clible/db/migrations.py` | `_migrations` table, ordered `.sql` execution |
 | **002_seed_architecture.sql** | `src/clible/db/migrations/` | books, translations, verses + indexes |
 | **003_add_verse_fts.sql** | `src/clible/db/migrations/` | FTS5 virtual table + triggers for `verses` |
+| **004_drop_verses_text_index.sql** | `src/clible/db/migrations/` | Drops redundant B-tree index on `verses.text` |
 | **Seed books** | `src/clible/db/seed_books.py` | Fills `books` from bible_structure.json when empty |
 | **TranslationRepo** | `src/clible/db/repositories/translation_repo.py` | get_all, get_by_id, exists, create, delete, get_default |
 | **BookRepo** | `src/clible/db/repositories/book_repo.py` | get_all, get_by_id, get_by_name, search |
@@ -107,7 +108,8 @@ clible-v2/
 │   │   ├── migrations/
 │   │   │   ├── 001_initial_schema.sql   # Placeholder
 │   │   │   ├── 002_seed_architecture.sql
-│   │   │   └── 003_add_verse_fts.sql
+│   │   │   ├── 003_add_verse_fts.sql
+│   │   │   └── 004_drop_verses_text_index.sql
 │   │   ├── seed_books.py      # seed_books_if_empty(conn)
 │   │   └── repositories/
 │   │       ├── book_repo.py
@@ -150,7 +152,7 @@ clible-v2/
 
 ---
 
-## Database Schema (002_seed_architecture + 003_add_verse_fts)
+## Database Schema (002_seed_architecture + 003_add_verse_fts + 004_drop_verses_text_index)
 
 **books** — Static reference (66 books)
 
@@ -169,7 +171,7 @@ clible-v2/
 - `chapter`, `verse`, `text`
 - UNIQUE(translation_id, book_id, chapter, verse)
 
-Indexes: `idx_verses_lookup`, `idx_verses_search`
+Index: `idx_verses_lookup` (redundant `idx_verses_search` on `text` removed in migration 004; FTS5 covers search)
 
 **verses_fts** — FTS5 index for full-text search
 
