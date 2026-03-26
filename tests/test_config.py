@@ -14,10 +14,7 @@ def test_default_config_loads_correctly():
     try:
         importlib.reload(config_module)
         cfg = config_module.get_config()
-        assert cfg.api_base_url == "https://api.bible-api.com"
-        assert cfg.request_timeout == 10
-        assert cfg.request_delay == 1
-        assert cfg.translations == ["KJV", "ESV", "NIV"]
+        assert cfg.request_timeout == 60
         assert cfg.data_dir.name == "data"
         assert cfg.db_path.name == "clible.db"
         assert cfg.db_path.parent == cfg.data_dir

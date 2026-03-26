@@ -111,7 +111,7 @@ class SeedService:
         report = progress_callback or (lambda m: None)
 
         report("Downloading...")
-        response = requests.get(url, timeout=60)
+        response = requests.get(url, timeout=cfg.request_timeout)
         response.raise_for_status()
 
         report("Parsing XML...")
