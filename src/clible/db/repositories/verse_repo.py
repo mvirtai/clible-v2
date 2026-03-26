@@ -121,29 +121,58 @@ class VerseRepo:
         return [dict(row) for row in cursor.fetchall()]
 
     # TODO: use FTS5 snippet()/highlight() to simplify UI-side highlighting
-    def search_text(self, word: str, translation_id: str | None = None) -> list[dict]:
-        """Search verses by word using FTS5 index for efficient full-text search.
+    def search_text(
+        self,
+        word: str,
+        translation_id: str | None = None,
+        *,
+        book_ids: tuple[str, ...] | None = None,
+        book_id: str | None = None,
+        chapter: int | None = None,
+        verse_min: int | None = None,
+        verse_max: int | None = None,
+    ) -> list[dict]:
+        """Search verses by word using FTS5, with optional scope filters in SQL.
 
         Args:
             word: The word to search for (case-insensitive).
-            translation_id: Optional translation ID to filter by.
-                If None, searches all translations.
+            translation_id: If set, restrict to this translation.
+            book_ids: If set, restrict to these book ids (e.g. testament scope).
+            book_id: Single-book scope, or with ``chapter`` for chapter/verse scope.
+            chapter: Restrict to this chapter (with ``book_id``).
+            verse_min, verse_max: Inclusive verse range (with ``book_id`` and ``chapter``).
 
         Returns:
-            List of verse dicts that contain the specified word,
-            ordered by book/chapter/verse.
+            Verse dicts ordered by book, chapter, verse.
         """
+        if book_ids is not None and len(book_ids) == 0:
+            return []
+
         query = """
             SELECT v.*
             FROM verses_fts f
             JOIN verses v ON v.rowid = f.rowid
             WHERE f.text MATCH ?
         """
-        params = [word]
+        params: list = [word]
 
         if translation_id:
             query += " AND v.translation_id = ?"
             params.append(translation_id)
+
+        if book_ids is not None:
+            placeholders = ",".join("?" * len(book_ids))
+            query += f" AND v.book_id IN ({placeholders})"
+            params.extend(book_ids)
+        elif book_id is not None:
+            query += " AND v.book_id = ?"
+            params.append(book_id)
+            if chapter is not None:
+                query += " AND v.chapter = ?"
+                params.append(chapter)
+                if verse_min is not None and verse_max is not None:
+                    query += " AND v.verse >= ? AND v.verse <= ?"
+                    params.extend([verse_min, verse_max])
 
         query += " ORDER BY v.book_id, v.chapter, v.verse"
 

@@ -37,6 +37,107 @@ def test_verse_range_not_found_without_data(cli_uses_temp_db):
     assert "not found" in result.output.lower()
 
 
+def test_verse_chapter_displays_verses(cli_uses_temp_db):
+    """verse with chapter reference shows all verses in chapter (under page size)."""
+    conn = get_connection()
+    translation_repo = TranslationRepo(conn)
+    verse_repo = VerseRepo(conn)
+    translation_repo.create(
+        {
+            "id": "kjv",
+            "name": "King James Version",
+            "language": "en",
+            "format": "USFX",
+        }
+    )
+    verse_repo.save_verses(
+        [
+            {"book_id": "JHN", "chapter": 3, "verse": 1, "text": "C1"},
+            {"book_id": "JHN", "chapter": 3, "verse": 2, "text": "C2"},
+        ],
+        "kjv",
+    )
+    conn.close()
+
+    runner = CliRunner()
+    result = runner.invoke(main, ["verse", "John 3", "-t", "kjv", "--page-size", "0"])
+    assert result.exit_code == 0
+    assert "C1" in result.output
+    assert "C2" in result.output
+    assert "JHN 3:1" in result.output
+
+
+def test_verse_chapter_second_page(cli_uses_temp_db):
+    """verse paginates chapter output when --page-size is smaller than chapter."""
+    conn = get_connection()
+    translation_repo = TranslationRepo(conn)
+    verse_repo = VerseRepo(conn)
+    translation_repo.create(
+        {
+            "id": "kjv",
+            "name": "King James Version",
+            "language": "en",
+            "format": "USFX",
+        }
+    )
+    rows = [{"book_id": "JHN", "chapter": 3, "verse": n, "text": f"V{n}"} for n in range(1, 6)]
+    verse_repo.save_verses(rows, "kjv")
+    conn.close()
+
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        ["verse", "John 3", "-t", "kjv", "--page-size", "2", "--page", "2"],
+    )
+    assert result.exit_code == 0
+    assert "V3" in result.output
+    assert "V4" in result.output
+    assert "V1" not in result.output
+    assert "page 2 of 3" in result.output
+
+
+def test_verse_export_chapter_includes_all_verses(cli_uses_temp_db, tmp_path: Path):
+    """verse --export on a chapter writes every verse, not one page only."""
+    conn = get_connection()
+    translation_repo = TranslationRepo(conn)
+    verse_repo = VerseRepo(conn)
+    translation_repo.create(
+        {
+            "id": "web",
+            "name": "World English Bible",
+            "language": "en",
+            "format": "USFX",
+        }
+    )
+    verse_repo.save_verses(
+        [
+            {"book_id": "JHN", "chapter": 3, "verse": 1, "text": "A"},
+            {"book_id": "JHN", "chapter": 3, "verse": 2, "text": "B"},
+            {"book_id": "JHN", "chapter": 3, "verse": 3, "text": "C"},
+        ],
+        "web",
+    )
+    conn.close()
+
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        [
+            "verse",
+            "John 3",
+            "-t",
+            "web",
+            "--page-size",
+            "1",
+            "--export",
+            f"PATH={tmp_path},FILENAME=ch3,FORMAT=json",
+        ],
+    )
+    assert result.exit_code == 0
+    data = json.loads((tmp_path / "ch3.json").read_text(encoding="utf-8"))
+    assert len(data["verses"]) == 3
+
+
 def test_verse_range_displays_multiple_verses(cli_uses_temp_db):
     """verse with range (e.g. John 3:1-6) displays all verses in order."""
     conn = get_connection()

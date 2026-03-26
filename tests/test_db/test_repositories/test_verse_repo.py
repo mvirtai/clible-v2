@@ -356,6 +356,58 @@ def test_search_text_filters_by_translation(verse_repo, translation_repo):
     assert len(results_all) == 2
 
 
+def test_search_text_filters_by_book_id(verse_repo, translation_repo):
+    """search_text restricts to book_id when provided."""
+    translation_repo.create(
+        {
+            "id": "web",
+            "name": "World English Bible",
+            "language": "en",
+            "format": "USFX",
+        }
+    )
+    verse_repo.save_verses(
+        [
+            {"book_id": "GEN", "chapter": 1, "verse": 1, "text": "God said light"},
+            {"book_id": "JHN", "chapter": 1, "verse": 1, "text": "God was the Word"},
+        ],
+        "web",
+    )
+    results = verse_repo.search_text("God", "web", book_id="JHN")
+    assert len(results) == 1
+    assert results[0]["book_id"] == "JHN"
+
+
+def test_search_text_filters_by_chapter_and_verse_range(verse_repo, translation_repo):
+    """search_text applies chapter and verse range in SQL."""
+    translation_repo.create(
+        {
+            "id": "web",
+            "name": "World English Bible",
+            "language": "en",
+            "format": "USFX",
+        }
+    )
+    verse_repo.save_verses(
+        [
+            {"book_id": "JHN", "chapter": 3, "verse": 15, "text": "Moses lifted serpent"},
+            {"book_id": "JHN", "chapter": 3, "verse": 16, "text": "God so loved the world"},
+            {"book_id": "JHN", "chapter": 3, "verse": 17, "text": "God sent the Son"},
+        ],
+        "web",
+    )
+    results = verse_repo.search_text(
+        "God",
+        "web",
+        book_id="JHN",
+        chapter=3,
+        verse_min=16,
+        verse_max=16,
+    )
+    assert len(results) == 1
+    assert results[0]["verse"] == 16
+
+
 def test_search_text_returns_empty_when_no_match(verse_repo, translation_repo):
     """search_text returns empty list when no verses match."""
     translation_repo.create(

@@ -73,31 +73,45 @@ class VerseService:
         reference: str,
         translation_id: str | None = None,
     ) -> list[dict]:
-        """Get verses by reference (e.g. 'John 3:16' or 'John 3:16-18').
+        """Get verses by reference.
+
+        Supports verse or range (``John 3:16``, ``John 3:1-6``), a chapter
+        (``John 3``), or a whole book (``John``).
 
         Args:
-            reference: Bible reference like 'John 3:16', 'John 3:1-6'.
+            reference: Bible reference string.
             translation_id: Translation to use. Defaults to installed default.
 
         Returns:
-            List of verse dicts in order (one for single reference, multiple for range).
-            Empty list if not found or invalid reference.
+            Verse dicts in canonical order. Empty list if not found or invalid.
         """
         parsed = parse_reference(reference)
-        if not parsed or parsed.scope != ReferenceScope.VERSE:
-            return []
-
-        book = self._resolve_book(parsed.book_name)
-        if not book:
+        if not parsed:
             return []
 
         tid = self._resolve_translation_id(translation_id)
         if not tid:
             return []
 
-        return self._verse_repo.get_verses_in_range(
-            tid, book["id"], parsed.chapter, parsed.verse_start, parsed.verse_end
-        )
+        if parsed.scope == ReferenceScope.VERSE:
+            if parsed.chapter is None or parsed.verse_start is None or parsed.verse_end is None:
+                return []
+            book = self._resolve_book(parsed.book_name)
+            if not book:
+                return []
+            return self._verse_repo.get_verses_in_range(
+                tid, book["id"], parsed.chapter, parsed.verse_start, parsed.verse_end
+            )
+
+        if parsed.scope == ReferenceScope.CHAPTER:
+            if parsed.chapter is None:
+                return []
+            return self.get_chapter_verses(parsed.book_name, parsed.chapter, translation_id)
+
+        if parsed.scope == ReferenceScope.BOOK:
+            return self.get_book_verses(parsed.book_name, translation_id)
+
+        return []
 
     def get_chapter_verses(
         self,
@@ -160,6 +174,8 @@ class VerseService:
     ) -> list[dict]:
         """Search for verses containing the given word using FTS5 index.
 
+        Scope filters are applied in SQL via ``VerseRepo.search_text``.
+
         Args:
             word: The word to search for (case-insensitive).
             translation_id: Optional translation ID to filter by.
@@ -169,61 +185,60 @@ class VerseService:
             List of verse dicts that contain the word,
             ordered by book/chapter/verse.
         """
-        # TODO: push scope filtering into VerseRepo SQL for better performance
-        all_verses = self._verse_repo.search_text(word, translation_id)
-        return self.filter_verses_by_scope(all_verses, scope, scope_ref)
+        kwargs = self._search_scope_repo_kwargs(scope, scope_ref)
+        if kwargs is None:
+            return []
+        return self._verse_repo.search_text(word, translation_id, **kwargs)
 
-    def filter_verses_by_scope(
-        self,
-        verses: list[dict],
-        scope: str,
-        scope_value: str | None,
-    ) -> list[dict]:
-        """Filter verses based on scope type and value."""
-        if scope == "bible" or not scope_value:
-            return verses
+    def _search_scope_repo_kwargs(self, scope: str, scope_ref: str | None) -> dict | None:
+        """Build keyword args for ``VerseRepo.search_text``. None means invalid scope."""
+        if scope == "bible" or not scope_ref:
+            return {}
 
         if scope == "testament":
             from clible.db.repositories.book_repo import Testament
 
-            testament_str = scope_value.upper()
+            testament_str = scope_ref.upper()
             testament_books = self._book_repo.get_by_testament(Testament(testament_str))
-            book_ids = {b["id"] for b in testament_books}
-            return [v for v in verses if v["book_id"] in book_ids]
+            book_ids = tuple(b["id"] for b in testament_books)
+            if not book_ids:
+                return None
+            return {"book_ids": book_ids}
 
         if scope == "book":
-            book = self._resolve_book(scope_value)
+            book = self._resolve_book(scope_ref)
             if not book:
-                return []
-            return [v for v in verses if v["book_id"] == book["id"]]
+                return None
+            return {"book_id": book["id"]}
 
         if scope == "chapter":
-            parsed = parse_reference(scope_value)
+            parsed = parse_reference(scope_ref)
             if not parsed or parsed.scope not in (ReferenceScope.CHAPTER, ReferenceScope.VERSE):
-                return []
+                return None
+            if parsed.chapter is None:
+                return None
             book = self._resolve_book(parsed.book_name)
             if not book:
-                return []
-            return [
-                v for v in verses if v["book_id"] == book["id"] and v["chapter"] == parsed.chapter
-            ]
+                return None
+            return {"book_id": book["id"], "chapter": parsed.chapter}
 
         if scope == "verse":
-            parsed = parse_reference(scope_value)
+            parsed = parse_reference(scope_ref)
             if not parsed or parsed.scope != ReferenceScope.VERSE:
-                return []
+                return None
+            if parsed.chapter is None or parsed.verse_start is None or parsed.verse_end is None:
+                return None
             book = self._resolve_book(parsed.book_name)
             if not book:
-                return []
-            return [
-                v
-                for v in verses
-                if v["book_id"] == book["id"]
-                and v["chapter"] == parsed.chapter
-                and parsed.verse_start <= v["verse"] <= parsed.verse_end
-            ]
+                return None
+            return {
+                "book_id": book["id"],
+                "chapter": parsed.chapter,
+                "verse_min": parsed.verse_start,
+                "verse_max": parsed.verse_end,
+            }
 
-        return verses
+        return {}
 
     def get_search_statistics(self, verses: list[dict], word: str) -> dict:
         """Build search statistics from matching verses."""
