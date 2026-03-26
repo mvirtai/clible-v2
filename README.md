@@ -113,6 +113,8 @@ clible analytics compare "Psalm 23:1-4" --left fin-1992 --right fin17xx
 
 `analytics compare` prints a side-by-side verse table with word-level diffs and a similarity summary (exact match rate, average similarity, shared vocabulary).
 
+- **Compare defaults:** `--left` defaults to `fin-1992`, `--right` defaults to `fin17xx` (alias for `fin-1776`).
+- **Requirements:** both translations must be installed locally; command errors if either side is missing or both sides resolve to the same translation.
 - **`-t`, `--translation`:** Translation ID. Defaults to `web` if installed, otherwise first installed.
 - **`--top` / `-n`:** Number of top items to show (default 10).
 
@@ -134,7 +136,7 @@ For GCS backup, seed-from-GCS, and Docker push to Artifact Registry, see **[docs
 | `CLIBLE_GCS_BUCKET` | GCS bucket for `clible backup gcs` |
 | `CLIBLE_GCS_BACKUP_PREFIX` | Object prefix for backups (default: `backups`) |
 | `CLIBLE_SEED_BASE_URL` | Base URL for seed XML (e.g. public GCS prefix) |
-| `CLIBLE_GCP_ARTIFACT_REGISTRY` | Artifact Registry prefix for `task d-push-gcp` |
+| `CLIBLE_GCP_ARTIFACT_REGISTRY` | Artifact Registry prefix for `task push-to-gcp` |
 
 ### Backup and restore (`clible backup`)
 
@@ -193,7 +195,7 @@ task check
 task test-one PATTERN=verse_service
 ```
 
-`task d-build` depends on `task check`, so Docker images are only built after lint, format-check, and tests pass.
+`task build` depends on `task check`, so Docker images are only built after lint, format-check, and tests pass.
 
 ## Troubleshooting
 
@@ -244,19 +246,19 @@ direnv allow
 # Build Docker image with tags:
 # - docker.io/mvirtai/clible-v2:latest
 # - docker.io/mvirtai/clible-v2:<git-commit>
-task d-build
+task build
 
 # Show local tags for the built image
-task d-show-tags
+task show-tags
 
-# Push both tags (run docker login first)
-task d-push
+# Push both tags to Docker Hub (run docker login first)
+task push-to-docker-hub
 ```
 
-`task d-push` always shows image tags before pushing.
+`task push-to-docker-hub` always shows image tags before pushing.
 The target repository can be overridden with `CLIBLE_DOCKER_REPO`.
 
-To push to **Google Cloud Artifact Registry** instead of Docker Hub, set `CLIBLE_GCP_ARTIFACT_REGISTRY` (e.g. `europe-north1-docker.pkg.dev/myproject/clible`) and run `task d-push-gcp`. See [docs/GCP_SETUP.md](docs/GCP_SETUP.md).
+To push to **Google Cloud Artifact Registry** instead of Docker Hub, set `CLIBLE_GCP_ARTIFACT_REGISTRY` (e.g. `europe-north1-docker.pkg.dev/myproject/clible`) and run `task push-to-gcp`. See [docs/GCP_SETUP.md](docs/GCP_SETUP.md).
 
 ## Documentation
 
