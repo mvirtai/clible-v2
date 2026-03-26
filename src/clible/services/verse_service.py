@@ -24,6 +24,21 @@ class VerseService:
         self._book_repo = book_repo
         self._translation_repo = translation_repo
 
+    def _resolve_book(self, name: str) -> dict | None:
+        """Look up a book by exact name, falling back to fuzzy search."""
+        book = self._book_repo.get_by_name(name)
+        if not book:
+            matches = self._book_repo.search(name)
+            book = matches[0] if matches else None
+        return book
+
+    def _resolve_translation_id(self, translation_id: str | None) -> str | None:
+        """Return the given ID, or fall back to the installed default."""
+        if translation_id:
+            return translation_id
+        default = self._translation_repo.get_default()
+        return default["id"] if default else None
+
     def get_verse(
         self,
         reference: str,
@@ -42,17 +57,11 @@ class VerseService:
         if not parsed or parsed.scope != ReferenceScope.VERSE:
             return None
 
-        book = self._book_repo.get_by_name(parsed.book_name)
-        if not book:
-            matches = self._book_repo.search(parsed.book_name)
-            book = matches[0] if matches else None
+        book = self._resolve_book(parsed.book_name)
         if not book:
             return None
 
-        tid = translation_id
-        if not tid:
-            default = self._translation_repo.get_default()
-            tid = default["id"] if default else None
+        tid = self._resolve_translation_id(translation_id)
         if not tid:
             return None
 
@@ -77,17 +86,11 @@ class VerseService:
         if not parsed or parsed.scope != ReferenceScope.VERSE:
             return []
 
-        book = self._book_repo.get_by_name(parsed.book_name)
-        if not book:
-            matches = self._book_repo.search(parsed.book_name)
-            book = matches[0] if matches else None
+        book = self._resolve_book(parsed.book_name)
         if not book:
             return []
 
-        tid = translation_id
-        if not tid:
-            default = self._translation_repo.get_default()
-            tid = default["id"] if default else None
+        tid = self._resolve_translation_id(translation_id)
         if not tid:
             return []
 
@@ -112,17 +115,11 @@ class VerseService:
             List of verse dicts in the chapter, ordered by verse number.
             Empty list if book not found or no verses in chapter.
         """
-        book = self._book_repo.get_by_name(book_name)
-        if not book:
-            matches = self._book_repo.search(book_name)
-            book = matches[0] if matches else None
+        book = self._resolve_book(book_name)
         if not book:
             return []
 
-        tid = translation_id
-        if not tid:
-            default = self._translation_repo.get_default()
-            tid = default["id"] if default else None
+        tid = self._resolve_translation_id(translation_id)
         if not tid:
             return []
 
@@ -143,17 +140,11 @@ class VerseService:
             List of all verse dicts in the book, ordered by chapter then verse.
             Empty list if book not found or no verses in book.
         """
-        book = self._book_repo.get_by_name(book_name)
-        if not book:
-            matches = self._book_repo.search(book_name)
-            book = matches[0] if matches else None
+        book = self._resolve_book(book_name)
         if not book:
             return []
 
-        tid = translation_id
-        if not tid:
-            default = self._translation_repo.get_default()
-            tid = default["id"] if default else None
+        tid = self._resolve_translation_id(translation_id)
         if not tid:
             return []
 
@@ -200,10 +191,7 @@ class VerseService:
             return [v for v in verses if v["book_id"] in book_ids]
 
         if scope == "book":
-            book = self._book_repo.get_by_name(scope_value)
-            if not book:
-                matches = self._book_repo.search(scope_value)
-                book = matches[0] if matches else None
+            book = self._resolve_book(scope_value)
             if not book:
                 return []
             return [v for v in verses if v["book_id"] == book["id"]]
@@ -212,10 +200,7 @@ class VerseService:
             parsed = parse_reference(scope_value)
             if not parsed or parsed.scope not in (ReferenceScope.CHAPTER, ReferenceScope.VERSE):
                 return []
-            book = self._book_repo.get_by_name(parsed.book_name)
-            if not book:
-                matches = self._book_repo.search(parsed.book_name)
-                book = matches[0] if matches else None
+            book = self._resolve_book(parsed.book_name)
             if not book:
                 return []
             return [
@@ -226,10 +211,7 @@ class VerseService:
             parsed = parse_reference(scope_value)
             if not parsed or parsed.scope != ReferenceScope.VERSE:
                 return []
-            book = self._book_repo.get_by_name(parsed.book_name)
-            if not book:
-                matches = self._book_repo.search(parsed.book_name)
-                book = matches[0] if matches else None
+            book = self._resolve_book(parsed.book_name)
             if not book:
                 return []
             return [
