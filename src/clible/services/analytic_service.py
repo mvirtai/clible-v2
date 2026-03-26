@@ -254,13 +254,27 @@ class AnalyticService:
             Dict with keys: token_count, unique_token_count, type_token_ratio,
             top_words, top_bigrams, top_trigrams.
         """
+        all_tokens = self._get_all_tokens(reference, translation_id)
+        if not all_tokens:
+            return {
+                "token_count": 0,
+                "unique_token_count": 0,
+                "type_token_ratio": 0.0,
+                "top_words": [],
+                "top_bigrams": [],
+                "top_trigrams": [],
+            }
+
+        unique = len(set(all_tokens))
+        total = len(all_tokens)
+
         return {
-            "token_count": self.token_count(reference, translation_id),
-            "unique_token_count": self.unique_token_count(reference, translation_id),
-            "type_token_ratio": self.type_token_ratio(reference, translation_id),
-            "top_words": self.top_words(reference, translation_id, top_n),
-            "top_bigrams": self.top_bigrams(reference, translation_id, top_n),
-            "top_trigrams": self.top_trigrams(reference, translation_id, top_n),
+            "token_count": total,
+            "unique_token_count": unique,
+            "type_token_ratio": unique / total,
+            "top_words": Counter(all_tokens).most_common(top_n),
+            "top_bigrams": self._get_bigrams(all_tokens, top_n),
+            "top_trigrams": self._get_trigrams(all_tokens, top_n),
         }
 
     def analyze_chapter(
