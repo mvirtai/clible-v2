@@ -1,14 +1,13 @@
 """Verse lookup service: resolve references and fetch from local DB."""
 
+from __future__ import annotations
+
 from collections import Counter
-from typing import TYPE_CHECKING
 
+from clible.db.repositories.book_repo import BookRepo, BookRow
+from clible.db.repositories.translation_repo import TranslationRepo
+from clible.db.repositories.verse_repo import VerseRepo, VerseRow
 from clible.services.reference_parser import ReferenceScope, parse_reference
-
-if TYPE_CHECKING:
-    from clible.db.repositories.book_repo import BookRepo
-    from clible.db.repositories.translation_repo import TranslationRepo
-    from clible.db.repositories.verse_repo import VerseRepo
 
 
 class VerseService:
@@ -16,16 +15,16 @@ class VerseService:
 
     def __init__(
         self,
-        verse_repo: "VerseRepo",
-        book_repo: "BookRepo",
-        translation_repo: "TranslationRepo",
+        verse_repo: VerseRepo,
+        book_repo: BookRepo,
+        translation_repo: TranslationRepo,
     ):
         """Initialize with injected repositories."""
         self._verse_repo = verse_repo
         self._book_repo = book_repo
         self._translation_repo = translation_repo
 
-    def _resolve_book(self, name: str) -> dict | None:
+    def _resolve_book(self, name: str) -> BookRow | None:
         """Look up a book by exact name, falling back to fuzzy search."""
         book = self._book_repo.get_by_name(name)
         if not book:
@@ -44,7 +43,7 @@ class VerseService:
         self,
         reference: str,
         translation_id: str | None = None,
-    ) -> dict | None:
+    ) -> VerseRow | None:
         """Get a verse by reference (e.g. 'John 3:16').
 
         Args:
@@ -72,7 +71,7 @@ class VerseService:
         self,
         reference: str,
         translation_id: str | None = None,
-    ) -> list[dict]:
+    ) -> list[VerseRow]:
         """Get verses by reference.
 
         Supports verse or range (``John 3:16``, ``John 3:1-6``), a chapter
@@ -118,7 +117,7 @@ class VerseService:
         book_name: str,
         chapter: int,
         translation_id: str | None = None,
-    ) -> list[dict]:
+    ) -> list[VerseRow]:
         """Get all verses in a chapter.
 
         Args:
@@ -144,7 +143,7 @@ class VerseService:
         self,
         book_name: str,
         translation_id: str | None = None,
-    ) -> list[dict]:
+    ) -> list[VerseRow]:
         """Get all verses in a book.
 
         Args:
@@ -171,7 +170,7 @@ class VerseService:
         translation_id: str | None = None,
         scope: str = "bible",
         scope_ref: str | None = None,
-    ) -> list[dict]:
+    ) -> list[VerseRow]:
         """Search for verses containing the given word using FTS5 index.
 
         Scope filters are applied in SQL via ``VerseRepo.search_text``.
@@ -240,7 +239,7 @@ class VerseService:
 
         return {}
 
-    def get_search_statistics(self, verses: list[dict], word: str) -> dict:
+    def get_search_statistics(self, verses: list[VerseRow], word: str) -> dict:
         """Build search statistics from matching verses."""
         total_occurrences = 0
         book_counter: Counter[str] = Counter()
