@@ -120,10 +120,7 @@ class VerseRepo:
         )
         return [dict(row) for row in cursor.fetchall()]
 
-    # IDEA (AI): The FTS search is currently basic. SQLite's FTS5 supports
-    # powerful features like snippet() for extracting relevant text fragments
-    # and highlight() for adding markers to matches directly in the SQL query.
-    # Leveraging these could simplify the UI-side highlighting logic.
+    # TODO: use FTS5 snippet()/highlight() to simplify UI-side highlighting
     def search_text(self, word: str, translation_id: str | None = None) -> list[dict]:
         """Search verses by word using FTS5 index for efficient full-text search.
 
