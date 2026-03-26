@@ -1,6 +1,8 @@
 """CLI integration tests for verse command."""
 
+import json
 import tempfile
+from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
@@ -68,3 +70,90 @@ def test_verse_range_displays_multiple_verses(cli_uses_temp_db):
     assert "V2" in result.output
     assert "V6" in result.output
     assert result.output.count("JHN 3:") >= 6
+
+
+def test_verse_export_json_with_unified_flag(cli_uses_temp_db, tmp_path: Path):
+    """verse --export creates JSON file with verses."""
+    conn = get_connection()
+    translation_repo = TranslationRepo(conn)
+    verse_repo = VerseRepo(conn)
+    translation_repo.create(
+        {
+            "id": "web",
+            "name": "World English Bible",
+            "language": "en",
+            "format": "USFX",
+        }
+    )
+    verse_repo.save_verses(
+        [
+            {"book_id": "JHN", "chapter": 3, "verse": 16, "text": "For God so loved the world"},
+        ],
+        "web",
+    )
+    conn.close()
+
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        [
+            "verse",
+            "John 3:16",
+            "-t",
+            "web",
+            "--export",
+            f"PATH={tmp_path},FILENAME=verse_john,FORMAT=json",
+        ],
+    )
+
+    assert result.exit_code == 0
+    out_path = tmp_path / "verse_john.json"
+    assert out_path.exists()
+
+    data = json.loads(out_path.read_text(encoding="utf-8"))
+    assert data["type"] == "verse_lookup"
+    assert len(data["verses"]) == 1
+    assert data["verses"][0]["text"] == "For God so loved the world"
+
+
+def test_verse_export_md_uses_default_when_format_omitted(cli_uses_temp_db, tmp_path: Path):
+    """verse --export without FORMAT defaults to md."""
+    conn = get_connection()
+    translation_repo = TranslationRepo(conn)
+    verse_repo = VerseRepo(conn)
+    translation_repo.create(
+        {
+            "id": "web",
+            "name": "World English Bible",
+            "language": "en",
+            "format": "USFX",
+        }
+    )
+    verse_repo.save_verses(
+        [
+            {"book_id": "JHN", "chapter": 3, "verse": 16, "text": "For God so loved the world"},
+        ],
+        "web",
+    )
+    conn.close()
+
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        [
+            "verse",
+            "John 3:16",
+            "-t",
+            "web",
+            "--export",
+            f"PATH={tmp_path},FILENAME=verse_default",
+        ],
+    )
+
+    assert result.exit_code == 0
+    out_path = tmp_path / "verse_default.md"
+    assert out_path.exists()
+
+    content = out_path.read_text(encoding="utf-8")
+    assert "# Verses: John 3:16" in content
+    assert "## Verses" in content

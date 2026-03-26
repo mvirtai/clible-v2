@@ -176,8 +176,8 @@ def test_analytics_compare_fails_when_reference_has_no_verses(cli_uses_temp_db):
     assert "No verses found for this reference in the selected translations." in result.output
 
 
-def test_analytics_reference_output_json_creates_file(cli_uses_temp_db, tmp_path: Path):
-    """analytics reference exports analysis as JSON."""
+def test_analytics_reference_export_json_creates_file(cli_uses_temp_db, tmp_path: Path):
+    """analytics reference exports analysis as JSON using unified --export."""
     conn = get_connection()
     translation_repo = TranslationRepo(conn)
     verse_repo = VerseRepo(conn)
@@ -203,7 +203,6 @@ def test_analytics_reference_output_json_creates_file(cli_uses_temp_db, tmp_path
     )
     conn.close()
 
-    out_path = tmp_path / "analysis.json"
     runner = CliRunner()
     result = runner.invoke(
         main,
@@ -213,12 +212,13 @@ def test_analytics_reference_output_json_creates_file(cli_uses_temp_db, tmp_path
             "John 3:16",
             "--translation",
             "fin-1992",
-            "--output",
-            str(out_path),
+            "--export",
+            f"PATH={tmp_path},FILENAME=analysis,FORMAT=json",
         ],
     )
 
     assert result.exit_code == 0
+    out_path = tmp_path / "analysis.json"
     assert out_path.exists()
 
     data = json.loads(out_path.read_text(encoding="utf-8"))
@@ -228,8 +228,8 @@ def test_analytics_reference_output_json_creates_file(cli_uses_temp_db, tmp_path
     assert "top_words" in data
 
 
-def test_analytics_reference_output_csv_creates_file(cli_uses_temp_db, tmp_path: Path):
-    """analytics reference exports analysis as CSV."""
+def test_analytics_reference_export_txt_creates_file(cli_uses_temp_db, tmp_path: Path):
+    """analytics reference exports analysis as TXT using unified --export."""
     conn = get_connection()
     translation_repo = TranslationRepo(conn)
     verse_repo = VerseRepo(conn)
@@ -255,7 +255,6 @@ def test_analytics_reference_output_csv_creates_file(cli_uses_temp_db, tmp_path:
     )
     conn.close()
 
-    out_path = tmp_path / "analysis.csv"
     runner = CliRunner()
     result = runner.invoke(
         main,
@@ -265,21 +264,22 @@ def test_analytics_reference_output_csv_creates_file(cli_uses_temp_db, tmp_path:
             "John 3:16",
             "--translation",
             "fin-1992",
-            "--output",
-            str(out_path),
+            "--export",
+            f"PATH={tmp_path},FILENAME=analysis_text,FORMAT=txt",
         ],
     )
 
     assert result.exit_code == 0
+    out_path = tmp_path / "analysis_text.txt"
     assert out_path.exists()
 
     content = out_path.read_text(encoding="utf-8")
-    assert content.startswith("section,metric,rank,token,count")
-    assert "metrics,token_count" in content
+    assert "Text analysis: John 3:16" in content
+    assert "Metrics" in content
 
 
-def test_analytics_reference_output_md_creates_file(cli_uses_temp_db, tmp_path: Path):
-    """analytics reference exports analysis as Markdown."""
+def test_analytics_reference_export_defaults_to_md_in_current_dir(cli_uses_temp_db, tmp_path: Path):
+    """analytics reference exports with minimal --export uses defaults (format=md)."""
     conn = get_connection()
     translation_repo = TranslationRepo(conn)
     verse_repo = VerseRepo(conn)
@@ -305,7 +305,6 @@ def test_analytics_reference_output_md_creates_file(cli_uses_temp_db, tmp_path: 
     )
     conn.close()
 
-    out_path = tmp_path / "analysis.md"
     runner = CliRunner()
     result = runner.invoke(
         main,
@@ -315,12 +314,13 @@ def test_analytics_reference_output_md_creates_file(cli_uses_temp_db, tmp_path: 
             "John 3:16",
             "--translation",
             "fin-1992",
-            "--output",
-            str(out_path),
+            "--export",
+            f"PATH={tmp_path},FILENAME=test_analysis",
         ],
     )
 
     assert result.exit_code == 0
+    out_path = tmp_path / "test_analysis.md"
     assert out_path.exists()
 
     content = out_path.read_text(encoding="utf-8")
@@ -328,8 +328,8 @@ def test_analytics_reference_output_md_creates_file(cli_uses_temp_db, tmp_path: 
     assert "## Metrics" in content
 
 
-def test_analytics_reference_output_html_creates_file(cli_uses_temp_db, tmp_path: Path):
-    """analytics reference exports analysis as HTML."""
+def test_analytics_reference_export_xml_creates_file(cli_uses_temp_db, tmp_path: Path):
+    """analytics reference exports analysis as XML using unified --export."""
     conn = get_connection()
     translation_repo = TranslationRepo(conn)
     verse_repo = VerseRepo(conn)
@@ -355,7 +355,6 @@ def test_analytics_reference_output_html_creates_file(cli_uses_temp_db, tmp_path
     )
     conn.close()
 
-    out_path = tmp_path / "analysis.html"
     runner = CliRunner()
     result = runner.invoke(
         main,
@@ -365,22 +364,23 @@ def test_analytics_reference_output_html_creates_file(cli_uses_temp_db, tmp_path
             "John 3:16",
             "--translation",
             "fin-1992",
-            "--output",
-            str(out_path),
+            "--export",
+            f"PATH={tmp_path},FILENAME=analysis_xml,FORMAT=xml",
         ],
     )
 
     assert result.exit_code == 0
+    out_path = tmp_path / "analysis_xml.xml"
     assert out_path.exists()
 
     content = out_path.read_text(encoding="utf-8")
-    assert "<table" in content.lower()
-    assert "Text Analysis" in content
+    assert '<?xml version="1.0"' in content
+    assert "<analysis" in content
+    assert "<scope>John 3:16</scope>" in content
 
 
-def test_analytics_reference_output_rejects_unsupported_extension(cli_uses_temp_db, tmp_path: Path):
-    """analytics reference fails with unsupported output extension and does not create a file."""
-    out_path = tmp_path / "analysis.txt"
+def test_analytics_reference_export_rejects_unsupported_format(cli_uses_temp_db, tmp_path: Path):
+    """analytics reference fails with unsupported FORMAT in --export."""
     runner = CliRunner()
     result = runner.invoke(
         main,
@@ -390,17 +390,17 @@ def test_analytics_reference_output_rejects_unsupported_extension(cli_uses_temp_
             "John 3:16",
             "--translation",
             "fin-1992",
-            "--output",
-            str(out_path),
+            "--export",
+            "PATH=" + str(tmp_path) + ",FORMAT=pdf",
         ],
     )
 
     assert result.exit_code != 0
-    assert not out_path.exists()
+    assert "Unsupported FORMAT" in result.output or "unsupported" in result.output.lower()
 
 
-def test_analytics_compare_output_json_creates_file(cli_uses_temp_db, tmp_path: Path):
-    """analytics compare exports comparison as JSON."""
+def test_analytics_compare_export_json_creates_file(cli_uses_temp_db, tmp_path: Path):
+    """analytics compare exports comparison as JSON using unified --export."""
     conn = get_connection()
     translation_repo = TranslationRepo(conn)
     verse_repo = VerseRepo(conn)
@@ -446,7 +446,6 @@ def test_analytics_compare_output_json_creates_file(cli_uses_temp_db, tmp_path: 
     )
     conn.close()
 
-    out_path = tmp_path / "compare.json"
     runner = CliRunner()
     result = runner.invoke(
         main,
@@ -458,12 +457,13 @@ def test_analytics_compare_output_json_creates_file(cli_uses_temp_db, tmp_path: 
             "fin-1992",
             "--right",
             "fin-1776",
-            "--output",
-            str(out_path),
+            "--export",
+            f"PATH={tmp_path},FILENAME=compare,FORMAT=json",
         ],
     )
 
     assert result.exit_code == 0
+    out_path = tmp_path / "compare.json"
     assert out_path.exists()
 
     data = json.loads(out_path.read_text(encoding="utf-8"))
@@ -472,8 +472,8 @@ def test_analytics_compare_output_json_creates_file(cli_uses_temp_db, tmp_path: 
     assert len(data["aligned_verses"]) == 1
 
 
-def test_analytics_compare_output_html_creates_file(cli_uses_temp_db, tmp_path: Path):
-    """analytics compare exports comparison as HTML."""
+def test_analytics_compare_export_with_only_format_uses_defaults(cli_uses_temp_db, tmp_path: Path):
+    """analytics compare with only FORMAT in --export uses PATH and FILENAME defaults."""
     conn = get_connection()
     translation_repo = TranslationRepo(conn)
     verse_repo = VerseRepo(conn)
@@ -519,7 +519,6 @@ def test_analytics_compare_output_html_creates_file(cli_uses_temp_db, tmp_path: 
     )
     conn.close()
 
-    out_path = tmp_path / "compare.html"
     runner = CliRunner()
     result = runner.invoke(
         main,
@@ -531,14 +530,15 @@ def test_analytics_compare_output_html_creates_file(cli_uses_temp_db, tmp_path: 
             "fin-1992",
             "--right",
             "fin-1776",
-            "--output",
-            str(out_path),
+            "--export",
+            f"PATH={tmp_path},FORMAT=html",
         ],
     )
 
     assert result.exit_code == 0
-    assert out_path.exists()
+    html_files = list(tmp_path.glob("*.html"))
+    assert len(html_files) == 1
 
-    content = out_path.read_text(encoding="utf-8").lower()
+    content = html_files[0].read_text(encoding="utf-8").lower()
     assert "<table" in content
     assert "aligned verses" in content
