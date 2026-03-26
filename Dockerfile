@@ -1,26 +1,27 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1.7
 
 FROM python:3.12-slim AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Kopioi uv valmiista imagesta — ei pip install -vaihetta
+# Copy uv binary from official uv image.
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 WORKDIR /app
 
-# Dependencies first — these layers are cached unless pyproject.toml/uv.lock/README.md change
-# README.md is required by hatchling during build (pyproject.toml: readme = "README.md")
+# Dependencies first. Keep this layer stable for better cache reuse.
+# README.md is required by hatchling (`readme = "README.md"`).
 COPY pyproject.toml uv.lock README.md ./
-RUN uv sync --all-groups --frozen
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --group dev --frozen
 
-# Code copied separately — does not invalidate the above cache
+# Copy source separately so dependency cache remains valid across code changes.
 COPY .gitignore main.py ./
 COPY src ./src
 COPY tests ./tests
 
-# Jokainen tarkistus omalla layerillaan
+# Keep checks as separate layers for better incremental build behavior.
 RUN uv run ruff check .
 RUN uv run ruff format --check .
 RUN uv run pytest -v
@@ -35,6 +36,8 @@ ARG APP_USER=clible
 ARG APP_UID=10001
 ARG APP_GID=10001
 
+# Use explicit UID/GID so file ownership remains predictable across
+# local Docker runs, CI, and Kubernetes/container runtimes.
 RUN groupadd --gid "${APP_GID}" "${APP_USER}" \
     && useradd --uid "${APP_UID}" --gid "${APP_GID}" \
        --create-home --home-dir "/home/${APP_USER}" \
@@ -44,14 +47,18 @@ RUN groupadd --gid "${APP_GID}" "${APP_USER}" \
 
 WORKDIR /app
 
+# Copy only the built wheel from builder stage to keep runtime image minimal
+# and avoid shipping source/tests/tooling.
 COPY --from=builder --chown=${APP_USER}:${APP_USER} /app/dist/*.whl /tmp/
 
 USER ${APP_USER}:${APP_USER}
+# Install into a user-owned virtual environment instead of system site-packages,
+# so runtime does not require root privileges.
 RUN python -m venv "/home/${APP_USER}/.venv" \
-    && "/home/${APP_USER}/.venv/bin/pip" install --no-cache-dir --upgrade "pip>=25.3" \
     && "/home/${APP_USER}/.venv/bin/pip" install --no-cache-dir /tmp/*.whl \
     && rm /tmp/*.whl
 
+# Expose the venv binaries (`clible`, `python`) as default executables.
 ENV PATH="/home/${APP_USER}/.venv/bin:${PATH}"
 
 ENTRYPOINT ["clible"]
