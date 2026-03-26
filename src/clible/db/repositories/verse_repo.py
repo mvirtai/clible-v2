@@ -1,5 +1,37 @@
 import sqlite3
 import uuid
+from typing import TypedDict
+
+
+class VerseRow(TypedDict):
+    """Row shape for the verses table as returned by VerseRepo."""
+
+    id: str
+    translation_id: str
+    book_id: str
+    chapter: int
+    verse: int
+    text: str
+
+
+class VerseSeed(TypedDict):
+    """Input verse fields for bulk insert (``save_verses``)."""
+
+    book_id: str
+    chapter: int
+    verse: int
+    text: str
+
+
+def _row_to_verse(row: sqlite3.Row) -> VerseRow:
+    return {
+        "id": row["id"],
+        "translation_id": row["translation_id"],
+        "book_id": row["book_id"],
+        "chapter": row["chapter"],
+        "verse": row["verse"],
+        "text": row["text"],
+    }
 
 
 class VerseRepo:
@@ -15,7 +47,7 @@ class VerseRepo:
         book_id: str,
         chapter: int,
         verse: int,
-    ) -> dict | None:
+    ) -> VerseRow | None:
         """Get a single verse by translation, book, chapter, and verse.
 
         Returns None if not found.
@@ -27,14 +59,14 @@ class VerseRepo:
             """,
             (translation_id, book_id, chapter, verse),
         ).fetchone()
-        return dict(row) if row else None
+        return _row_to_verse(row) if row else None
 
     def get_verses(
         self,
         translation_id: str,
         book_id: str,
         chapter: int,
-    ) -> list[dict]:
+    ) -> list[VerseRow]:
         """Get all verses in a chapter, ordered by verse number.
 
         Returns empty list if none found.
@@ -47,7 +79,7 @@ class VerseRepo:
             """,
             (translation_id, book_id, chapter),
         )
-        return [dict(row) for row in cursor.fetchall()]
+        return [_row_to_verse(row) for row in cursor.fetchall()]
 
     def get_verses_in_range(
         self,
@@ -56,7 +88,7 @@ class VerseRepo:
         chapter: int,
         verse_start: int,
         verse_end: int,
-    ) -> list[dict]:
+    ) -> list[VerseRow]:
         """Get verses in a chapter for the given verse range (inclusive), ordered by verse.
 
         Returns empty list if none found.
@@ -70,9 +102,9 @@ class VerseRepo:
             """,
             (translation_id, book_id, chapter, verse_start, verse_end),
         )
-        return [dict(row) for row in cursor.fetchall()]
+        return [_row_to_verse(row) for row in cursor.fetchall()]
 
-    def save_verses(self, verses: list[dict], translation_id: str) -> int:
+    def save_verses(self, verses: list[VerseSeed], translation_id: str) -> int:
         """Bulk insert verses for a translation.
 
         Each verse dict must have: book_id, chapter, verse, text.
@@ -100,7 +132,7 @@ class VerseRepo:
             )
         return cursor.rowcount
 
-    def get_book_verses(self, translation_id: str, book_id: str) -> list[dict]:
+    def get_book_verses(self, translation_id: str, book_id: str) -> list[VerseRow]:
         """Get all verses in a book, ordered by chapter and verse.
 
         Args:
@@ -118,7 +150,7 @@ class VerseRepo:
             """,
             (translation_id, book_id),
         )
-        return [dict(row) for row in cursor.fetchall()]
+        return [_row_to_verse(row) for row in cursor.fetchall()]
 
     # TODO: use FTS5 snippet()/highlight() to simplify UI-side highlighting
     def search_text(
@@ -131,7 +163,7 @@ class VerseRepo:
         chapter: int | None = None,
         verse_min: int | None = None,
         verse_max: int | None = None,
-    ) -> list[dict]:
+    ) -> list[VerseRow]:
         """Search verses by word using FTS5, with optional scope filters in SQL.
 
         Args:
@@ -143,7 +175,7 @@ class VerseRepo:
             verse_min, verse_max: Inclusive verse range (with ``book_id`` and ``chapter``).
 
         Returns:
-            Verse dicts ordered by book, chapter, verse.
+            Verse rows ordered by book, chapter, verse.
         """
         if book_ids is not None and len(book_ids) == 0:
             return []
@@ -177,4 +209,4 @@ class VerseRepo:
         query += " ORDER BY v.book_id, v.chapter, v.verse"
 
         cursor = self.conn.execute(query, params)
-        return [dict(row) for row in cursor.fetchall()]
+        return [_row_to_verse(row) for row in cursor.fetchall()]
