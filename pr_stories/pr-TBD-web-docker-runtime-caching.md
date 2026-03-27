@@ -1,0 +1,5 @@
+- Added `src/clible-web/.dockerignore` to keep Docker build context minimal and avoid sending `node_modules`, `dist`, and local env artifacts.
+- Improved `src/clible-web/Dockerfile` reliability by ensuring `clible` is on PATH, switching to `npm ci`, adding BuildKit cache mounts for apt/npm, and validating CLI availability with `clible --help`.
+- Updated `src/clible-web/server.ts` startup probe to use `clible --help` instead of unsupported `--version`, removing misleading "not found in PATH" warnings.
+- Extended `Taskfile.yml` web Docker tasks with `PROGRESS` support and a `web-docker-run` task (`PORT` configurable) for repeatable local testing.
+- Verified end-to-end behavior: web image builds successfully, cacheable layers are reused, and startup log confirms CLI detection.
