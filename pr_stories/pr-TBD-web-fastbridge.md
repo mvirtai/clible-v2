@@ -1,0 +1,5 @@
+- Added a new `src/clible-web/` web app integration with React + Vite + Express bridge and supporting docs (`docs/INTEGRATION.md`, `src/clible-web/INTEGRATION.md`).
+- Fixed Vite entry/root resolution for Docker builds by aligning `index.html` entry path and explicit Vite root/build output settings (`src/clible-web/index.html`, `src/clible-web/vite.config.ts`).
+- Organized web TypeScript modules into explicit layer folders (`types/`, `repositories/`, `services/`) to match import paths in `App.tsx`.
+- Updated web Docker runtime behavior to run npm commands correctly on top of the base image and to build/start the app in production mode (`src/clible-web/Dockerfile`, `src/clible-web/package.json`).
+- Validation: `docker build -t clible-web .` and container smoke test for `/` now succeed.
