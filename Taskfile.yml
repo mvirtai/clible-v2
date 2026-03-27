@@ -15,6 +15,41 @@ vars:
   GCP_IMAGE_LATEST: "{{.GCP_REGISTRY}}/clible-v2dev:latest"
 
 tasks:
+  web-install:
+    desc: Install web app dependencies
+    dir: src/clible-web
+    cmds:
+      - npm ci
+
+  web-lint:
+    desc: Run web app TypeScript checks
+    dir: src/clible-web
+    cmds:
+      - npm run lint
+
+  web-build:
+    desc: Build web app with Vite
+    dir: src/clible-web
+    cmds:
+      - npm run build
+
+  web-docker-build:
+    desc: Build clible-web Docker image
+    dir: src/clible-web
+    preconditions:
+      - sh: "command -v docker >/dev/null 2>&1"
+        msg: "Docker is required to build the web image."
+    cmds:
+      - docker build -t clible-web-ci .
+
+  web-check:
+    desc: Run web checks and Docker build
+    cmds:
+      - task web-install
+      - task web-lint
+      - task web-build
+      - task web-docker-build
+
   test:
     desc: Run unit tests with pytest
     cmds:
