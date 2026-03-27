@@ -91,8 +91,10 @@ async function startServer() {
     
     // Check if clible is available
     try {
-      const { stdout } = await execAsync("clible --version");
-      console.log(`Clible CLI detected: ${stdout.trim()}`);
+      const { stdout } = await execAsync("clible --help");
+      // Only print first line to keep startup logs compact.
+      const firstLine = stdout.split("\n").find(Boolean) ?? "clible available";
+      console.log(`Clible CLI detected: ${firstLine}`);
     } catch (e) {
       console.warn("WARNING: 'clible' CLI not found in PATH. API bridge will fail.");
     }
