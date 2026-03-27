@@ -33,6 +33,12 @@ from clible.ui.verse_search_export import export_verses_bundle
     help="Export to file: 'PATH=~/out,FILENAME=myfile,FORMAT=json' (all optional).",
 )
 @click.option(
+    "--json",
+    is_flag=True,
+    default=False,
+    help="Output pure JSON to stdout (for web bridge).",
+)
+@click.option(
     "--page",
     type=click.IntRange(min=1),
     default=1,
@@ -49,6 +55,7 @@ def verse(
     reference: str | None,
     translation_id: str | None,
     export: ExportConfig | None,
+    json: bool,
     page: int,
     page_size: int,
     show_help: bool,
@@ -113,6 +120,43 @@ def verse(
         except OSError as e:
             console.print(f"[red]Failed to write output file: {e}[/red]")
             raise SystemExit(1)
+        return
+
+    if json:
+        parsed = parse_reference(reference)
+        # If this is a chapter/book query and paging is requested, match the UI output
+        # by applying the same slicing rules as below.
+        to_show = verses
+        is_pageable_scope = parsed and parsed.scope in (
+            ReferenceScope.CHAPTER,
+            ReferenceScope.BOOK,
+        )
+        if is_pageable_scope and page_size > 0:
+            total = len(verses)
+            pages = max(1, math.ceil(total / page_size))
+            if page < 1 or page > pages:
+                console.print(
+                    f"[red]Invalid --page {page}: valid range is 1–{pages} "
+                    f"({total} verse(s), page-size {page_size}).[/red]"
+                )
+                raise SystemExit(1)
+            start = (page - 1) * page_size
+            to_show = verses[start : start + page_size]
+
+        # Reuse the existing verse-search JSON payload schema.
+        content = export_verses_bundle(
+            to_show,
+            kind="verse",
+            title=f"Verses: {reference}",
+            format="json",
+            translation_id=translation_id,
+            search_word=None,
+            scope=None,
+            scope_ref=None,
+            stats=None,
+        )
+        # `export_verses_bundle` returns a JSON string; web bridge expects stdout-only JSON.
+        print(json.loads(content))
         return
 
     parsed = parse_reference(reference)
