@@ -50,6 +50,13 @@ tasks:
       - task web-build
       - task web-docker-build
 
+  web-check-no-docker:
+    desc: Run web checks without Docker image build
+    cmds:
+      - task web-install
+      - task web-lint
+      - task web-build
+
   test:
     desc: Run unit tests with pytest
     cmds:
@@ -87,7 +94,7 @@ tasks:
   format-check:
     desc: Check formatting without modifying files
     cmds:
-      - uv run ruff check . --fix
+      - uv run ruff format --check .
 
   check:
     desc: Run lint, format check, and tests
