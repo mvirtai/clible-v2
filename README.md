@@ -1,6 +1,6 @@
 # clible
 
-A command-line Bible study tool. Offline-first: seed local XML data from [seven1m/open-bibles](https://github.com/seven1m/open-bibles), then query verses without network calls.
+A command-line Bible study tool. Offline-first: seed local XML data from [seven1m/open-bibles](https://github.com/seven1m/open-bibles) and [Beblia](https://github.com/Beblia/Holy-Bible-XML-Format), then query verses without network calls.
 
 ## Installation
 
@@ -16,10 +16,13 @@ uv sync
 # One-time: install a translation (~4 MB download each)
 uv run clible seed install web      # World English Bible (USFX)
 uv run clible seed install kjv      # King James Version (OSIS)
-uv run clible seed install fin-biblia  # Finnish Bible (OSIS)
+uv run clible seed install fin-biblia-33-38  # Finnish Bible 1933/1938 (OSIS)
+uv run clible seed install fin-1992          # Finnish Bible 1992 (BEBLIA)
+uv run clible seed install fin-1776          # Finnish Bible 1776 (BEBLIA)
 
 # Look up verses
 uv run clible verse "John 3:16"
+uv run clible verse "John 3:16-18"
 uv run clible verse "Genesis 1:1"
 ```
 
@@ -34,22 +37,28 @@ uv run clible verse "Genesis 1:1"
 | `clible seed list` | List installed translations |
 | `clible seed remove <id>` | Uninstall a translation and its verses |
 
-Supported formats: **USFX** (web), **OSIS** (kjv, fin-biblia).
+Supported formats:
+- **USFX**: `web`
+- **OSIS**: `kjv`, `fin-biblia-33-38`
+- **BEBLIA**: `fin-1992`, `fin-1776`, `fin-stlk`
 
 ### Verse lookup (`clible verse`)
 
 ```bash
 clible verse "John 3:16"
+clible verse "John 3:16-18"
 clible verse "1 Corinthians 13:4" -t web
 ```
 
-- **Reference format:** `"Book Chapter:Verse"` (e.g. `"Genesis 1:1"`, `"1 Corinthians 13:4"`)
+- **Reference format:** `"Book Chapter:Verse"` or `"Book Chapter:Start-End"` (e.g. `"Genesis 1:1"`, `"John 3:16-18"`)
+- Verse ranges must stay in the same chapter, and end verse must be >= start verse.
 - **`-t`, `--translation`:** Translation ID. Defaults to the first installed (usually `web`)
 
 ### Text analytics (`clible analytics`)
 
 Analyze token frequencies, lexical diversity, and n-grams for any scope.
-Stopwords (articles, prepositions, pronouns) are filtered by default.
+Stopwords (articles, prepositions, pronouns) are filtered by default using
+language-specific lists from `src/clible/data/stopwords.json`.
 
 ```bash
 # Analyze specific verses
@@ -71,6 +80,7 @@ clible analytics compare "Psalm 23:1-4" --left fin-1992 --right fin17xx
 
 **Output per scope:** metrics table (total tokens, unique tokens, type-token ratio) + top-N words, bigrams, and trigrams.
 `analytics compare` prints a side-by-side verse table with word-level diffs and a similarity summary (exact match rate, average similarity, shared vocabulary).
+The `fin17xx` value is an alias that resolves to `fin-1776` (or another installed `fin-17*` translation).
 
 - **`-t`, `--translation`:** Translation ID. Defaults to the first installed.
 - **`--top` / `-n`:** Number of top items to show (default 10).
@@ -88,8 +98,53 @@ Override via environment variables:
 
 - **CLI** (Click + Rich) → **Services** → **Repositories** → **SQLite**
 - Repositories: TranslationRepo, BookRepo, VerseRepo
-- Parsers: USFX, OSIS (XML → verses)
+- Services: SeedService, VerseService, AnalyticService
+- Parsers: USFX, OSIS, BEBLIA (XML → verses)
 - No external API at runtime; all data local after seeding
+
+## Typical Developer Workflow
+
+```bash
+# 1) Install one or more translations
+uv run clible seed install web
+uv run clible seed install fin-1992
+uv run clible seed install fin-1776
+
+# 2) Validate lookup path (single and range)
+uv run clible verse "John 3:16"
+uv run clible verse "John 3:16-18" -t fin-1992
+
+# 3) Run analytics
+uv run clible analytics reference "John 3:16-18" -t fin-1992
+uv run clible analytics compare "John 3:16-18"
+```
+
+## Troubleshooting
+
+### `Verse(s) not found`
+
+- Verify reference format: `Book Chapter:Verse` or `Book Chapter:Start-End`.
+- Ensure at least one translation is installed:
+  - `uv run clible seed list`
+  - `uv run clible seed install web`
+- If needed, force translation with `-t` (e.g. `-t kjv`).
+
+### `Unknown translation` during `seed install`
+
+- Use an ID from `uv run clible seed available`.
+- Common mismatch: `fin-biblia` is not a valid ID; use `fin-biblia-33-38`.
+
+### `analytics compare` fails with missing translations
+
+- Default compare expects both `fin-1992` and `fin-1776` (or alias `fin17xx`).
+- Install missing ones:
+  - `uv run clible seed install fin-1992`
+  - `uv run clible seed install fin-1776`
+
+### Reset local database (development)
+
+- Default DB path is `src/clible/data/clible.db` unless `CLIBLE_DB_PATH` is set.
+- Remove the file and reinstall required translations if you need a clean slate.
 
 ## Development
 
