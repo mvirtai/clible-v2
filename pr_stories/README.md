@@ -10,6 +10,13 @@ The structured checklist in [`.cursor/rules/pr-stories.mdc`](../.cursor/rules/pr
 
 **Fill-in template:** [`TEMPLATE_GOOD_PR_STORY.md`](TEMPLATE_GOOD_PR_STORY.md) — Short/Long skeleton, quality checklist, and merge reminders.
 
+**Draft PR bodies (worktree stack):** ready to paste after review — split into three PRs or combine docs + Python using the combined file.
+
+- [`pr-TBD-docs-pr-workflow-template.md`](pr-TBD-docs-pr-workflow-template.md) — docs only (PR A).
+- [`pr-TBD-cli-json-and-analytics-text-stats.md`](pr-TBD-cli-json-and-analytics-text-stats.md) — Python CLI + analytics (PR B).
+- [`pr-TBD-web-bridge-and-docker.md`](pr-TBD-web-bridge-and-docker.md) — clible-web + Docker (PR C; merge after B).
+- [`pr-TBD-combined-docs-and-python-cli-analytics.md`](pr-TBD-combined-docs-and-python-cli-analytics.md) — optional single PR body if A + B are squashed together.
+
 ## Naming
 
 - Preferred: `pr-<github-pr-number>-<short-slug>.md` (example: [`pr-34-migration-004-drop-verses-text-index.md`](pr-34-migration-004-drop-verses-text-index.md)).
