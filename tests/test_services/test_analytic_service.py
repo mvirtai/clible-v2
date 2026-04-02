@@ -237,10 +237,7 @@ def test_analyze_book_returns_all_metrics(analytic_service, verse_service_mock):
     result = analytic_service.analyze_book("Genesis")
     assert result["token_count"] == 7
     assert result["unique_token_count"] == 7
-    joined = (
-        "In the beginning God created the heaven "
-        "And the earth was without form"
-    )
+    joined = "In the beginning God created the heaven And the earth was without form"
     assert result["character_count"] == len(joined)
     assert result["avg_word_length"] == pytest.approx(len(joined) / len(joined.split()))
     assert len(result["top_words"]) > 0
