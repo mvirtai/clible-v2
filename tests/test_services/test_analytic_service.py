@@ -190,11 +190,15 @@ def test_analyze_reference_returns_all_metrics(analytic_service, verse_service_m
     assert "token_count" in result
     assert "unique_token_count" in result
     assert "type_token_ratio" in result
+    assert "character_count" in result
+    assert "avg_word_length" in result
     assert "top_words" in result
     assert "top_bigrams" in result
     assert "top_trigrams" in result
     assert result["token_count"] == 3
     assert result["unique_token_count"] == 3
+    assert result["character_count"] == len("In the beginning God created")
+    assert result["avg_word_length"] == pytest.approx(28 / 5)
 
 
 def test_analyze_chapter_returns_all_metrics(analytic_service, verse_service_mock):
@@ -206,6 +210,9 @@ def test_analyze_chapter_returns_all_metrics(analytic_service, verse_service_moc
     result = analytic_service.analyze_chapter("Genesis", 1)
     assert result["token_count"] == 3
     assert result["unique_token_count"] == 3
+    joined = "In the beginning God created"
+    assert result["character_count"] == len(joined)
+    assert result["avg_word_length"] == pytest.approx(len(joined) / len(joined.split()))
     assert len(result["top_words"]) > 0
 
 
@@ -216,6 +223,8 @@ def test_analyze_chapter_returns_empty_metrics_when_no_verses(analytic_service, 
     assert result["token_count"] == 0
     assert result["unique_token_count"] == 0
     assert result["type_token_ratio"] == 0.0
+    assert result["character_count"] == 0
+    assert result["avg_word_length"] == 0.0
     assert result["top_words"] == []
 
 
@@ -228,6 +237,12 @@ def test_analyze_book_returns_all_metrics(analytic_service, verse_service_mock):
     result = analytic_service.analyze_book("Genesis")
     assert result["token_count"] == 7
     assert result["unique_token_count"] == 7
+    joined = (
+        "In the beginning God created the heaven "
+        "And the earth was without form"
+    )
+    assert result["character_count"] == len(joined)
+    assert result["avg_word_length"] == pytest.approx(len(joined) / len(joined.split()))
     assert len(result["top_words"]) > 0
 
 
@@ -238,6 +253,8 @@ def test_analyze_book_returns_empty_metrics_when_no_verses(analytic_service, ver
     assert result["token_count"] == 0
     assert result["unique_token_count"] == 0
     assert result["type_token_ratio"] == 0.0
+    assert result["character_count"] == 0
+    assert result["avg_word_length"] == 0.0
     assert result["top_words"] == []
 
 
