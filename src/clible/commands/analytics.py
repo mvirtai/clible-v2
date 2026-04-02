@@ -1,7 +1,7 @@
 """Analytics commands: text analysis for verses, chapters, books, and comparison."""
 
 import difflib
-import json
+import json as json_stdlib
 from pathlib import Path
 
 import click
@@ -34,7 +34,7 @@ def _language_for_translation(translation_id: str) -> str:
     if not _TRANSLATIONS_FILE.exists():
         return "en"
     with open(_TRANSLATIONS_FILE, encoding="utf-8") as f:
-        catalog = json.load(f)
+        catalog = json_stdlib.load(f)
     return catalog.get(translation_id, {}).get("language", "en")
 
 
@@ -342,7 +342,7 @@ def reference(
 
     if json:
         content = export_analysis(analysis, scope_label=ref, format="json")
-        print(json.loads(content))
+        print(content)
         return
     _render_analysis(console, analysis, ref)
 
@@ -411,7 +411,7 @@ def chapter(
 
     if json:
         content = export_analysis(analysis, scope_label=scope_label, format="json")
-        print(json.loads(content))
+        print(content)
         return
     _render_analysis(console, analysis, scope_label)
 
@@ -477,7 +477,7 @@ def book(
 
     if json:
         content = export_analysis(analysis, scope_label=book_name, format="json")
-        print(json.loads(content))
+        print(content)
         return
     _render_analysis(console, analysis, book_name)
 
@@ -583,6 +583,6 @@ def compare(
 
     if json:
         content = export_compare(comparison, format="json")
-        print(json.loads(content))
+        print(content)
         return
     _render_comparison(console, comparison, left_label, right_label)

@@ -280,7 +280,7 @@ def search(
             scope_ref=scope_ref,
             stats=stats,
         )
-        print(json.loads(content))
+        print(content)
         return
 
     _render_statistics(stats, word, scope_label)

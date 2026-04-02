@@ -1,5 +1,6 @@
 """CLI integration tests for seed commands."""
 
+import json
 import tempfile
 
 import pytest
@@ -7,6 +8,8 @@ from click.testing import CliRunner
 
 from clible import config as config_module
 from clible.cli import main
+from clible.db.connection import get_connection
+from clible.db.repositories.translation_repo import TranslationRepo
 
 
 @pytest.fixture(autouse=True)
@@ -90,6 +93,40 @@ def test_seed_list_empty_shows_hint(cli_uses_temp_db):
     result = runner.invoke(main, ["seed", "list"])
     assert result.exit_code == 0
     assert "No translations installed" in result.output or "install web" in result.output
+
+
+def test_seed_list_json_empty_array(cli_uses_temp_db):
+    """seed list --json prints [] when no translations installed."""
+    runner = CliRunner()
+    result = runner.invoke(main, ["seed", "list", "--json"])
+    assert result.exit_code == 0
+    assert json.loads(result.output.strip()) == []
+
+
+def test_seed_list_json_returns_installed_rows(cli_uses_temp_db):
+    """seed list --json prints id/name/language/format for installed translations."""
+    conn = get_connection()
+    TranslationRepo(conn).create(
+        {
+            "id": "web",
+            "name": "World English Bible",
+            "language": "en",
+            "format": "USFX",
+        }
+    )
+    conn.close()
+
+    runner = CliRunner()
+    result = runner.invoke(main, ["seed", "list", "--json"])
+    assert result.exit_code == 0
+    data = json.loads(result.output.strip())
+    assert len(data) == 1
+    assert data[0] == {
+        "id": "web",
+        "name": "World English Bible",
+        "language": "en",
+        "format": "USFX",
+    }
 
 
 def test_verse_command_help():
