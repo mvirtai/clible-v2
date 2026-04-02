@@ -18,6 +18,20 @@ import {
 
 const execAsync = promisify(exec);
 
+/** Normalize GEMINI_API_KEY from env / Docker --env-file (trim, strip wrapping quotes). */
+function normalizeGeminiApiKey(raw: string | undefined): string | undefined {
+  if (raw == null) return undefined;
+  let s = raw.trim();
+  if (!s) return undefined;
+  if (
+    (s.startsWith('"') && s.endsWith('"')) ||
+    (s.startsWith("'") && s.endsWith("'"))
+  ) {
+    s = s.slice(1, -1).trim();
+  }
+  return s || undefined;
+}
+
 function parseClibleArgTokens(sanitized: string): string[] {
   return (
     sanitized
@@ -84,7 +98,7 @@ function runClible(argv: string[]): Promise<{ stdout: string; stderr: string }> 
 }
 
 function getAiClientOrNull(): GoogleGenAI | null {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = normalizeGeminiApiKey(process.env.GEMINI_API_KEY);
   if (!apiKey) return null;
   return new GoogleGenAI({ apiKey });
 }

@@ -49,3 +49,11 @@ docker run --rm -p 3000:3000 -e GEMINI_API_KEY="YOUR_KEY" <your-image>
 ```
 
 - **Run without AI** (default): omit `GEMINI_API_KEY`. The app will still work, but AI features return a friendly error.
+
+#### If you see `API key not valid` (400)
+
+The server is receiving *some* key, but Google rejects it. Check:
+
+1. **Use a current key** from [Google AI Studio](https://aistudio.google.com/apikey) (or Cloud Console with **Generative Language API** enabled for that key).
+2. **`.env` format**: use `GEMINI_API_KEY=AIza...` on one line, no spaces around `=`. Avoid pasting the placeholder `MY_GEMINI_API_KEY`.
+3. **Cloud API key restrictions**: if the key is restricted to **HTTP referrers** or **IP addresses**, server-side calls from Docker will fail. For local testing, use **None** or restrict by API only (allow Generative Language API).
