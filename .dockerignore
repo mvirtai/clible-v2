@@ -1,5 +1,8 @@
 .git
 .venv
+node_modules
+src/clible-web/node_modules
+src/clible-web/dist
 .direnv
 __pycache__/
 .pytest_cache/

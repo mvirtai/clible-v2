@@ -15,6 +15,37 @@ View your app in AI Studio: https://ai.studio/apps/78955bc0-b17d-47fa-adca-b4816
 
 1. Install dependencies:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+2. Set the `GEMINI_API_KEY` in `.env.local` (or your shell env) to your Gemini API key
 3. Run the app:
    `npm run dev`
+
+## Docker
+
+Build from the **repository root** so the image installs the `clible` CLI from this checkout (not only the version baked into the base image):
+
+```bash
+docker build -f src/clible-web/Dockerfile -t clible-web-ci .
+```
+
+Or: `task web-docker-build` / `task web-docker-run` (same build).
+
+The image sets `CLIBLE_DATA_DIR=/home/clible/.clible-data` so the SQLite DB is writable (the install-time default under `site-packages` is read-only). Persist data across runs:
+
+```bash
+docker run --rm -p 3000:3000 -v clible-data:/home/clible/.clible-data clible-web-ci
+```
+
+Seed a translation inside the container (e.g. `docker exec ... clible seed install web`) before using verse search.
+
+### Translations in the web UI
+
+The globe menu lists only **installed** translations (`clible seed list`), loaded via the API bridge (`clible seed list --json`). There is no default selection until you pick one. Install translations with `clible seed install <id>` (or `docker exec` into the container), then refresh the page.
+
+- **Security**: `GEMINI_API_KEY` must be provided at **runtime** only. It is never bundled into the browser client.
+- **Run with AI enabled**:
+
+```bash
+docker run --rm -p 3000:3000 -e GEMINI_API_KEY="YOUR_KEY" <your-image>
+```
+
+- **Run without AI** (default): omit `GEMINI_API_KEY`. The app will still work, but AI features return a friendly error.
