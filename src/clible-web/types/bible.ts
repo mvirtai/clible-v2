@@ -17,6 +17,14 @@ export interface BibleResponse {
   translation_name: string;
 }
 
+/** One row from `clible seed list --json`. */
+export interface InstalledTranslation {
+  id: string;
+  name: string;
+  language: string;
+  format: string;
+}
+
 export interface TextStats {
   wordCount: number;
   charCount: number;

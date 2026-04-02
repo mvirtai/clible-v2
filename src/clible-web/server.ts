@@ -4,18 +4,162 @@
  */
 
 import express from "express";
-import { createServer as createViteServer } from "vite";
-import { exec } from "child_process";
+import { exec, spawn } from "child_process";
 import { promisify } from "util";
 import path from "path";
+import { GoogleGenAI } from "@google/genai";
+import {
+  buildInsightUserPrompt,
+  buildToneUserPrompt,
+  geminiModels,
+  insightSystemInstruction,
+  toneSystemInstruction,
+} from "./ai.config";
 
 const execAsync = promisify(exec);
+
+function parseClibleArgTokens(sanitized: string): string[] {
+  return (
+    sanitized
+      .match(/(?:[^\s"]+|"[^"]*")+/g)
+      ?.map((s) => s.replace(/^"(.*)"$/, "$1"))
+      .filter(Boolean) ?? []
+  );
+}
+
+function buildClibleArgv(cmd: string, tokens: string[]): string[] {
+  const argv = [cmd, ...tokens];
+  if (cmd === "verse" || cmd === "search" || cmd === "analytics") {
+    argv.push("--json");
+  } else if (cmd === "seed" && tokens[0] === "list") {
+    argv.push("--json");
+  }
+  return argv;
+}
+
+function stripAnsi(text: string): string {
+  return text.replace(/\x1b\[[0-9;]*m/g, "").trim();
+}
+
+function clibleFailureMessage(
+  err: Error & { code?: number; stdout?: string; stderr?: string }
+): string {
+  const combined = `${err.stderr ?? ""}\n${err.stdout ?? ""}`.trim();
+  if (combined) return stripAnsi(combined);
+  return stripAnsi(err.message);
+}
+
+function runClible(argv: string[]): Promise<{ stdout: string; stderr: string }> {
+  return new Promise((resolve, reject) => {
+    const child = spawn("clible", argv, {
+      env: process.env,
+    });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+    });
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolve({ stdout, stderr });
+      } else {
+        const err = new Error(`clible exited with code ${code}`) as Error & {
+          code: number;
+          stdout?: string;
+          stderr?: string;
+        };
+        err.code = code ?? 1;
+        err.stdout = stdout;
+        err.stderr = stderr;
+        reject(err);
+      }
+    });
+  });
+}
+
+function getAiClientOrNull(): GoogleGenAI | null {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+  return new GoogleGenAI({ apiKey });
+}
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
   app.use(express.json());
+
+  app.post("/api/ai/insight", async (req, res) => {
+    const ai = getAiClientOrNull();
+    if (!ai) {
+      return res.status(503).json({
+        error: "AI disabled",
+        hint: "Set GEMINI_API_KEY to enable AI features.",
+      });
+    }
+
+    const text = typeof req.body?.text === "string" ? req.body.text : "";
+    if (!text.trim()) {
+      return res.status(400).json({ error: "Missing or invalid 'text'." });
+    }
+
+    try {
+      const response = await ai.models.generateContent({
+        model: geminiModels.insight,
+        contents: buildInsightUserPrompt(text),
+        config: {
+          systemInstruction: insightSystemInstruction,
+        },
+      });
+
+      res.json({ text: response.text ?? "" });
+    } catch (error: any) {
+      console.error("AI insight error:", error);
+      res.status(500).json({
+        error: "Failed to generate AI insight",
+        details: error?.message ?? String(error),
+      });
+    }
+  });
+
+  app.post("/api/ai/tone", async (req, res) => {
+    const ai = getAiClientOrNull();
+    if (!ai) {
+      return res.status(503).json({
+        error: "AI disabled",
+        hint: "Set GEMINI_API_KEY to enable AI features.",
+      });
+    }
+
+    const text = typeof req.body?.text === "string" ? req.body.text : "";
+    if (!text.trim()) {
+      return res.status(400).json({ error: "Missing or invalid 'text'." });
+    }
+
+    try {
+      const response = await ai.models.generateContent({
+        model: geminiModels.tone,
+        contents: buildToneUserPrompt(text),
+        config: {
+          systemInstruction: toneSystemInstruction,
+        },
+      });
+
+      res.json({ text: response.text ?? "" });
+    } catch (error: any) {
+      console.error("AI tone error:", error);
+      res.status(500).json({
+        error: "Failed to analyze tone",
+        details: error?.message ?? String(error),
+      });
+    }
+  });
 
   /**
    * API Bridge to Clible CLI
@@ -30,48 +174,55 @@ async function startServer() {
     }
 
     // Allow only specific clible commands
-    const allowedCommands = ['verse', 'search', 'analytics', 'seed', 'list'];
+    const allowedCommands = ["verse", "search", "analytics", "seed"];
     if (!allowedCommands.includes(cmd)) {
       return res.status(403).json({ error: `Command '${cmd}' is not allowed.` });
     }
 
     try {
-      // Basic sanitization: remove any characters that could be used for shell injection
-      // We allow spaces, quotes, dashes, and alphanumeric characters for Bible references and flags.
-      const sanitizedArgs = (args as string || "").replace(/[;&|`$]/g, "");
-      
-      const fullCommand = `clible ${cmd} ${sanitizedArgs} --json`;
-      
-      // Execute the CLI tool
-      const { stdout, stderr } = await execAsync(fullCommand);
-      
-      if (stderr && !stdout) {
+      const sanitizedArgs = (args as string || "").replace(/[;&|`$<>`]/g, "");
+      const tokens = parseClibleArgTokens(sanitizedArgs);
+      const argv = buildClibleArgv(cmd, tokens);
+
+      const { stdout, stderr } = await runClible(argv);
+
+      if (stderr && !stdout.trim()) {
         return res.status(500).json({ error: stderr });
       }
 
-      // Return the JSON output from Clible
       try {
-        res.json(JSON.parse(stdout));
-      } catch (e) {
-        res.status(500).json({ 
-          error: "Invalid JSON output from Clible CLI", 
-          rawOutput: stdout 
+        const parsed = JSON.parse(stdout);
+        res.json(parsed);
+      } catch {
+        res.status(500).json({
+          error: "Invalid JSON output from Clible CLI",
+          rawOutput: stdout,
         });
       }
     } catch (error: any) {
+      const msg = clibleFailureMessage(error);
+      const code = error.code ?? 1;
+      if (
+        code === 1 &&
+        (msg.includes("not found") || msg.includes("Verse(s) not found"))
+      ) {
+        return res.status(404).json({
+          error: msg,
+          hint: "Install a translation in the container, e.g. clible seed install web",
+        });
+      }
       console.error("CLI Error:", error);
-      res.status(500).json({ 
-        error: "Failed to execute Clible CLI", 
-        details: error.message,
-        stdout: error.stdout,
-        stderr: error.stderr,
-        hint: "Make sure 'clible' is installed and in your PATH."
+      res.status(500).json({
+        error: "Failed to execute Clible CLI",
+        details: msg,
+        hint: "Make sure 'clible' is installed and in your PATH.",
       });
     }
   });
 
-  // Vite middleware for development
+  // Vite middleware for development only (dynamic import so production never loads Vite).
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
@@ -101,4 +252,7 @@ async function startServer() {
   });
 }
 
-startServer();
+startServer().catch((err) => {
+  console.error("Failed to start server:", err);
+  process.exit(1);
+});

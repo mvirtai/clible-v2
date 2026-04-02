@@ -8,7 +8,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect, useRef, useMemo, KeyboardEvent } from 'react';
+import { useState, useEffect, useRef, KeyboardEvent } from 'react';
 import { 
   Search, 
   Book, 
@@ -27,9 +27,10 @@ import {
   MessageSquareQuote,
   Activity,
   Globe,
-  Command
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import ReactMarkdown from 'react-markdown';
+import type { Components } from 'react-markdown';
 import { 
   BarChart, 
   Bar, 
@@ -41,12 +42,135 @@ import {
 } from 'recharts';
 
 // Import our layers
-import { BibleResponse, TextStats, WordFrequency } from './types/bible';
+import {
+  BibleResponse,
+  InstalledTranslation,
+  TextStats,
+  WordFrequency,
+} from './types/bible';
 import { bibleRepository } from './repositories/bibleRepository';
 import { bibleService } from './services/bibleService';
 
 type ViewMode = 'reader' | 'analytics' | 'search';
 type SearchType = 'verse' | 'search';
+
+function markdownComponents(options: {
+  invert: boolean;
+  /** Larger ## / ### hierarchy for AI Insights (Reader panel). */
+  insightLayout?: boolean;
+  /** Dark analytics card: ## section titles larger than body **bold**. */
+  toneLayout?: boolean;
+}): Components {
+  const { invert, insightLayout, toneLayout } = options;
+  const body = invert ? 'text-gray-200' : 'text-[#333]';
+  const strongCls = invert ? 'font-semibold text-white' : 'font-semibold text-[#1A1A1A]';
+  const codeBg = invert ? 'bg-gray-800 text-gray-100' : 'bg-[#F0F0F0] text-[#1A1A1A]';
+  const quoteBorder = invert ? 'border-gray-600' : 'border-[#D4A373]';
+
+  const headings: Pick<Components, 'h1' | 'h2' | 'h3'> =
+    insightLayout && !invert
+      ? {
+          h1: ({ children }) => (
+            <h1 className="mb-4 mt-1 text-3xl font-bold tracking-tight text-[#1A1A1A] first:mt-0">
+              {children}
+            </h1>
+          ),
+          h2: ({ children }) => (
+            <h2 className="mt-10 border-b border-[#E8E4DC] pb-2 text-2xl font-bold text-[#1A1A1A] first:mt-2 mb-3">
+              {children}
+            </h2>
+          ),
+          h3: ({ children }) => (
+            <h3 className="mb-2 mt-6 text-lg font-semibold text-[#1A1A1A]">
+              {children}
+            </h3>
+          ),
+        }
+      : toneLayout && invert
+        ? {
+            h1: ({ children }) => (
+              <h1 className="mb-3 mt-1 text-2xl font-bold tracking-tight text-gray-100 first:mt-0">
+                {children}
+              </h1>
+            ),
+            h2: ({ children }) => (
+              <h2 className="mb-3 mt-8 border-b border-gray-600 pb-2 text-xl font-bold text-gray-100 first:mt-3">
+                {children}
+              </h2>
+            ),
+            h3: ({ children }) => (
+              <h3 className="mb-2 mt-5 text-lg font-semibold text-gray-100">
+                {children}
+              </h3>
+            ),
+          }
+        : {
+            h1: ({ children }) => (
+              <h3 className={`mb-2 mt-4 text-lg font-semibold ${strongCls}`}>
+                {children}
+              </h3>
+            ),
+            h2: ({ children }) => (
+              <h3 className={`mb-2 mt-3 text-base font-semibold ${strongCls}`}>
+                {children}
+              </h3>
+            ),
+            h3: ({ children }) => (
+              <h4 className={`mb-1 mt-2 text-sm font-semibold ${strongCls}`}>
+                {children}
+              </h4>
+            ),
+          };
+
+  return {
+    ...headings,
+    p: ({ children }) => (
+      <p
+        className={`mb-3 last:mb-0 leading-relaxed ${body} ${
+          toneLayout && invert ? 'text-base' : ''
+        }`}
+      >
+        {children}
+      </p>
+    ),
+    strong: ({ children }) => (
+      <strong
+        className={
+          toneLayout && invert
+            ? 'font-semibold text-gray-200'
+            : strongCls
+        }
+      >
+        {children}
+      </strong>
+    ),
+    em: ({ children }) => <em className="italic">{children}</em>,
+    ul: ({ children }) => (
+      <ul className={`mb-3 list-disc space-y-1 pl-5 ${body}`}>{children}</ul>
+    ),
+    ol: ({ children }) => (
+      <ol className={`mb-3 list-decimal space-y-1 pl-5 ${body}`}>{children}</ol>
+    ),
+    li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+    code: ({ children }) => (
+      <code className={`rounded px-1 py-0.5 font-mono text-[0.9em] ${codeBg}`}>
+        {children}
+      </code>
+    ),
+    blockquote: ({ children }) => (
+      <blockquote
+        className={`my-3 border-l-4 pl-3 opacity-90 ${quoteBorder}`}
+      >
+        {children}
+      </blockquote>
+    ),
+    hr: () => (
+      <hr
+        className={`my-4 border-0 border-t ${invert ? 'border-gray-600' : 'border-[#E5E5E5]'}`}
+      />
+    ),
+  };
+}
 
 export default function App() {
   // UI State
@@ -63,7 +187,13 @@ export default function App() {
   const [searchType, setSearchType] = useState<SearchType>('verse');
   const [analyticsMode, setAnalyticsMode] = useState<'reference' | 'chapter' | 'book' | 'compare'>('reference');
   const [toneAnalysis, setToneAnalysis] = useState<string | null>(null);
-  const [translation, setTranslation] = useState('kjv');
+  const [translation, setTranslation] = useState<string | null>(null);
+  const [installedTranslations, setInstalledTranslations] = useState<
+    InstalledTranslation[]
+  >([]);
+  const [translationsLoadError, setTranslationsLoadError] = useState<
+    string | null
+  >(null);
   const [showTranslations, setShowTranslations] = useState(false);
   
   // Native Analytics State
@@ -78,6 +208,31 @@ export default function App() {
     if (savedHistory) setHistory(JSON.parse(savedHistory));
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await bibleRepository.listInstalledTranslations();
+        if (cancelled) return;
+        setInstalledTranslations(list);
+        setTranslationsLoadError(null);
+        const savedId = localStorage.getItem('clible_translation_id');
+        if (savedId && list.some((t) => t.id === savedId)) {
+          setTranslation(savedId);
+        }
+      } catch (e: unknown) {
+        if (!cancelled) {
+          setTranslationsLoadError(
+            e instanceof Error ? e.message : 'Failed to load translations.'
+          );
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const saveToHistory = (q: string) => {
     const newHistory = [q, ...history.filter(h => h !== q)].slice(0, 10);
     setHistory(newHistory);
@@ -86,6 +241,12 @@ export default function App() {
 
   const handleSearch = async (q: string) => {
     if (!q.trim()) return;
+    if (!translation) {
+      setError(
+        'Select a translation first (globe menu). Install one with: clible seed install <id>'
+      );
+      return;
+    }
     setLoading(true);
     setError(null);
     setAiInsight(null);
@@ -127,13 +288,22 @@ export default function App() {
 
   const handleAnalytics = async (modeOverride?: 'reference' | 'chapter' | 'book' | 'compare') => {
     if (!result) return;
+    if (!translation) {
+      setError(
+        'Select a translation first (globe menu). Install one with: clible seed install <id>'
+      );
+      return;
+    }
     const mode = modeOverride || analyticsMode;
     setAnalyticsMode(mode);
     setViewMode('analytics');
     setAiLoading(true);
     try {
-      // Call native CLI analytics
-      const { stats, frequency } = await bibleService.getNativeAnalytics(mode, result.reference, translation);
+      const { stats, frequency } = await bibleService.getNativeAnalytics(
+        mode,
+        result.reference,
+        translation
+      );
       setNativeStats(stats);
       setNativeFrequency(frequency);
       
@@ -171,7 +341,9 @@ export default function App() {
               className="flex items-center gap-2 px-3 py-1.5 hover:bg-[#F5F5F5] rounded-full transition-colors text-sm font-medium border border-[#E5E5E5]"
             >
               <Globe size={16} className="text-[#D4A373]" />
-              <span className="uppercase">{translation}</span>
+              <span className={translation ? 'uppercase' : 'text-[#8E8E8E] normal-case'}>
+                {translation ?? 'Choose translation'}
+              </span>
             </button>
             <button onClick={() => setShowHistory(!showHistory)} className="p-2 hover:bg-[#F5F5F5] rounded-full transition-colors relative">
               <History size={20} />
@@ -199,6 +371,12 @@ export default function App() {
               FST5 Search
             </button>
           </div>
+
+          {error && (
+            <p className="text-sm text-red-600 mb-2" role="alert">
+              {error}
+            </p>
+          )}
           
           <div className="relative group">
             <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-[#8E8E8E] group-focus-within:text-[#1A1A1A] transition-colors">
@@ -225,7 +403,7 @@ export default function App() {
               <div className="flex items-center gap-2"><Book size={16} /> Reader</div>
             </button>
             <button 
-              onClick={handleAnalytics}
+              onClick={() => void handleAnalytics()}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'analytics' ? 'bg-white shadow-sm text-[#1A1A1A]' : 'text-[#8E8E8E] hover:text-[#1A1A1A]'}`}
             >
               <div className="flex items-center gap-2"><Activity size={16} /> Analytics</div>
@@ -243,7 +421,33 @@ export default function App() {
                       <h2 className="text-4xl font-serif italic text-[#1A1A1A]">{result.reference}</h2>
                       <span className="text-sm font-mono text-[#8E8E8E] uppercase tracking-widest">{result.translation_name}</span>
                     </div>
-                    <p className="text-2xl leading-relaxed font-serif text-[#333] first-letter:text-5xl first-letter:font-bold first-letter:mr-3 first-letter:float-left first-letter:mt-1">{result.text}</p>
+                    <p
+                      className={`text-2xl leading-relaxed font-serif text-[#333] ${
+                        result.verses.length === 0
+                          ? 'first-letter:float-left first-letter:mt-1 first-letter:mr-3 first-letter:text-5xl first-letter:font-bold'
+                          : ''
+                      }`}
+                    >
+                      {result.verses.length > 0 ? (
+                        result.verses.map((v, idx) => (
+                          <span
+                            key={`${v.book_name}-${v.chapter}-${v.verse}-${idx}`}
+                            className="inline"
+                          >
+                            <sup
+                              className="mx-0.5 align-super font-sans text-[0.55em] font-semibold text-[#8E8E8E]"
+                              aria-label={`Verse ${v.verse}`}
+                            >
+                              {v.verse}
+                            </sup>
+                            {v.text}
+                            {idx < result.verses.length - 1 ? ' ' : null}
+                          </span>
+                        ))
+                      ) : (
+                        result.text
+                      )}
+                    </p>
                     <div className="flex items-center gap-4 pt-4">
                       <button className="flex items-center gap-2 px-4 py-2 bg-[#F5F5F5] hover:bg-[#E5E5E5] rounded-full text-sm font-medium transition-colors"><Share2 size={16} /> Share</button>
                       <button className="flex items-center gap-2 px-4 py-2 bg-[#F5F5F5] hover:bg-[#E5E5E5] rounded-full text-sm font-medium transition-colors"><Download size={16} /> Export</button>
@@ -254,7 +458,18 @@ export default function App() {
                       <div className="flex items-center gap-2 text-[#D4A373]"><Sparkles size={20} /><span className="font-semibold uppercase tracking-wider text-xs">AI Insights</span></div>
                       {!aiInsight && !aiLoading && <button onClick={handleAiInsight} className="text-sm font-medium hover:underline flex items-center gap-1">Generate Insights <ArrowRight size={14} /></button>}
                     </div>
-                    {aiLoading ? <div className="py-12 flex flex-col items-center justify-center gap-4 text-[#8E8E8E]"><Loader2 size={32} className="animate-spin" /><p className="text-sm font-medium animate-pulse">Consulting the archives...</p></div> : aiInsight ? <div className="prose prose-sm max-w-none font-sans leading-relaxed whitespace-pre-wrap">{aiInsight}</div> : <p className="text-[#8E8E8E] text-sm italic">Click above for AI-powered context and study notes.</p>}
+                    {aiLoading ? <div className="py-12 flex flex-col items-center justify-center gap-4 text-[#8E8E8E]"><Loader2 size={32} className="animate-spin" /><p className="text-sm font-medium animate-pulse">Consulting the archives...</p></div> : aiInsight ? (
+                      <div className="max-w-none font-sans">
+                        <ReactMarkdown
+                          components={markdownComponents({
+                            invert: false,
+                            insightLayout: true,
+                          })}
+                        >
+                          {aiInsight}
+                        </ReactMarkdown>
+                      </div>
+                    ) : <p className="text-[#8E8E8E] text-sm italic">Click above for AI-powered context and study notes.</p>}
                   </section>
                 </div>
               ) : <div className="py-24 text-center space-y-6"><div className="w-16 h-16 bg-[#F5F5F5] rounded-full flex items-center justify-center mx-auto text-[#D4A373]"><Book size={32} /></div><h3 className="text-xl font-medium">Ready for study</h3><p className="text-[#8E8E8E]">Enter a verse to begin.</p></div>}
@@ -334,10 +549,21 @@ export default function App() {
                       <Loader2 size={24} className="animate-spin text-[#D4A373]" />
                       <span className="text-xs text-[#8E8E8E]">Analyzing linguistic patterns...</span>
                     </div>
-                  ) : (
-                    <div className="text-lg font-serif italic leading-relaxed text-gray-200">
-                      {toneAnalysis || "Select a passage to analyze its tone."}
+                  ) : toneAnalysis ? (
+                    <div className="text-lg font-serif leading-relaxed">
+                      <ReactMarkdown
+                        components={markdownComponents({
+                          invert: true,
+                          toneLayout: true,
+                        })}
+                      >
+                        {toneAnalysis}
+                      </ReactMarkdown>
                     </div>
+                  ) : (
+                    <p className="text-lg font-serif italic leading-relaxed text-gray-400">
+                      Select a passage to analyze its tone.
+                    </p>
                   )}
                 </div>
               </div>
@@ -364,22 +590,45 @@ export default function App() {
                 <h3 className="text-lg font-semibold">Select Translation</h3>
                 <button onClick={() => setShowTranslations(false)}><X size={20} /></button>
               </div>
-              <div className="p-6 max-h-[60vh] overflow-y-auto grid grid-cols-2 gap-3">
-                {['kjv', 'asv', 'bbe', 'web', 'ylt', 'finpr', 'raamattu'].map(t => (
-                  <button 
-                    key={t}
+              <div className="p-6 max-h-[60vh] overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {translationsLoadError && (
+                  <p className="col-span-full text-sm text-red-600" role="alert">
+                    {translationsLoadError}
+                  </p>
+                )}
+                {!translationsLoadError && installedTranslations.length === 0 && (
+                  <p className="col-span-full text-sm text-[#8E8E8E]">
+                    No translations installed. On the machine or container where Clible runs, install
+                    one with:{' '}
+                    <code className="font-mono text-[#1A1A1A]">clible seed install &lt;id&gt;</code>
+                    . Then refresh this page.
+                  </p>
+                )}
+                {installedTranslations.map((t) => (
+                  <button
+                    key={t.id}
                     onClick={() => {
-                      setTranslation(t);
+                      setTranslation(t.id);
+                      localStorage.setItem('clible_translation_id', t.id);
                       setShowTranslations(false);
+                      setError(null);
                     }}
-                    className={`px-4 py-3 rounded-xl text-left border-2 transition-all ${translation === t ? 'border-[#1A1A1A] bg-[#F5F5F5]' : 'border-[#E5E5E5] hover:border-[#1A1A1A]'}`}
+                    className={`px-4 py-3 rounded-xl text-left border-2 transition-all ${translation === t.id ? 'border-[#1A1A1A] bg-[#F5F5F5]' : 'border-[#E5E5E5] hover:border-[#1A1A1A]'}`}
                   >
-                    <span className="uppercase font-bold text-sm">{t}</span>
+                    <span className="uppercase font-bold text-sm block">{t.id}</span>
+                    <span className="text-xs text-[#8E8E8E] block mt-1">{t.name}</span>
+                    <span className="text-[10px] text-[#8E8E8E] uppercase tracking-wide">
+                      {t.language} · {t.format}
+                    </span>
                   </button>
                 ))}
               </div>
               <div className="p-6 bg-[#F5F5F5] text-xs text-[#8E8E8E]">
-                <p>Clible supports 1000+ translations. Use the 'clible seed' command to install more.</p>
+                <p>
+                  Only translations installed in this environment appear here. Use{' '}
+                  <code className="font-mono text-[#1A1A1A]">clible seed list</code> in the terminal to
+                  verify.
+                </p>
               </div>
             </motion.div>
           </motion.div>

@@ -3,34 +3,51 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { GoogleGenAI } from "@google/genai";
 import { BibleResponse, TextStats, WordFrequency } from '../types/bible';
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 export class BibleService {
   async getAiInsight(result: BibleResponse): Promise<string> {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: `Analyze this Bible passage: "${result.text}". 
-      Provide a brief summary, historical context, and 3 key takeaways. 
-      Format the response in a clean, readable way with headings.`,
-      config: {
-        systemInstruction: "You are a scholarly Bible study assistant. Provide insightful, balanced, and historically accurate commentary.",
-      }
+    const response = await fetch("/api/ai/insight", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: result.text }),
     });
-    return response.text;
+
+    if (!response.ok) {
+      let details: any = undefined;
+      try {
+        details = await response.json();
+      } catch {
+        // ignore
+      }
+      const message = details?.hint || details?.error || "Failed to generate insights.";
+      throw new Error(message);
+    }
+
+    const data = await response.json();
+    return typeof data?.text === "string" ? data.text : "";
   }
 
   async getAiTone(text: string): Promise<string> {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: `Analyze the tone, mood, and linguistic style of this passage: "${text}". Be concise.`,
-      config: {
-        systemInstruction: "Analyze the tone and mood of the text provided.",
-      }
+    const response = await fetch("/api/ai/tone", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
     });
-    return response.text;
+
+    if (!response.ok) {
+      let details: any = undefined;
+      try {
+        details = await response.json();
+      } catch {
+        // ignore
+      }
+      const message = details?.hint || details?.error || "Failed to analyze tone.";
+      throw new Error(message);
+    }
+
+    const data = await response.json();
+    return typeof data?.text === "string" ? data.text : "";
   }
 
   /**
@@ -56,23 +73,44 @@ export class BibleService {
     } else if (type === 'book') {
       args = `book "${value}" --translation ${translation} --top ${top}`;
     } else if (type === 'compare') {
-      args = `compare "${value}" --left ${translation} --right ${compareTranslation || 'web'}`;
-      // Note: compare does not use --top according to user instructions
+      if (!compareTranslation?.trim()) {
+        throw new Error(
+          "Analytics compare requires a second translation id (compareTranslation)."
+        );
+      }
+      args = `compare "${value}" --left ${translation} --right ${compareTranslation}`;
     }
 
     const response = await fetch(`/api/clible?cmd=analytics&args=${encodeURIComponent(args)}`);
     if (!response.ok) throw new Error('Failed to fetch native analytics');
-    const data = await response.json();
-    
-    // Assuming Clible returns a structured JSON for analytics
+    const data = (await response.json()) as Record<string, unknown>;
+
+    const wordCount = Number(data.token_count ?? data.word_count ?? 0);
+    const uniqueWords = Number(
+      data.unique_token_count ?? data.unique_words ?? 0
+    );
+    const charCount = Number(
+      data.character_count ?? data.char_count ?? 0
+    );
+    const avgRaw = data.avg_word_length ?? data.avgWordLength;
+    const avgWordLength =
+      typeof avgRaw === "number"
+        ? avgRaw.toFixed(1)
+        : typeof avgRaw === "string" && avgRaw.length > 0
+          ? avgRaw
+          : "0.0";
+
     return {
       stats: {
-        wordCount: data.word_count || 0,
-        charCount: data.char_count || 0,
-        avgWordLength: data.avg_word_length?.toFixed(1) || "0.0",
-        uniqueWords: data.unique_words || 0
+        wordCount,
+        charCount,
+        avgWordLength,
+        uniqueWords,
       },
-      frequency: data.top_words?.map((w: any) => ({ name: w.word, value: w.count })) || []
+      frequency:
+        (data.top_words as Array<{ word: string; count: number }> | undefined)?.map(
+          (w) => ({ name: w.word, value: w.count })
+        ) ?? [],
     };
   }
 
