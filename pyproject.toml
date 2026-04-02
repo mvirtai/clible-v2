@@ -7,8 +7,8 @@ packages = ["src/clible"]
 
 [project]
 name = "clible-v2"
-version = "0.2.0"
-description = "Bible Study tool in CLI with users, sessions, text analytic experiments, export to different file types and basic read, diff, ref properties."
+version = "1.0.0"
+description = "Bible Study tool originally developed as CLI-app (hence the name 'clible'). Now rebuilt as a modern, multi-layer architecture with a React web frontend that uses the CLI as a backend. Web-version includes AI-powered analysis of the text, algorithmically generated text-analysis and almost everything that the CLI-version offers, but in a modern, web-based interface."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
