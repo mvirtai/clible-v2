@@ -60,16 +60,30 @@ tasks:
 
   web-docker-run:
     desc: |
-      Build and run the clible-web Docker container locally for development/testing.
-      Build context is the repo root so the image installs the clible CLI from this checkout.
-      The container exposes port 3000 by default.
-      To specify a different host port, use: task web-docker-run PORT=1234
+      Build the clible-web image (clible-web-ci) and run it locally.
+      Maps host PORT to container port 3000, mounts Docker volume clible-data at /home/clible/.clible-data,
+      and passes GEMINI_API_KEY from your environment (set in .env — loaded by Task — or export/direnv).
+      GitHub Actions secrets apply only in CI, not on your machine.
+    deps: [web-docker-build]
     vars:
       PORT: '{{default "3000" .PORT}}'
-      PROGRESS: '{{default "auto" .PROGRESS}}'
+    preconditions:
+      - sh: "command -v docker >/dev/null 2>&1"
+        msg: "Docker is required to run the web container."
     cmds:
-      - docker build --progress {{.PROGRESS}} -f src/clible-web/Dockerfile -t clible-web-ci .
-      - docker run --rm -p {{.PORT}}:3000 clible-web-ci
+      - |
+        set -eu
+        if [ -f .env ]; then
+          docker run --rm -p {{.PORT}}:3000 \
+            -v clible-data:/home/clible/.clible-data \
+            --env-file .env \
+            clible-web-ci
+        else
+          docker run --rm -p {{.PORT}}:3000 \
+            -e GEMINI_API_KEY \
+            -v clible-data:/home/clible/.clible-data \
+            clible-web-ci
+        fi
 
   test:
     desc: Run unit tests with pytest
