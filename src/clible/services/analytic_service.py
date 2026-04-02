@@ -113,6 +113,15 @@ class AnalyticService:
             return 1.0
         return len(tokens_a & tokens_b) / len(union)
 
+    @staticmethod
+    def _joined_scope_metrics(verses: list[dict]) -> tuple[int, float]:
+        """Character count and avg word length (whitespace-split) over joined verse text."""
+        full_text = " ".join(v["text"] for v in verses)
+        raw_words = full_text.split()
+        if not raw_words:
+            return 0, 0.0
+        return len(full_text), len(full_text) / len(raw_words)
+
     def _get_all_tokens(self, reference: str, translation_id: str | None = None) -> list[str]:
         """Get all tokens from verses in the given reference.
 
@@ -252,14 +261,35 @@ class AnalyticService:
 
         Returns:
             Dict with keys: token_count, unique_token_count, type_token_ratio,
+            character_count, avg_word_length,
             top_words, top_bigrams, top_trigrams.
         """
-        all_tokens = self._get_all_tokens(reference, translation_id)
+        verses = self._verse_service.get_verses(reference, translation_id)
+        if not verses:
+            return {
+                "token_count": 0,
+                "unique_token_count": 0,
+                "type_token_ratio": 0.0,
+                "character_count": 0,
+                "avg_word_length": 0.0,
+                "top_words": [],
+                "top_bigrams": [],
+                "top_trigrams": [],
+            }
+
+        character_count, avg_word_length = self._joined_scope_metrics(verses)
+
+        all_tokens: list[str] = []
+        for verse in verses:
+            all_tokens.extend(self._tokenize(verse["text"]))
+
         if not all_tokens:
             return {
                 "token_count": 0,
                 "unique_token_count": 0,
                 "type_token_ratio": 0.0,
+                "character_count": character_count,
+                "avg_word_length": avg_word_length,
                 "top_words": [],
                 "top_bigrams": [],
                 "top_trigrams": [],
@@ -272,6 +302,8 @@ class AnalyticService:
             "token_count": total,
             "unique_token_count": unique,
             "type_token_ratio": unique / total,
+            "character_count": character_count,
+            "avg_word_length": avg_word_length,
             "top_words": Counter(all_tokens).most_common(top_n),
             "top_bigrams": self._get_bigrams(all_tokens, top_n),
             "top_trigrams": self._get_trigrams(all_tokens, top_n),
@@ -294,6 +326,7 @@ class AnalyticService:
 
         Returns:
             Dict with keys: token_count, unique_token_count, type_token_ratio,
+            character_count, avg_word_length,
             top_words, top_bigrams, top_trigrams.
         """
         verses = self._verse_service.get_chapter_verses(book_name, chapter, translation_id)
@@ -302,10 +335,14 @@ class AnalyticService:
                 "token_count": 0,
                 "unique_token_count": 0,
                 "type_token_ratio": 0.0,
+                "character_count": 0,
+                "avg_word_length": 0.0,
                 "top_words": [],
                 "top_bigrams": [],
                 "top_trigrams": [],
             }
+
+        character_count, avg_word_length = self._joined_scope_metrics(verses)
 
         all_tokens = []
         for verse in verses:
@@ -318,6 +355,8 @@ class AnalyticService:
             "token_count": total,
             "unique_token_count": unique,
             "type_token_ratio": unique / total if total > 0 else 0.0,
+            "character_count": character_count,
+            "avg_word_length": avg_word_length,
             "top_words": Counter(all_tokens).most_common(top_n),
             "top_bigrams": self._get_bigrams(all_tokens, top_n),
             "top_trigrams": self._get_trigrams(all_tokens, top_n),
@@ -335,6 +374,7 @@ class AnalyticService:
 
         Returns:
             Dict with keys: token_count, unique_token_count, type_token_ratio,
+            character_count, avg_word_length,
             top_words, top_bigrams, top_trigrams.
         """
         verses = self._verse_service.get_book_verses(book_name, translation_id)
@@ -343,10 +383,14 @@ class AnalyticService:
                 "token_count": 0,
                 "unique_token_count": 0,
                 "type_token_ratio": 0.0,
+                "character_count": 0,
+                "avg_word_length": 0.0,
                 "top_words": [],
                 "top_bigrams": [],
                 "top_trigrams": [],
             }
+
+        character_count, avg_word_length = self._joined_scope_metrics(verses)
 
         all_tokens = []
         for verse in verses:
@@ -359,6 +403,8 @@ class AnalyticService:
             "token_count": total,
             "unique_token_count": unique,
             "type_token_ratio": unique / total if total > 0 else 0.0,
+            "character_count": character_count,
+            "avg_word_length": avg_word_length,
             "top_words": Counter(all_tokens).most_common(top_n),
             "top_bigrams": self._get_bigrams(all_tokens, top_n),
             "top_trigrams": self._get_trigrams(all_tokens, top_n),

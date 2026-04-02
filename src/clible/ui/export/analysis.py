@@ -45,6 +45,8 @@ def _analysis_metrics(analysis: dict[str, Any]) -> list[tuple[str, Any]]:
         ("token_count", analysis.get("token_count", 0)),
         ("unique_token_count", analysis.get("unique_token_count", 0)),
         ("type_token_ratio", analysis.get("type_token_ratio", 0.0)),
+        ("character_count", analysis.get("character_count", 0)),
+        ("avg_word_length", analysis.get("avg_word_length", 0.0)),
     ]
 
 
@@ -60,6 +62,8 @@ def _analysis_to_json(analysis: dict[str, Any], scope_label: str) -> str:
             "token_count": analysis.get("token_count", 0),
             "unique_token_count": analysis.get("unique_token_count", 0),
             "type_token_ratio": analysis.get("type_token_ratio", 0.0),
+            "character_count": analysis.get("character_count", 0),
+            "avg_word_length": analysis.get("avg_word_length", 0.0),
             "top_words": top_words,
             "top_bigrams": top_bigrams,
             "top_trigrams": top_trigrams,

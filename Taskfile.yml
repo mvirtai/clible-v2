@@ -35,14 +35,13 @@ tasks:
 
   web-docker-build:
     desc: Build clible-web Docker image
-    dir: src/clible-web
     vars:
       PROGRESS: '{{default "auto" .PROGRESS}}'
     preconditions:
       - sh: "command -v docker >/dev/null 2>&1"
         msg: "Docker is required to build the web image."
     cmds:
-      - docker build --progress {{.PROGRESS}} -t clible-web-ci .
+      - docker build --progress {{.PROGRESS}} -f src/clible-web/Dockerfile -t clible-web-ci .
 
   web-check:
     desc: Run web checks and Docker build
@@ -60,16 +59,16 @@ tasks:
       - task web-build
 
   web-docker-run:
-    dir: src/clible-web
     desc: |
       Build and run the clible-web Docker container locally for development/testing.
-      The image is built from src/clible-web, and the container exposes port 3000 by default.
-      To specify a different host port, use: task web-build-and-run PORT=1234
+      Build context is the repo root so the image installs the clible CLI from this checkout.
+      The container exposes port 3000 by default.
+      To specify a different host port, use: task web-docker-run PORT=1234
     vars:
       PORT: '{{default "3000" .PORT}}'
       PROGRESS: '{{default "auto" .PROGRESS}}'
     cmds:
-      - docker build --progress {{.PROGRESS}} -t clible-web-ci .
+      - docker build --progress {{.PROGRESS}} -f src/clible-web/Dockerfile -t clible-web-ci .
       - docker run --rm -p {{.PORT}}:3000 clible-web-ci
 
   test:

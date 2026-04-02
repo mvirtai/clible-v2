@@ -1,5 +1,7 @@
 """Seed subcommands: install, list, available, remove."""
 
+import json
+
 import click
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
@@ -79,8 +81,15 @@ def install(translation_id: str | None, show_help: bool) -> None:
 
 
 @click.command("list", add_help_option=False, context_settings={"help_option_names": []})
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    default=False,
+    help="Output installed translations as JSON to stdout (for web bridge).",
+)
 @click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
-def list_installed(show_help: bool) -> None:
+def list_installed(show_help: bool, as_json: bool) -> None:
     """List installed translations."""
     if show_help:
         console.print(SEED_LIST_HELP)
@@ -88,6 +97,19 @@ def list_installed(show_help: bool) -> None:
 
     service = _get_seed_service()
     installed = service.list_installed()
+    if as_json:
+        payload = [
+            {
+                "id": t["id"],
+                "name": t["name"],
+                "language": t["language"],
+                "format": t["format"],
+            }
+            for t in installed
+        ]
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return
+
     if not installed:
         console.print("[dim]No translations installed. Run: clible seed install web[/dim]")
         return

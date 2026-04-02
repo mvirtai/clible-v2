@@ -156,7 +156,7 @@ def verse(
             stats=None,
         )
         # `export_verses_bundle` returns a JSON string; web bridge expects stdout-only JSON.
-        print(json.loads(content))
+        print(content)
         return
 
     parsed = parse_reference(reference)
