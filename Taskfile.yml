@@ -58,6 +58,47 @@ tasks:
       - task web-lint
       - task web-build
 
+  web-docker-run-base:
+    desc: |
+      Run the clible-web Docker image (clible-web-ci), optionally set NODE_ENV. Internal use only.
+    vars:
+      PORT: '{{default "3000" .PORT}}'
+      NODE_ENV: '{{default "" .NODE_ENV}}'
+    preconditions:
+      - sh: "command -v docker >/dev/null 2>&1"
+        msg: "Docker is required to run the web container."
+    cmds:
+      - |
+        set -eu
+        if [ -f .env ]; then
+          if [ -n "{{.NODE_ENV}}" ]; then
+            docker run --rm -p {{.PORT}}:3000 \
+              -v clible-data:/home/clible/.clible-data \
+              --env-file .env \
+              -e NODE_ENV={{.NODE_ENV}} \
+              clible-web-ci
+          else
+            docker run --rm -p {{.PORT}}:3000 \
+              -v clible-data:/home/clible/.clible-data \
+              --env-file .env \
+              clible-web-ci
+          fi
+        else
+          if [ -n "{{.NODE_ENV}}" ]; then
+            docker run --rm -p {{.PORT}}:3000 \
+              -e GEMINI_API_KEY \
+              -e NODE_ENV={{.NODE_ENV}} \
+              -v clible-data:/home/clible/.clible-data \
+              clible-web-ci
+          else
+            docker run --rm -p {{.PORT}}:3000 \
+              -e GEMINI_API_KEY \
+              -v clible-data:/home/clible/.clible-data \
+              clible-web-ci
+          fi
+        fi
+
+
   web-docker-run:
     desc: |
       Build the clible-web image (clible-web-ci) and run it locally.
@@ -67,23 +108,20 @@ tasks:
     deps: [web-docker-build]
     vars:
       PORT: '{{default "3000" .PORT}}'
-    preconditions:
-      - sh: "command -v docker >/dev/null 2>&1"
-        msg: "Docker is required to run the web container."
     cmds:
-      - |
-        set -eu
-        if [ -f .env ]; then
-          docker run --rm -p {{.PORT}}:3000 \
-            -v clible-data:/home/clible/.clible-data \
-            --env-file .env \
-            clible-web-ci
-        else
-          docker run --rm -p {{.PORT}}:3000 \
-            -e GEMINI_API_KEY \
-            -v clible-data:/home/clible/.clible-data \
-            clible-web-ci
-        fi
+      - task: web-docker-run-base
+        vars: { PORT: '{{.PORT}}', NODE_ENV: '' }
+
+  web-docker-debug:
+    desc: |
+      Builds the clible-web image (clible-web-ci) and runs it with NODE_ENV=development.
+      Like `web-docker-run` but sets NODE_ENV to 'development'.
+    deps: [web-docker-build]
+    vars:
+      PORT: '{{default "3000" .PORT}}'
+    cmds:
+      - task: web-docker-run-base
+        vars: { PORT: '{{.PORT}}', NODE_ENV: 'development' }
 
   test:
     desc: Run unit tests with pytest
