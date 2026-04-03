@@ -368,7 +368,7 @@ export default function App() {
               onClick={() => setSearchType('search')}
               className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${searchType === 'search' ? 'bg-[#1A1A1A] text-white' : 'bg-[#F5F5F5] text-[#8E8E8E]'}`}
             >
-              FST5 Search
+              FTS5 Search
             </button>
           </div>
 
