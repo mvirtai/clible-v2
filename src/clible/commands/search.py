@@ -223,6 +223,27 @@ def search(
 
     if not filtered_verses:
         scope_label = _display_scope_label(scope, scope_ref)
+        if json:
+            resolved_t = translation_id
+            if resolved_t is None:
+                conn = get_connection()
+                default = TranslationRepo(conn).get_default()
+                conn.close()
+                resolved_t = default["id"] if default else None
+            stats = service.get_search_statistics([], word)
+            content = export_verses_bundle(
+                [],
+                kind="search",
+                title=f'Search: "{word}" in {scope_label}',
+                format="json",
+                translation_id=resolved_t,
+                search_word=word,
+                scope=scope,
+                scope_ref=scope_ref,
+                stats=stats,
+            )
+            print(content)
+            return
         console.print(
             f'[dim]No verses found containing "{word}" in {scope} scope'
             f"{' (' + scope_label + ')' if scope_ref else ''}.[/dim]"
