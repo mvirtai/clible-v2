@@ -1,84 +1,116 @@
 # clible v2 — Project Overview
 
-**Last updated:** 2026-03-02
+**Last updated:** 2026-04-06
 
-This document provides a comprehensive picture of the clible v2 application: what it is, its architecture, current implementation status, and where all the pieces live.
+This document describes the current clible v2 implementation: architecture, active codepaths, public CLI workflows, and the present roadmap.
 
 ---
 
 ## What Is clible?
 
-clible is a command-line Bible study tool. The v2 rebuild aims for:
+clible is an offline-first command-line Bible study tool.
 
-- **Offline-first** — Seed local XML data from [seven1m/open-bibles](https://github.com/seven1m/open-bibles), no API calls during normal use
-- **Layered architecture** — Clear separation: UI → Services → Repositories → SQLite
-- **Professional quality** — Testable, maintainable, portfolio-ready code
+Core workflow:
+1. Install translations by downloading XML once (`seed install`).
+2. Parse and normalize verse data into SQLite.
+3. Run local verse lookup and analytics from the database.
+
+Primary goals:
+- **Offline-first usage** after seeding
+- **Layered architecture** (UI → Services → Repositories → SQLite)
+- **Professional code quality** (testability, explicit boundaries, clean CLI UX)
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│ UI Layer                                                        │
-│   cli.py, commands/seed.py, commands/verse.py (Click + Rich)    │
-└───────────────────────────────┬─────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────┐
+│ UI Layer (Click + Rich)                                           │
+│   cli.py, commands/seed.py, commands/verse.py, commands/analytics.py │
+└───────────────────────────────┬────────────────────────────────────┘
                                 │
-┌───────────────────────────────▼─────────────────────────────────┐
-│ Service Layer                                                    │
-│   SeedService (install, list, remove)  VerseService (lookup)     │
-└──────────────┬──────────────────────────────┬───────────────────┘
+┌───────────────────────────────▼────────────────────────────────────┐
+│ Service Layer                                                       │
+│   SeedService  VerseService  AnalyticService                       │
+└──────────────┬──────────────────────────────┬──────────────────────┘
                │                              │
-┌──────────────▼──────────────┐  ┌─────────────▼──────────────────┐
-│ Repositories                │  │ Parsers                         │
-│   TranslationRepo           │  │   USFXParser, OSISParser        │
-│   BookRepo                 │  │   (XML → verse dicts)           │
-│   VerseRepo                │  │                                 │
-└──────────────┬──────────────┘  └─────────────────────────────────┘
+┌──────────────▼──────────────┐  ┌────────────▼──────────────────────┐
+│ Repositories                │  │ Parsers                            │
+│   TranslationRepo           │  │   USFXParser, OSISParser,          │
+│   BookRepo                  │  │   BebliaParser (XML → verse dicts) │
+│   VerseRepo                 │  │                                    │
+└──────────────┬──────────────┘  └────────────────────────────────────┘
                │
-┌──────────────▼──────────────┐
-│ SQLite (clible.db)          │
-│   books, translations,     │
-│   verses                    │
-└────────────────────────────┘
+┌──────────────▼──────────────────────────────────────────────────────┐
+│ SQLite (clible.db)                                                  │
+│   books, translations, verses, verses_fts (FTS5) + sync triggers    │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
-**Layer rules:** Repositories access DB only. Services orchestrate. UI never touches DB or HTTP directly.
+**Boundary rule:** UI calls services; services orchestrate repositories/parsers; repositories only access SQLite.
+
+---
+
+## Public CLI Interfaces (Current)
+
+### Translation management
+- `clible seed available`
+- `clible seed install <translation_id>`
+- `clible seed list`
+- `clible seed remove <translation_id>`
+
+Supported source formats:
+- **USFX:** `web`
+- **OSIS:** `kjv`, `fin-biblia-33-38`
+- **BEBLIA:** `fin-1992`, `fin-1776`, `fin-stlk`
+
+### Verse lookup
+- `clible verse "John 3:16"`
+- `clible verse "John 3:16-18"`
+- `clible verse "1 Corinthians 13:4" -t web`
+
+Reference constraints:
+- Valid forms: `Book Chapter:Verse` and same-chapter ranges `Book Chapter:Verse-Verse`
+- Cross-chapter ranges are not currently supported
+
+### Text analytics
+- `clible analytics reference "John 3:16-18" [-t <translation>] [--top N]`
+- `clible analytics chapter John 3 [-t <translation>] [--top N]`
+- `clible analytics book John [-t <translation>] [--top N]`
+- `clible analytics compare "John 3:16-18" [--left <id>] [--right <id>]`
+
+`analytics compare` defaults to `fin-1992` vs `fin17xx` (`fin17xx` resolves to installed `fin-1776`, or another installed `fin-17*` translation).
 
 ---
 
 ## Current Implementation Status
 
-### Done ✅
+### Implemented ✅
 
 | Component | Location | Notes |
 |-----------|----------|-------|
-| **Config** | `src/clible/config.py` | Config dataclass, env overrides (CLIBLE_*) |
-| **DB connection** | `src/clible/db/connection.py` | WAL, foreign_keys, row_factory, migrations, seed_books |
-| **Migrations** | `src/clible/db/migrations.py` | `_migrations` table, ordered `.sql` execution |
-| **002_seed_architecture.sql** | `src/clible/db/migrations/` | books, translations, verses + indexes |
-| **Seed books** | `src/clible/db/seed_books.py` | Fills `books` from bible_structure.json when empty |
-| **TranslationRepo** | `src/clible/db/repositories/translation_repo.py` | get_all, get_by_id, exists, create, delete, get_default |
-| **BookRepo** | `src/clible/db/repositories/book_repo.py` | get_all, get_by_id, get_by_name, search |
-| **VerseRepo** | `src/clible/db/repositories/verse_repo.py` | get_verse, get_verses, save_verses |
-| **USFX parser** | `src/clible/parsers/usfx_parser.py` | parse_file(xml_path) → list of verse dicts |
-| **OSIS parser** | `src/clible/parsers/osis_parser.py` | parse_file(xml_path) → list of verse dicts (container + milestone) |
-| **OSIS book map** | `src/clible/parsers/osis_book_map.py` | OSIS book IDs → clible book IDs |
-| **SeedService** | `src/clible/services/seed_service.py` | list_available, list_installed, seed_translation, remove_translation |
-| **VerseService** | `src/clible/services/verse_service.py` | get_verse(reference, translation_id) |
-| **CLI** | `src/clible/cli.py`, `commands/` | seed (install, list, available, remove), verse |
-| **Data files** | `src/clible/data/` | bible_structure.json, translations.json, progress_quotes.json, eng-web.usfx.xml |
-| **Tests** | `tests/` | Repos, parsers, services, CLI; in-memory SQLite, mocked HTTP |
-| **CI** | `.github/workflows/ci.yml` | uv, ruff, pytest on push/PR |
-| **Dependencies** | `pyproject.toml` | click, rich, requests, ruff, pytest, pytest-mock |
+| **Config** | `src/clible/config.py` | `Config` dataclass + `CLIBLE_*` env overrides |
+| **DB connection** | `src/clible/db/connection.py` | WAL, foreign keys, row factory, migrations, `seed_books_if_empty` |
+| **Migration runner** | `src/clible/db/migrations.py` | `_migrations` table + ordered `.sql` execution |
+| **Schema migrations** | `src/clible/db/migrations/` | `001_initial_schema.sql`, `002_seed_architecture.sql`, `003_add_verse_fts.sql` |
+| **Books seeding** | `src/clible/db/seed_books.py` | Seeds static books metadata from `bible_structure.json` |
+| **Repositories** | `src/clible/db/repositories/` | `TranslationRepo`, `BookRepo`, `VerseRepo` |
+| **Parsers** | `src/clible/parsers/` | `USFXParser`, `OSISParser`, `BebliaParser`, `osis_book_map.py` |
+| **Seed service** | `src/clible/services/seed_service.py` | Download + parse + save translations |
+| **Verse service** | `src/clible/services/verse_service.py` | Reference parsing, default translation resolution, range/chapter/book lookup, text search |
+| **Analytic service** | `src/clible/services/analytic_service.py` | Token metrics, n-grams, concordance, translation comparison |
+| **CLI commands** | `src/clible/commands/` | `seed`, `verse`, `analytics` (including `compare`) |
+| **Data files** | `src/clible/data/` | `bible_structure.json`, `translations.json`, `stopwords.json`, `progress_quotes.json` |
+| **Test suite** | `tests/` | Repository/service/parser/CLI coverage with in-memory SQLite and mocked network |
 
-### Planned (not yet implemented)
+### Pending / partially planned
 
-| Area | Notes |
-|------|-------|
-| **Search** | Full-text search across verses |
-| **Export** | Markdown, plain text export |
-| **Sessions / analytics** | From original PLAN.md |
+| Area | Status |
+|------|--------|
+| **Export workflows** | Not implemented yet (`markdown`/`text` export commands absent) |
+| **Session workflows** | Not implemented yet in v2 |
+| **Original API-client-first path in PLAN** | Superseded in practice by offline seeding workflow |
 
 ---
 
@@ -87,83 +119,94 @@ clible is a command-line Bible study tool. The v2 rebuild aims for:
 ```
 clible-v2/
 ├── src/clible/
-│   ├── cli.py                 # Entry point, seed + verse command groups
-│   ├── config.py              # Configuration (env overrides)
+│   ├── cli.py
+│   ├── config.py
 │   ├── commands/
-│   │   ├── seed.py            # seed install, list, available, remove
-│   │   └── verse.py           # verse "reference" -t translation
+│   │   ├── seed.py
+│   │   ├── verse.py
+│   │   └── analytics.py
 │   ├── db/
-│   │   ├── connection.py      # get_connection, migrations, seed_books
-│   │   ├── migrations.py      # run_migrations()
+│   │   ├── connection.py
+│   │   ├── migrations.py
 │   │   ├── migrations/
-│   │   │   ├── 001_initial_schema.sql   # Placeholder
-│   │   │   └── 002_seed_architecture.sql
-│   │   ├── seed_books.py      # seed_books_if_empty(conn)
-│   │   └── repositories/
-│   │       ├── book_repo.py
-│   │       ├── translation_repo.py
-│   │       └── verse_repo.py
+│   │   │   ├── 001_initial_schema.sql
+│   │   │   ├── 002_seed_architecture.sql
+│   │   │   └── 003_add_verse_fts.sql
+│   │   ├── repositories/
+│   │   │   ├── book_repo.py
+│   │   │   ├── translation_repo.py
+│   │   │   └── verse_repo.py
+│   │   └── seed_books.py
 │   ├── parsers/
-│   │   ├── osis_book_map.py   # OSIS → clible book ID mapping
-│   │   ├── osis_parser.py     # OSIS XML → verse dicts
-│   │   └── usfx_parser.py     # USFX XML → verse dicts
+│   │   ├── beblia_parser.py
+│   │   ├── osis_book_map.py
+│   │   ├── osis_parser.py
+│   │   └── usfx_parser.py
 │   ├── services/
+│   │   ├── analytic_service.py
 │   │   ├── seed_service.py
 │   │   └── verse_service.py
 │   └── data/
-│       ├── bible_structure.json   # 66 books metadata
-│       ├── translations.json      # Catalog (web, kjv, fin-biblia)
-│       ├── progress_quotes.json   # Quotes shown during seed
-│       └── eng-web.usfx.xml       # Sample XML
+│       ├── bible_structure.json
+│       ├── translations.json
+│       ├── stopwords.json
+│       └── progress_quotes.json
 ├── tests/
-│   ├── conftest.py            # db_conn, repo fixtures
-│   ├── test_config.py
 │   ├── test_cli/
-│   ├── test_data/
 │   ├── test_db/
 │   ├── test_parsers/
 │   ├── test_services/
-│   └── fixtures/             # sample.usfx.xml, etc.
+│   └── fixtures/
 ├── docs/
-│   └── PROJECT_OVERVIEW.md   # This file
-├── main.py                   # Launches cli.main()
-├── pyproject.toml
-└── .github/workflows/ci.yml
+│   └── PROJECT_OVERVIEW.md
+├── README.md
+├── PLAN.md
+└── pyproject.toml
 ```
 
 ---
 
-## Database Schema (002_seed_architecture)
+## Database Schema Snapshot
 
-**books** — Static reference (66 books)
-- `id` TEXT PK (e.g. GEN, JHN)
+### Core tables (`002_seed_architecture.sql`)
+
+**books**
+- `id` TEXT PK (e.g. `GEN`, `JHN`)
 - `name`, `testament`, `position`, `chapters`
 
-**translations** — Installed Bible translations
-- `id` TEXT PK (e.g. web, kjv)
+**translations**
+- `id` TEXT PK (e.g. `web`, `fin-1992`)
 - `name`, `language`, `format`, `source_url`, `installed_at`
 
-**verses** — Actual Bible text
-- `id` TEXT PK (UUID)
-- `translation_id` FK, `book_id` FK
+**verses**
+- `id` TEXT PK (UUID generated in Python)
+- `translation_id` FK → `translations(id)` with `ON DELETE CASCADE`
+- `book_id` FK → `books(id)`
 - `chapter`, `verse`, `text`
-- UNIQUE(translation_id, book_id, chapter, verse)
+- `UNIQUE(translation_id, book_id, chapter, verse)`
 
-Indexes: `idx_verses_lookup`, `idx_verses_search`
+### Full-text search (`003_add_verse_fts.sql`)
+
+- `verses_fts` virtual table (FTS5) indexed on verse text
+- Insert/update/delete triggers (`verses_ai`, `verses_au`, `verses_ad`) keep FTS index synchronized with `verses`
 
 ---
 
-## Key Conventions
+## Operational Notes
 
-- **Config:** `get_config()` from `clible.config`; override via `CLIBLE_*` env vars
-- **DB:** `get_connection()` or `get_connection(":memory:")`; repos receive `conn` in constructor
-- **Repos:** Return plain dicts (or TypedDict like BookRow); no sqlite3.Row leakage
-- **Tests:** In-memory SQLite, mocked HTTP; fixtures in `conftest.py`
-- **Entry point:** `clible` script (pyproject.toml) or `python main.py`
+- `seed install` is the only networked runtime path (downloads source XML).
+- Verse lookup and analytics read local SQLite only.
+- Default translation resolution:
+  1. Use requested `-t/--translation` when provided.
+  2. Otherwise prefer installed `web`.
+  3. Fallback to first installed translation.
+- For Finnish comparison workflows, install both:
+  - `fin-1992`
+  - `fin-1776` (used by `fin17xx` alias)
 
 ---
 
 ## Related Documents
 
-- **README.md** — User-facing usage and installation
-- **PLAN.md** — Original phase plan (API-based; seed path supersedes for now)
+- **README.md** — setup, commands, runbook, troubleshooting
+- **PLAN.md** — original phased plan (parts superseded by current implementation choices)
