@@ -37,7 +37,3 @@ export interface WordFrequency {
   value: number;
 }
 
-export interface SearchResultRow {
-  reference: string;
-  text: string;
-}
