@@ -290,8 +290,11 @@ def search(
 
     if json:
         scope_label = _display_scope_label(scope, scope_ref)
+        verses_for_json = filtered_verses
+        if result_limit is not None:
+            verses_for_json = filtered_verses[: max(result_limit, 0)]
         content = export_verses_bundle(
-            filtered_verses,
+            verses_for_json,
             kind="search",
             title=f'Search: "{word}" in {scope_label}',
             format="json",
