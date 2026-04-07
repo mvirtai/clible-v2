@@ -38,6 +38,62 @@ def test_search_no_results_without_data(cli_uses_temp_db):
     assert "grace" in result.output
 
 
+def test_search_json_no_matches_emits_valid_json(cli_uses_temp_db):
+    """search --json with no matches prints a single JSON object (web bridge)."""
+    runner = CliRunner()
+    result = runner.invoke(main, ["search", "nomatchxyz", "--json"])
+    assert result.exit_code == 0
+    data = json.loads(result.output.strip())
+    assert data["type"] == "search"
+    assert data["query"] == "nomatchxyz"
+    assert data["verses"] == []
+    assert data["statistics"]["unique_verses"] == 0
+
+
+def test_search_json_limit_slices_verses_statistics_from_full_match_set(cli_uses_temp_db):
+    """search --json --limit caps verses; statistics still describe the full match set."""
+    conn = get_connection()
+    translation_repo = TranslationRepo(conn)
+    verse_repo = VerseRepo(conn)
+    translation_repo.create(
+        {
+            "id": "web",
+            "name": "World English Bible",
+            "language": "en",
+            "format": "USFX",
+        }
+    )
+    verse_repo.save_verses(
+        [
+            {
+                "book_id": "JHN",
+                "chapter": 1,
+                "verse": 14,
+                "text": "Full of grace and truth",
+            },
+            {
+                "book_id": "JHN",
+                "chapter": 1,
+                "verse": 17,
+                "text": "Grace and truth came through Jesus",
+            },
+        ],
+        "web",
+    )
+    conn.close()
+
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        ["search", "grace", "-t", "web", "--json", "--limit", "1"],
+    )
+    assert result.exit_code == 0
+    data = json.loads(result.output.strip())
+    assert len(data["verses"]) == 1
+    assert data["statistics"]["unique_verses"] == 2
+    assert data["statistics"]["total_occurrences"] == 2
+
+
 def test_search_displays_matching_verses_with_highlight(cli_uses_temp_db):
     """search finds verses containing the word and displays them."""
     conn = get_connection()

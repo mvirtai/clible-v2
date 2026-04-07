@@ -36,3 +36,4 @@ export interface WordFrequency {
   name: string;
   value: number;
 }
+

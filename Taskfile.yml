@@ -46,24 +46,20 @@ tasks:
   web-check:
     desc: Run web checks and Docker build
     cmds:
-      - task web-install
-      - task web-lint
-      - task web-build
-      - task web-docker-build
+      - task: web-install
+      - task: web-lint
+      - task: web-build
+      - task: web-docker-build
 
   web-check-no-docker:
     desc: Run web checks without Docker image build
     cmds:
-      - task web-install
-      - task web-lint
-      - task web-build
+      - task: web-install
+      - task: web-lint
+      - task: web-build
 
   web-docker-run:
-    desc: |
-      Build the clible-web image (clible-web-ci) and run it locally.
-      Maps host PORT to container port 3000, mounts Docker volume clible-data at /home/clible/.clible-data,
-      and passes GEMINI_API_KEY from your environment (set in .env — loaded by Task — or export/direnv).
-      GitHub Actions secrets apply only in CI, not on your machine.
+    desc: Build clible-web image and run it locally (PORT=3000 by default).
     deps: [web-docker-build]
     vars:
       PORT: '{{default "3000" .PORT}}'
@@ -81,6 +77,31 @@ tasks:
         else
           docker run --rm -p {{.PORT}}:3000 \
             -e GEMINI_API_KEY \
+            -v clible-data:/home/clible/.clible-data \
+            clible-web-ci
+        fi
+
+  web-docker-debug:
+    desc: Like web-docker-run but with NODE_ENV=development for server-side debug logs.
+    deps: [web-docker-build]
+    vars:
+      PORT: '{{default "3000" .PORT}}'
+    preconditions:
+      - sh: "command -v docker >/dev/null 2>&1"
+        msg: "Docker is required to run the web container."
+    cmds:
+      - |
+        set -eu
+        if [ -f .env ]; then
+          docker run --rm -p {{.PORT}}:3000 \
+            -v clible-data:/home/clible/.clible-data \
+            --env-file .env \
+            -e NODE_ENV=development \
+            clible-web-ci
+        else
+          docker run --rm -p {{.PORT}}:3000 \
+            -e GEMINI_API_KEY \
+            -e NODE_ENV=development \
             -v clible-data:/home/clible/.clible-data \
             clible-web-ci
         fi
@@ -128,7 +149,6 @@ tasks:
     desc: Run lint, format check, and tests
     deps: [lint, format-check, test]
 
-
   build:
     desc: Build Docker image with latest and commit tags
     deps: [check]
@@ -137,7 +157,7 @@ tasks:
         msg: "Docker is required to build images."
     cmds:
       - docker build --target runtime -t {{.IMAGE_TAG_COMMIT}} -t {{.IMAGE_TAG_LATEST}} .
-      - task show-tags
+      - task: show-tags
 
   show-tags:
     desc: Show local tags for the clible image
@@ -156,7 +176,7 @@ tasks:
       - sh: "command -v docker >/dev/null 2>&1"
         msg: "Docker is required to push images."
     cmds:
-      - task show-tags
+      - task: show-tags
       - docker push {{.IMAGE_TAG_COMMIT}}
       - docker push {{.IMAGE_TAG_LATEST}}
 

@@ -198,7 +198,21 @@ async function startServer() {
       const tokens = parseClibleArgTokens(sanitizedArgs);
       const argv = buildClibleArgv(cmd, tokens);
 
+      const debugBridge = process.env.NODE_ENV !== "production";
+      if (debugBridge) {
+        console.log("[clible-web] bridge: argv", ["clible", ...argv].join(" "));
+      }
+
       const { stdout, stderr } = await runClible(argv);
+
+      if (debugBridge) {
+        console.log(
+          "[clible-web] bridge: stdout chars",
+          stdout.length,
+          "stderr chars",
+          stderr.length
+        );
+      }
 
       if (stderr && !stdout.trim()) {
         return res.status(500).json({ error: stderr });
@@ -206,8 +220,22 @@ async function startServer() {
 
       try {
         const parsed = JSON.parse(stdout);
+        if (debugBridge) {
+          console.log(
+            "[clible-web] bridge: JSON ok, top-level keys",
+            parsed && typeof parsed === "object" && !Array.isArray(parsed)
+              ? Object.keys(parsed as object)
+              : "(array or primitive)"
+          );
+        }
         res.json(parsed);
       } catch {
+        if (debugBridge) {
+          console.warn(
+            "[clible-web] bridge: stdout is not valid JSON (first 200 chars):",
+            stdout.slice(0, 200)
+          );
+        }
         res.status(500).json({
           error: "Invalid JSON output from Clible CLI",
           rawOutput: stdout,
