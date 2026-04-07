@@ -3,7 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { BibleResponse, InstalledTranslation, SearchResultRow } from '../types/bible';
+import { BibleResponse, InstalledTranslation } from '../types/bible';
+import {
+  SearchResponse,
+  SearchResultRow,
+  SearchStatistics,
+} from '../types/search';
+
+/** Default `-n` for web search: keeps JSON payload small; stats still reflect the full match set. */
+export const DEFAULT_WEB_SEARCH_LIMIT = 50;
 
 /** Dev-only: trace search bridge in the browser console (Vite sets import.meta.env.DEV). */
 const SEARCH_DEBUG = import.meta.env.DEV;
@@ -97,18 +105,61 @@ export class BibleRepository {
     });
   }
 
+  private mapSearchStatistics(raw: unknown): SearchStatistics {
+    if (raw == null || typeof raw !== 'object') {
+      return {
+        totalOccurrences: 0,
+        uniqueVerses: 0,
+        booksWithMatches: 0,
+        topBooks: [],
+      };
+    }
+    const obj = raw as Record<string, unknown>;
+    const topBooksRaw = obj.top_books;
+    const topBooks: Array<[string, number]> = [];
+    if (Array.isArray(topBooksRaw)) {
+      for (const item of topBooksRaw) {
+        if (Array.isArray(item) && item.length >= 2) {
+          topBooks.push([String(item[0]), Number(item[1])]);
+        }
+      }
+    }
+    return {
+      totalOccurrences: Number(obj.total_occurrences ?? 0),
+      uniqueVerses: Number(obj.unique_verses ?? 0),
+      booksWithMatches: Number(obj.books_with_matches ?? 0),
+      topBooks,
+    };
+  }
+
+  private mapSearchJsonToResponse(data: Record<string, unknown>): SearchResponse {
+    const rows = this.mapSearchJsonToRows(data);
+    return {
+      rows,
+      statistics: this.mapSearchStatistics(data.statistics),
+      query: String(data.query ?? ''),
+      title: String(data.title ?? ''),
+      translationId:
+        data.translation_id == null || data.translation_id === ''
+          ? null
+          : String(data.translation_id),
+      scope: data.scope == null ? null : String(data.scope),
+      scopeRef: data.scope_ref == null ? null : String(data.scope_ref),
+    };
+  }
+
   async search(
     word: string,
     translation: string,
     scope?: string,
     scopeRef?: string,
-    limit?: number
-  ): Promise<SearchResultRow[]> {
+    limit: number = DEFAULT_WEB_SEARCH_LIMIT
+  ): Promise<SearchResponse> {
     // Format args as: "<WORD>" -t <TRANSLATION> [--scope <scope>] [-r <scope_ref>] [-n <limit>]
     let args = `"${word}" -t ${translation}`;
     if (scope) args += ` --scope ${scope}`;
     if (scopeRef) args += ` -r "${scopeRef}"`;
-    if (limit) args += ` -n ${limit}`;
+    if (limit > 0) args += ` -n ${limit}`;
 
     const url = `/api/clible?cmd=search&args=${encodeURIComponent(args)}`;
     logSearch('GET', url);
@@ -128,9 +179,9 @@ export class BibleRepository {
 
     const data = (await response.json()) as Record<string, unknown>;
     logSearch('parsed JSON top-level keys', Object.keys(data));
-    const rows = this.mapSearchJsonToRows(data);
-    logSearch('mapped rows count', rows.length);
-    return rows;
+    const out = this.mapSearchJsonToResponse(data);
+    logSearch('mapped rows count', out.rows.length);
+    return out;
   }
 }
 
