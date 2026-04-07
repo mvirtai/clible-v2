@@ -48,8 +48,10 @@ import {
   TextStats,
   WordFrequency,
 } from './types/bible';
+import type { SearchResponse } from './types/search';
 import { bibleRepository } from './repositories/bibleRepository';
 import { bibleService } from './services/bibleService';
+import { bookName } from './utils/bookNames';
 
 type ViewMode = 'reader' | 'analytics' | 'search';
 type SearchType = 'verse' | 'search';
@@ -176,7 +178,9 @@ export default function App() {
   // UI State
   const [query, setQuery] = useState('');
   const [result, setResult] = useState<BibleResponse | null>(null);
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResponse, setSearchResponse] = useState<SearchResponse | null>(
+    null
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<string[]>([]);
@@ -260,8 +264,8 @@ export default function App() {
         setResult(data);
         setViewMode('reader');
       } else {
-        const results = await bibleRepository.search(q, translation);
-        setSearchResults(results);
+        const response = await bibleRepository.search(q, translation);
+        setSearchResponse(response);
         setViewMode('search');
       }
       saveToHistory(q);
@@ -476,12 +480,106 @@ export default function App() {
             </motion.div>
           ) : viewMode === 'search' ? (
             <motion.div key="search" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-6">
-              <div className="flex items-center justify-between border-b border-[#F5F5F5] pb-4">
-                <h2 className="text-2xl font-serif italic">Search Results</h2>
-                <span className="text-sm text-[#8E8E8E]">{searchResults.length} matches found</span>
+              <div className="flex flex-col gap-2 border-b border-[#F5F5F5] pb-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-serif italic">Search Results</h2>
+                  {searchResponse && (
+                    <span className="text-sm text-[#8E8E8E]">
+                      {searchResponse.statistics.uniqueVerses} unique verse
+                      {searchResponse.statistics.uniqueVerses === 1 ? '' : 's'}
+                    </span>
+                  )}
+                </div>
+                {searchResponse && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                    <div className="space-y-3">
+                      <div className="rounded-xl border border-[#E5E5E5] bg-[#FAF9F6] px-3 py-2">
+                        <div className="text-[10px] uppercase tracking-wider text-[#8E8E8E]">
+                          Occurrences
+                        </div>
+                        <div className="font-mono font-semibold text-[#1A1A1A]">
+                          {searchResponse.statistics.totalOccurrences}
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-[#E5E5E5] bg-[#FAF9F6] px-3 py-2">
+                        <div className="text-[10px] uppercase tracking-wider text-[#8E8E8E]">
+                          Unique verses
+                        </div>
+                        <div className="font-mono font-semibold text-[#1A1A1A]">
+                          {searchResponse.statistics.uniqueVerses}
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-[#E5E5E5] bg-[#FAF9F6] px-3 py-2">
+                        <div className="text-[10px] uppercase tracking-wider text-[#8E8E8E]">
+                          Books
+                        </div>
+                        <div className="font-mono font-semibold text-[#1A1A1A]">
+                          {searchResponse.statistics.booksWithMatches}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-[#E5E5E5] bg-[#FAF9F6] px-3 py-2">
+                      <div className="flex items-center justify-between">
+                        <div className="text-[10px] uppercase tracking-wider text-[#8E8E8E]">
+                          Top books
+                        </div>
+                        <div className="text-[10px] uppercase tracking-wider text-[#8E8E8E]">
+                          Occurrences
+                        </div>
+                      </div>
+                      {searchResponse.statistics.topBooks.length === 0 ? (
+                        <div className="pt-2 font-mono text-xs text-[#8E8E8E]">
+                          —
+                        </div>
+                      ) : (
+                        <ol className="pt-2 space-y-1">
+                          {searchResponse.statistics.topBooks.map(
+                            ([bookId, count], idx) => (
+                              <li
+                                key={`${bookId}-${idx}`}
+                                className="flex items-baseline justify-between gap-3"
+                              >
+                                <div className="flex items-baseline gap-2 min-w-0">
+                                  <span className="inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border border-[#E5E5E5] bg-white text-[10px] font-semibold text-[#8E8E8E]">
+                                    {idx + 1}
+                                  </span>
+                                  <span className="truncate text-xs text-[#1A1A1A]">
+                                    {bookName(bookId)}{' '}
+                                    <span className="font-mono font-semibold text-[#D4A373]">
+                                      {bookId}
+                                    </span>
+                                  </span>
+                                </div>
+                                <span className="font-mono text-xs text-[#4A4A4A]">
+                                  {count}
+                                </span>
+                              </li>
+                            )
+                          )}
+                        </ol>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {searchResponse &&
+                  searchResponse.rows.length > 0 &&
+                  searchResponse.rows.length <
+                    searchResponse.statistics.uniqueVerses && (
+                    <p className="text-sm text-[#8E8E8E]">
+                      Showing first {searchResponse.rows.length} of{' '}
+                      {searchResponse.statistics.uniqueVerses} matching verses
+                      (limit).
+                    </p>
+                  )}
               </div>
+              {searchResponse && searchResponse.rows.length === 0 && (
+                <p className="text-center text-[#8E8E8E] py-8">
+                  No verses found for this search.
+                </p>
+              )}
               <div className="space-y-4">
-                {searchResults.map((res, i) => (
+                {searchResponse?.rows.map((res, i) => (
                   <button 
                     key={i} 
                     onClick={() => handleSearch(res.reference)}
