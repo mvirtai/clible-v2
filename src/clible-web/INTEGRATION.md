@@ -27,6 +27,7 @@ Integraatio perustuu **"Unified Container" (Yhdistetty kontti)** -malliin. Sen s
 ## 2. Integraation kulmakivet
 
 ### A. API-silta (`server.ts`)
+
 Web-palvelin ei yritä koodata Raamattu-logiikkaa uudelleen. Se käyttää Node.js:n `child_process`-moduulia suorittaakseen `clible`-komentoja aivan kuin ne kirjoitettaisiin terminaaliin.
 
 **Esimerkki:**

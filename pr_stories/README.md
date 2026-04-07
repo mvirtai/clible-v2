@@ -16,6 +16,7 @@ The structured checklist in [`.cursor/rules/pr-stories.mdc`](../.cursor/rules/pr
 - [`pr-TBD-docs-pr-workflow-template.md`](pr-TBD-docs-pr-workflow-template.md) — docs only (PR A).
 - [`pr-TBD-cli-json-and-analytics-text-stats.md`](pr-TBD-cli-json-and-analytics-text-stats.md) — Python CLI + analytics (PR B).
 - [`pr-TBD-web-bridge-and-docker.md`](pr-TBD-web-bridge-and-docker.md) — clible-web + Docker (PR C; merge after B).
+- [`pr-TBD-fts5-web-search-mvp.md`](pr-TBD-fts5-web-search-mvp.md) — FTS5 web search MVP (CLI `--json` on empty hits, UI mapping, bridge logs, Taskfile Docker dedupe).
 - [`pr-TBD-combined-docs-and-python-cli-analytics.md`](pr-TBD-combined-docs-and-python-cli-analytics.md) — combined PR body if A + B are squashed together.
 
 ## Naming

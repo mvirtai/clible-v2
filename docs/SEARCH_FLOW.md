@@ -24,13 +24,13 @@ sequenceDiagram
   CLI-->>Express: single JSON object on stdout
   Express->>Express: JSON.parse(stdout)
   Express-->>Browser: HTTP 200 application/json
-  Browser->>Browser: map JSON to SearchResultRow[]
+  Browser->>Browser: map JSON to SearchResponse (rows + statistics)
 ```
 
 ## 1. Browser (React)
 
 - User selects **FTS5 Search**, enters a word, and submits.
-- [`App.tsx`](App.tsx) calls `bibleRepository.search(query, translationId)`.
+- [`App.tsx`](App.tsx) calls `bibleRepository.search(query, translationId)` (default `-n 50` on the CLI for a smaller JSON payload).
 - [`repositories/bibleRepository.ts`](repositories/bibleRepository.ts) builds the same argument string the CLI would use, e.g. `"mountain" -t web`, and requests:
 
   `GET /api/clible?cmd=search&args=<url-encoded-args>`
@@ -71,9 +71,11 @@ CLI stdout (and thus the HTTP body) is one object, for example:
 | `translation_id` | Active translation id |
 | `verses` | Array of `{ book_id, chapter, verse, text }` |
 | `query`, `scope`, `scope_ref` | Search parameters |
-| `statistics` | Counts and top books |
+| `statistics` | Counts and top books (`total_occurrences`, `unique_verses`, `books_with_matches`, `top_books` as `[[book_id, count], ...]`) |
 
-The React layer **does not** use this object directly as a list. [`mapSearchJsonToRows`](repositories/bibleRepository.ts) turns `verses` into `SearchResultRow[]`: `{ reference, text }` where `reference` is like `JHN 3:16` (book code + chapter:verse).
+The React layer maps the payload to a **`SearchResponse`**: `rows` (from `verses`, each `{ reference, text }` where `reference` is like `JHN 3:16`) plus **`statistics`**, `query`, `title`, `translation_id`, `scope`, and `scope_ref`. The UI shows the summary metrics and may show “Showing first *N* of *unique_verses*” when JSON was limited.
+
+Book IDs in `top_books` (e.g. `ROM`) are resolved to full names (e.g. `Romans`) on the client using [`utils/bookNames.ts`](../src/clible-web/utils/bookNames.ts), which builds a lookup map from the static [`data/bible_structure.json`](../src/clible-web/data/bible_structure.json) bundled with the web app at build time. No extra server round-trip or API call is needed.
 
 ## 6. Why “Invalid JSON output from Clible CLI” appeared
 
