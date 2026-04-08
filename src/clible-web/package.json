@@ -4,7 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx server.ts",
+    "dev": "sh -c \"npm run dev:api & npm run dev:web\"",
+    "dev:api": "tsx server.ts",
+    "dev:web": "vite",
     "build": "vite build",
     "start": "tsx server.ts",
     "preview": "vite preview",
