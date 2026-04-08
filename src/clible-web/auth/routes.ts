@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
 import { usersDb } from './db';
 
+// it is needed to expand 'expression-session' type with 'userId' in TS
 declare module 'express-session' {
     interface SessionData {
         userId: string;
