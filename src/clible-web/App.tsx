@@ -12,6 +12,7 @@ import {
   Settings,
   Globe,
   Activity,
+  LogOut,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -36,7 +37,7 @@ type ViewMode = 'reader' | 'analytics' | 'search';
 type SearchType = 'verse' | 'search';
 
 export default function App() {
-  const { user, loading: authLoading, login } = useAuth();
+  const { user, loading: authLoading, login, logout } = useAuth();
 
   const [query, setQuery] = useState('');
   const [result, setResult] = useState<BibleResponse | null>(null);
@@ -68,6 +69,7 @@ export default function App() {
   }, [user]);
 
   useEffect(() => {
+    if (!user) return;
     let cancelled = false;
     (async () => {
       try {
@@ -90,7 +92,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [user]);
 
   if (authLoading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   if (!user) return <LoginView onSuccess={login} />;
@@ -225,6 +227,16 @@ export default function App() {
             <button className="p-2 hover:bg-[#F5F5F5] rounded-full transition-colors">
               <Settings size={20} />
             </button>
+            <div className="flex items-center gap-2 pl-2 border-l border-[#E5E5E5]">
+              <span className="text-sm text-[#8E8E8E]">{user!.username}</span>
+              <button
+                onClick={() => void logout()}
+                className="p-2 hover:bg-[#F5F5F5] rounded-full transition-colors text-[#8E8E8E] hover:text-[#1A1A1A]"
+                title="Sign out"
+              >
+                <LogOut size={18} />
+              </button>
+            </div>
           </div>
         </div>
       </header>
