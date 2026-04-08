@@ -69,6 +69,7 @@ export default function App() {
   }, [user]);
 
   useEffect(() => {
+    if (!user) return;
     let cancelled = false;
     (async () => {
       try {
@@ -91,7 +92,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [user]);
 
   if (authLoading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   if (!user) return <LoginView onSuccess={login} />;

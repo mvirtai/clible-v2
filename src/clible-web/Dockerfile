@@ -67,6 +67,4 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s \
     CMD curl -f http://localhost:3000/ || exit 1
 
-# npm does not always forward Dockerfile ENV to child processes;
-# force production so we never start the Vite dev server in the container.
-CMD ["sh", "-c", "export NODE_ENV=production && exec npm start"]
+CMD ["npm", "start"]
