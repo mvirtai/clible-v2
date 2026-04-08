@@ -20,6 +20,7 @@ import session from "express-session";
 import { usersDb } from "./auth/db";
 import { authRouter } from "./auth/routes";
 import { requireAuth } from "./auth/middleware";
+import { settingsRouter } from "./user/settings_routes";
 
 const execAsync = promisify(exec);
 
@@ -165,6 +166,9 @@ async function startServer() {
 
   // Auth routes (no auth required)
   app.use("/api/auth", authRouter);
+
+  // Authenticated user settings
+  app.use("/api/user/settings", settingsRouter);
 
   app.post("/api/ai/insight", requireAuth, async (req, res) => {
     const ai = getAiClientOrNull();
@@ -319,15 +323,9 @@ async function startServer() {
     }
   });
 
-  // Vite middleware for development only (dynamic import so production never loads Vite).
-  if (process.env.NODE_ENV !== "production") {
-    const { createServer: createViteServer } = await import("vite");
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
+  // Static assets in production only. In development, run Vite as a separate dev server
+  // and proxy /api/* requests to this server.
+  if (process.env.NODE_ENV === "production") {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {

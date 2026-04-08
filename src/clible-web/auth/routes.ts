@@ -10,6 +10,7 @@ declare module 'express-session' {
     }
 }
 
+
 export const authRouter = Router();
 
 // POST /api/auth/register
@@ -44,9 +45,10 @@ authRouter.post("/register", async (req, res) => {
     res.status(201).json({ id, username });
 });
 
-    // POST /api/auth/login
-    authRouter.post("/login", async (req, res) => {
-        const { username, password } = req.body;
+
+// POST /api/auth/login
+authRouter.post("/login", async (req, res) => {
+    const { username, password } = req.body;
 
     const user = usersDb
         .prepare("SELECT id, username, password_hash FROM users WHERE username = ?")
@@ -62,32 +64,37 @@ authRouter.post("/register", async (req, res) => {
         return res.status(401).json({ error: "Invalid credentials." });
     }
 
-        req.session.userId = user.id;
-        res.json({ id: user.id, username: user.username });
+    req.session.userId = user.id;
+    res.json({ id: user.id, username: user.username });
+});
+
+
+// POST /api/auth/logout
+authRouter.post("/logout", (req, res) => {
+    req.session.destroy(() => {
+        res.clearCookie("connect.sid");
+        res.json({ ok: true });
     });
+});
 
-    // POST /api/auth/logout
-    authRouter.post("/logout", (req, res) => {
-        req.session.destroy(() => {
-            res.clearCookie("connect.sid");
-            res.json({ ok: true });
-        });
-    });
 
-    authRouter.get("/me", (req, res) => {
-  if (!req.session.userId) {
-    return res.status(401).json({ error: "Not authenticated." });
-  }
+// GET /api/auth/me
+authRouter.get("/me", (req, res) => {
+    if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated." });
+    }
 
-//   GET /api/auth/me - user's login status
-  const user = usersDb
-    .prepare("SELECT id, username FROM users WHERE id = ?")
-    .get(req.session.userId) as { id: string; username: string } | undefined;
+    //   GET /api/auth/me - user's login status
+    const user = usersDb
+        .prepare("SELECT id, username FROM users WHERE id = ?")
+        .get(req.session.userId) as { id: string; username: string } | undefined;
 
     if (!user) {
-        req.session.destroy(() => {});
+        req.session.destroy(() => { });
         return res.status(401).json({ error: "User not found." });
     }
 
     res.json(user);
 });
+
+// (user settings routes live in src/clible-web/user/settings_routes.ts)
