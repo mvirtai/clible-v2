@@ -47,6 +47,8 @@ export default function App() {
     updateSettings,
   } = useSettings();
 
+  const [effectiveTheme, setEffectiveTheme] = useState<'light' | 'dark'>('light');
+
   const [query, setQuery] = useState('');
   const [result, setResult] = useState<BibleResponse | null>(null);
   const [searchResponse, setSearchResponse] = useState<SearchResponse | null>(null);
@@ -74,6 +76,34 @@ export default function App() {
       setTranslationsLoadError(settingsError);
     }
   }, [settingsError]);
+
+  useEffect(() => {
+    const selected = settings?.theme ?? 'system';
+    const mq = window.matchMedia?.('(prefers-color-scheme: dark)');
+
+    const compute = () => {
+      if (selected === 'light' || selected === 'dark') {
+        setEffectiveTheme(selected);
+        return;
+      }
+      setEffectiveTheme(mq?.matches ? 'dark' : 'light');
+    };
+
+    compute();
+
+    if (selected === 'system' && mq) {
+      mq.addEventListener('change', compute);
+      return () => mq.removeEventListener('change', compute);
+    }
+    return;
+  }, [settings?.theme]);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = effectiveTheme;
+    return () => {
+      delete document.documentElement.dataset.theme;
+    };
+  }, [effectiveTheme]);
 
   useEffect(() => {
     if (!user) return;
@@ -227,8 +257,20 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFCFB] text-[#1A1A1A] font-sans selection:bg-[#E6D5B8] selection:text-[#1A1A1A]">
-      <header className="border-b border-[#E5E5E5] bg-white/80 backdrop-blur-md sticky top-0 z-50">
+    <div
+      className={`min-h-screen font-sans selection:bg-[#E6D5B8] selection:text-[#1A1A1A] ${
+        effectiveTheme === 'dark'
+          ? 'bg-[#0B0B0B] text-[#F5F5F5]'
+          : 'bg-[#FDFCFB] text-[#1A1A1A]'
+      }`}
+    >
+      <header
+        className={`border-b backdrop-blur-md sticky top-0 z-50 ${
+          effectiveTheme === 'dark'
+            ? 'border-white/10 bg-black/40'
+            : 'border-[#E5E5E5] bg-white/80'
+        }`}
+      >
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-[#1A1A1A] rounded-lg flex items-center justify-center text-white">
