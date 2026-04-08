@@ -29,11 +29,15 @@ import { SearchView } from './components/SearchView';
 import { AnalyticsView } from './components/AnalyticsView';
 import type { AnalyticsMode } from './components/AnalyticsView';
 import { TranslationModal } from './components/TranslationModal';
+import { useAuth } from './AuthContext';
+import { LoginView } from './views/LoginView';
 
 type ViewMode = 'reader' | 'analytics' | 'search';
 type SearchType = 'verse' | 'search';
 
 export default function App() {
+  const { user, loading: authLoading, login } = useAuth();
+
   const [query, setQuery] = useState('');
   const [result, setResult] = useState<BibleResponse | null>(null);
   const [searchResponse, setSearchResponse] = useState<SearchResponse | null>(null);
@@ -57,10 +61,11 @@ export default function App() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (!user) return;
     inputRef.current?.focus();
     const savedHistory = localStorage.getItem('clible_history');
     if (savedHistory) setHistory(JSON.parse(savedHistory));
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     let cancelled = false;
@@ -86,6 +91,9 @@ export default function App() {
       cancelled = true;
     };
   }, []);
+
+  if (authLoading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  if (!user) return <LoginView onSuccess={login} />;
 
   const saveToHistory = (q: string) => {
     const newHistory = [q, ...history.filter((h) => h !== q)].slice(0, 10);

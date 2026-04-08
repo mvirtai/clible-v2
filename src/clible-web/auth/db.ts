@@ -10,13 +10,13 @@ usersDb.exec(`
         id TEXT PRIMARY KEY,
         username TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
-        created_at TEXT NOT NULL DEFAULT (datetime('now))
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
     CREATE TABLE IF NOT EXISTS sessions (
         sid TEXT PRIMARY KEY,
         data TEXT NOT NULL,
-        expires_at TEXT NOT NULL
+        expires INTEGER NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS session_queries (

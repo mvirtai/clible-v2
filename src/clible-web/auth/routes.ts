@@ -17,10 +17,10 @@ authRouter.post("/register", async (req, res) => {
     const { username, password } = req.body;
 
     if (!username || !password) {
-        return res.status(400).json({ error: "Username and password required."});
+        return res.status(400).json({ error: "Username and password required." });
     }
     if (password.length < 8) {
-        return res.status(400).json({ error: "Password must be at least 8 characters."})
+        return res.status(400).json({ error: "Password must be at least 8 characters." });
     }
 
     // Existing username
@@ -34,31 +34,33 @@ authRouter.post("/register", async (req, res) => {
     const hash = await bcrypt.hash(password, 12);
     const id = randomUUID();
 
-    usersDb.prepare(
-        "INSERT INTO users (id, username, password_hash) VALUES (?, ?, ?)"
-    ).run(id, username, hash);
+    usersDb
+        .prepare("INSERT INTO users (id, username, password_hash) VALUES (?, ?, ?)")
+        .run(id, username, hash);
 
+    // Login right after registering
     // Login right after registering
     req.session.userId = id;
     res.status(201).json({ id, username });
+});
 
     // POST /api/auth/login
     authRouter.post("/login", async (req, res) => {
         const { username, password } = req.body;
 
-        const user = usersDb
-            .prepare("SELECT id, username, password_hash FROM users WHERE username = ?")
-            .get(username) as { id: string; username: string; password_hash: string } | undefined;
-        
-        // Important: error msg should not reveal which one is wrong - pswd or username
-        if (!user) {
-            return res.status(401).json({ error: "Invalid credentials."});
-        }
+    const user = usersDb
+        .prepare("SELECT id, username, password_hash FROM users WHERE username = ?")
+        .get(username) as { id: string; username: string; password_hash: string } | undefined;
 
-        const match = await bcrypt.compare(password, user.password_hash)
-        if (!match) {
-            return res.status(401).json({ error: "Invalid credentials." })
-        }
+    // Don't reveal which field is wrong
+    if (!user) {
+        return res.status(401).json({ error: "Invalid credentials." });
+    }
+
+    const match = await bcrypt.compare(password, user.password_hash);
+    if (!match) {
+        return res.status(401).json({ error: "Invalid credentials." });
+    }
 
         req.session.userId = user.id;
         res.json({ id: user.id, username: user.username });
@@ -82,11 +84,10 @@ authRouter.post("/register", async (req, res) => {
     .prepare("SELECT id, username FROM users WHERE id = ?")
     .get(req.session.userId) as { id: string; username: string } | undefined;
 
-  if (!user) {
-    req.session.destroy(() => {});
-    return res.status(401).json({ error: "User not found." });
-  }
+    if (!user) {
+        req.session.destroy(() => {});
+        return res.status(401).json({ error: "User not found." });
+    }
 
-  res.json(user);
+    res.json(user);
 });
-})
