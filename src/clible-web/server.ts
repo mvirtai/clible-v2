@@ -16,7 +16,47 @@ import {
   toneSystemInstruction,
 } from "./ai.config";
 
+import session from "express-session";
+import { usersDb } from "./auth/db";
+import { authRouter } from "./auth/routes";
+import { requireAuth } from "./auth/middleware";
+
 const execAsync = promisify(exec);
+
+// Own SQLite-based session store
+class SQLiteStore extends session.Store {
+  get(sid: string, cb: (err: any, session?: any) => void) {
+    const row = usersDb
+      .prepare("SELECT data, expires FROM sessions WHERE sid = ?")
+      .get(sid) as { data: string; expires: number } | undefined;
+
+    if (!row || row.expires < Date.now()) return cb(null, null);
+
+    try {
+      cb(null, JSON.parse(row.data));
+    } catch {
+      cb(null, null);
+    }
+  }
+
+  set(sid: string, sessionData: any, cb?: (err?: any) => void) {
+    const expires = sessionData.cookie?.expires
+      ? new Date(sessionData.cookie.expires).getTime()
+      : Date.now() + 24 * 60 * 60 * 1000;
+
+    const data = JSON.stringify(sessionData);
+    usersDb
+      .prepare("INSERT OR REPLACE INTO sessions (sid, data, expires) VALUES (?, ?, ?)")
+      .run(sid, data, expires);
+
+    cb?.();
+  }
+
+  destroy(sid: string, cb?: (err?: any) => void) {
+    usersDb.prepare("DELETE FROM sessions WHERE sid = ?").run(sid);
+    cb?.();
+  }
+}
 
 /** Normalize GEMINI_API_KEY from env / Docker --env-file (trim, strip wrapping quotes). */
 function normalizeGeminiApiKey(raw: string | undefined): string | undefined {
@@ -109,7 +149,24 @@ async function startServer() {
 
   app.use(express.json());
 
-  app.post("/api/ai/insight", async (req, res) => {
+  app.use(
+    session({
+      store: new SQLiteStore(),
+      secret: process.env.SESSION_SECRET ?? "dev-secret-change-in-production",
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 24 * 60 * 60 * 1000,
+      },
+    })
+  );
+
+  // Auth routes (no auth required)
+  app.use("/api/auth", authRouter);
+
+  app.post("/api/ai/insight", requireAuth, async (req, res) => {
     const ai = getAiClientOrNull();
     if (!ai) {
       return res.status(503).json({
@@ -142,7 +199,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/ai/tone", async (req, res) => {
+  app.post("/api/ai/tone", requireAuth, async (req, res) => {
     const ai = getAiClientOrNull();
     if (!ai) {
       return res.status(503).json({
@@ -180,7 +237,7 @@ async function startServer() {
    * This endpoint executes the local 'clible' command and returns its output.
    * Example: /api/clible?cmd=verse&args=John+3:16
    */
-  app.get("/api/clible", async (req, res) => {
+  app.get("/api/clible", requireAuth, async (req, res) => {
     const { cmd, args } = req.query;
     
     if (!cmd || typeof cmd !== 'string') {

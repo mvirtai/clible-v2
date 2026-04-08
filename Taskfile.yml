@@ -72,12 +72,15 @@ tasks:
         if [ -f .env ]; then
           docker run --rm -p {{.PORT}}:3000 \
             -v clible-data:/home/clible/.clible-data \
+            -v clible-web-data:/app/web/data \
             --env-file .env \
             clible-web-ci
         else
           docker run --rm -p {{.PORT}}:3000 \
             -e GEMINI_API_KEY \
+            -e SESSION_SECRET \
             -v clible-data:/home/clible/.clible-data \
+            -v clible-web-data:/app/web/data \
             clible-web-ci
         fi
 
@@ -95,14 +98,17 @@ tasks:
         if [ -f .env ]; then
           docker run --rm -p {{.PORT}}:3000 \
             -v clible-data:/home/clible/.clible-data \
+            -v clible-web-data:/app/web/data \
             --env-file .env \
             -e NODE_ENV=development \
             clible-web-ci
         else
           docker run --rm -p {{.PORT}}:3000 \
             -e GEMINI_API_KEY \
+            -e SESSION_SECRET \
             -e NODE_ENV=development \
             -v clible-data:/home/clible/.clible-data \
+            -v clible-web-data:/app/web/data \
             clible-web-ci
         fi
 
