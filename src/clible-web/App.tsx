@@ -258,18 +258,10 @@ export default function App() {
 
   return (
     <div
-      className={`min-h-screen font-sans selection:bg-[#E6D5B8] selection:text-[#1A1A1A] ${
-        effectiveTheme === 'dark'
-          ? 'bg-[#0B0B0B] text-[#F5F5F5]'
-          : 'bg-[#FDFCFB] text-[#1A1A1A]'
-      }`}
+      className="min-h-screen font-sans selection:bg-[#E6D5B8] selection:text-[#1A1A1A] bg-[var(--bg)] text-[var(--text)]"
     >
       <header
-        className={`border-b backdrop-blur-md sticky top-0 z-50 ${
-          effectiveTheme === 'dark'
-            ? 'border-white/10 bg-black/40'
-            : 'border-[#E5E5E5] bg-white/80'
-        }`}
+        className="border-b backdrop-blur-md sticky top-0 z-50 border-[var(--border)] bg-[color:color-mix(in_srgb,var(--surface)_80%,transparent)]"
       >
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">

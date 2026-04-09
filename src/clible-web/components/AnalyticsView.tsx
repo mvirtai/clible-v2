@@ -33,12 +33,16 @@ export function AnalyticsView({
 }: AnalyticsViewProps) {
   return (
     <div className="space-y-8">
-      <div className="flex gap-2 bg-[#F5F5F5] p-1 rounded-xl w-fit">
+      <div className="flex gap-2 bg-[var(--surface-2)] p-1 rounded-xl w-fit border border-[var(--border-soft)]">
         {(['reference', 'chapter', 'book'] as const).map((m) => (
           <button
             key={m}
             onClick={() => onModeChange(m)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize ${analyticsMode === m ? 'bg-white shadow-sm text-[#1A1A1A]' : 'text-[#8E8E8E] hover:text-[#1A1A1A]'}`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize ${
+              analyticsMode === m
+                ? 'bg-[var(--surface)] shadow-sm text-[var(--text)]'
+                : 'text-[var(--muted)] hover:text-[var(--text)]'
+            }`}
           >
             {m}
           </button>
@@ -52,8 +56,8 @@ export function AnalyticsView({
           { label: 'Avg Length', value: nativeStats?.avgWordLength, icon: Activity },
           { label: 'Chars', value: nativeStats?.charCount, icon: BarChart3 },
         ].map((s, i) => (
-          <div key={i} className="bg-white border border-[#E5E5E5] p-4 rounded-2xl shadow-sm">
-            <div className="flex items-center gap-2 text-[#8E8E8E] mb-2">
+          <div key={i} className="bg-[var(--surface)] border border-[var(--border)] p-4 rounded-2xl shadow-sm">
+            <div className="flex items-center gap-2 text-[var(--muted)] mb-2">
               <s.icon size={14} />
               <span className="text-[10px] uppercase tracking-wider font-semibold">{s.label}</span>
             </div>

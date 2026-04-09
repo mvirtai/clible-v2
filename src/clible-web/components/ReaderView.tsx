@@ -14,11 +14,11 @@ export function ReaderView({ result, aiInsight, aiLoading, onAiInsight }: Reader
   if (!result) {
     return (
       <div className="py-24 text-center space-y-6">
-        <div className="w-16 h-16 bg-[#F5F5F5] rounded-full flex items-center justify-center mx-auto text-[#D4A373]">
+        <div className="w-16 h-16 bg-[var(--surface-2)] rounded-full flex items-center justify-center mx-auto text-[var(--accent)]">
           <Book size={32} />
         </div>
         <h3 className="text-xl font-medium">Ready for study</h3>
-        <p className="text-[#8E8E8E]">Enter a verse to begin.</p>
+        <p className="text-[var(--muted)]">Enter a verse to begin.</p>
       </div>
     );
   }
@@ -26,12 +26,12 @@ export function ReaderView({ result, aiInsight, aiLoading, onAiInsight }: Reader
   return (
     <div className="space-y-12">
       <section className="space-y-8">
-        <div className="flex items-end justify-between border-b border-[#F5F5F5] pb-4">
-          <h2 className="text-4xl font-serif italic text-[#1A1A1A]">{result.reference}</h2>
-          <span className="text-sm font-mono text-[#8E8E8E] uppercase tracking-widest">{result.translation_name}</span>
+        <div className="flex items-end justify-between border-b border-[var(--border-soft)] pb-4">
+          <h2 className="text-4xl font-serif italic text-[var(--text)]">{result.reference}</h2>
+          <span className="text-sm font-mono text-[var(--muted)] uppercase tracking-widest">{result.translation_name}</span>
         </div>
         <p
-          className={`text-2xl leading-relaxed font-serif text-[#333] ${
+          className={`text-2xl leading-relaxed font-serif text-[var(--text-2)] ${
             result.verses.length === 0
               ? 'first-letter:float-left first-letter:mt-1 first-letter:mr-3 first-letter:text-5xl first-letter:font-bold'
               : ''
@@ -44,7 +44,7 @@ export function ReaderView({ result, aiInsight, aiLoading, onAiInsight }: Reader
                 className="inline"
               >
                 <sup
-                  className="mx-0.5 align-super font-sans text-[0.55em] font-semibold text-[#8E8E8E]"
+                  className="mx-0.5 align-super font-sans text-[0.55em] font-semibold text-[var(--muted)]"
                   aria-label={`Verse ${v.verse}`}
                 >
                   {v.verse}
@@ -58,18 +58,18 @@ export function ReaderView({ result, aiInsight, aiLoading, onAiInsight }: Reader
           )}
         </p>
         <div className="flex items-center gap-4 pt-4">
-          <button className="flex items-center gap-2 px-4 py-2 bg-[#F5F5F5] hover:bg-[#E5E5E5] rounded-full text-sm font-medium transition-colors">
+          <button className="flex items-center gap-2 px-4 py-2 bg-[var(--surface-2)] hover:opacity-90 rounded-full text-sm font-medium transition-colors">
             <Share2 size={16} /> Share
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-[#F5F5F5] hover:bg-[#E5E5E5] rounded-full text-sm font-medium transition-colors">
+          <button className="flex items-center gap-2 px-4 py-2 bg-[var(--surface-2)] hover:opacity-90 rounded-full text-sm font-medium transition-colors">
             <Download size={16} /> Export
           </button>
         </div>
       </section>
 
-      <section className="bg-[#FAF9F6] border border-[#E5E5E5] rounded-3xl p-8 space-y-6">
+      <section className="bg-[var(--surface-2)] border border-[var(--border)] rounded-3xl p-8 space-y-6">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-[#D4A373]">
+          <div className="flex items-center gap-2 text-[var(--accent)]">
             <Sparkles size={20} />
             <span className="font-semibold uppercase tracking-wider text-xs">AI Insights</span>
           </div>

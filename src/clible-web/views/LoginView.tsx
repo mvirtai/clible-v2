@@ -33,8 +33,11 @@ export function LoginView({ onSuccess }: Props) {
     }
 
     return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FDFCFB]">
-      <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4 p-8 bg-white rounded-2xl shadow-sm border border-[#E5E5E5]">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--bg)] text-[var(--text)]">
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-sm space-y-4 p-8 bg-[var(--surface)] rounded-2xl shadow-sm border border-[var(--border)]"
+      >
         <h2 className="text-xl font-semibold">{mode === "login" ? "Sign in" : "Create account"}</h2>
         {error && <p className="text-sm text-red-600">{error}</p>}
         <input
@@ -42,7 +45,7 @@ export function LoginView({ onSuccess }: Props) {
           placeholder="Username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          className="w-full border border-[#E5E5E5] rounded-xl px-4 py-2 outline-none focus:border-[#1A1A1A]"
+          className="w-full border border-[var(--border)] bg-transparent rounded-xl px-4 py-2 outline-none focus:border-[var(--text)]"
           required
         />
         <input
@@ -50,20 +53,20 @@ export function LoginView({ onSuccess }: Props) {
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full border border-[#E5E5E5] rounded-xl px-4 py-2 outline-none focus:border-[#1A1A1A]"
+          className="w-full border border-[var(--border)] bg-transparent rounded-xl px-4 py-2 outline-none focus:border-[var(--text)]"
           required
         />
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-[#1A1A1A] text-white rounded-xl py-2 font-medium hover:bg-[#333] transition-colors disabled:opacity-50"
+          className="w-full bg-[var(--text)] text-[var(--surface)] rounded-xl py-2 font-medium hover:opacity-90 transition-colors disabled:opacity-50"
         >
           {loading ? "..." : mode === "login" ? "Sign in" : "Register"}
         </button>
         <button
           type="button"
           onClick={() => setMode(mode === "login" ? "register" : "login")}
-          className="w-full text-sm text-[#8E8E8E] hover:text-[#1A1A1A] transition-colors"
+          className="w-full text-sm text-[var(--muted)] hover:text-[var(--text)] transition-colors"
         >
           {mode === "login" ? "No account? Register" : "Have an account? Sign in"}
         </button>

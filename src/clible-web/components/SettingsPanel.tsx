@@ -30,8 +30,8 @@ function ThemeButton({
       onClick={onClick}
       className={`px-3 py-2 rounded-xl text-sm font-semibold border transition-colors ${
         active
-          ? "bg-[#1A1A1A] text-white border-[#1A1A1A]"
-          : "bg-white text-[#1A1A1A] border-[#E5E5E5] hover:border-[#1A1A1A]"
+          ? "bg-[var(--text)] text-[var(--surface)] border-[var(--text)]"
+          : "bg-[var(--surface)] text-[var(--text)] border-[var(--border)] hover:border-[var(--text)]"
       }`}
     >
       {label}
@@ -70,7 +70,7 @@ export function SettingsPanel({
     >
       <button
         onClick={onClose}
-        className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-[var(--overlay)] backdrop-blur-[2px]"
         aria-label="Close settings"
       />
 
@@ -79,21 +79,21 @@ export function SettingsPanel({
         animate={{ x: 0, opacity: 1 }}
         exit={{ x: 24, opacity: 0 }}
         transition={{ type: "spring", stiffness: 420, damping: 36 }}
-        className="absolute top-4 right-4 bottom-4 w-[min(520px,calc(100vw-2rem))] bg-white rounded-3xl shadow-2xl border border-[#E5E5E5] overflow-hidden flex flex-col"
+        className="absolute top-4 right-4 bottom-4 w-[min(520px,calc(100vw-2rem))] bg-[var(--surface)] rounded-3xl shadow-2xl border border-[var(--border)] overflow-hidden flex flex-col text-[var(--text)]"
         role="dialog"
         aria-modal="true"
         aria-label="Settings"
       >
-        <div className="p-6 border-b border-[#F5F5F5] flex items-center justify-between">
+        <div className="p-6 border-b border-[var(--border-soft)] flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold tracking-tight">Settings</h3>
-            <p className="text-xs text-[#8E8E8E] mt-1">
+            <p className="text-xs text-[var(--muted)] mt-1">
               User preferences are saved to your account.
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-[#F5F5F5] rounded-full transition-colors"
+            className="p-2 hover:bg-[var(--surface-2)] rounded-full transition-colors"
             aria-label="Close"
           >
             <X size={18} />
@@ -107,24 +107,24 @@ export function SettingsPanel({
             </p>
           )}
 
-          <section className="rounded-2xl border border-[#E5E5E5] p-4">
+          <section className="rounded-2xl border border-[var(--border)] p-4">
             <div className="flex items-center gap-2 text-sm font-semibold">
               <User size={16} />
               Profile
             </div>
             <div className="mt-3 grid grid-cols-1 gap-3 text-sm">
               <div>
-                <div className="text-xs text-[#8E8E8E]">Username</div>
+                <div className="text-xs text-[var(--muted)]">Username</div>
                 <div className="font-medium">{username}</div>
               </div>
               <div>
-                <div className="text-xs text-[#8E8E8E]">User id</div>
+                <div className="text-xs text-[var(--muted)]">User id</div>
                 <div className="font-mono text-xs break-all">{userId}</div>
               </div>
             </div>
           </section>
 
-          <section className="rounded-2xl border border-[#E5E5E5] p-4">
+          <section className="rounded-2xl border border-[var(--border)] p-4">
             <div className="flex items-center gap-2 text-sm font-semibold">
               <Paintbrush size={16} />
               Theme
@@ -147,30 +147,30 @@ export function SettingsPanel({
               />
             </div>
             {loading && (
-              <p className="mt-3 text-xs text-[#8E8E8E]">Loading settings…</p>
+              <p className="mt-3 text-xs text-[var(--muted)]">Loading settings…</p>
             )}
           </section>
 
-          <section className="rounded-2xl border border-[#E5E5E5] p-4">
+          <section className="rounded-2xl border border-[var(--border)] p-4">
             <div className="flex items-center gap-2 text-sm font-semibold">
               <Globe2 size={16} />
               Translation
             </div>
             <div className="mt-3 flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <div className="text-xs text-[#8E8E8E]">Default translation</div>
+                <div className="text-xs text-[var(--muted)]">Default translation</div>
                 <div className="font-medium truncate">
                   {translationLabel ?? "Not selected"}
                 </div>
               </div>
               <button
                 onClick={onPickTranslation}
-                className="px-3 py-2 rounded-xl text-sm font-semibold border border-[#E5E5E5] hover:border-[#1A1A1A] transition-colors"
+                className="px-3 py-2 rounded-xl text-sm font-semibold border border-[var(--border)] hover:border-[var(--text)] transition-colors"
               >
                 Choose…
               </button>
             </div>
-            <p className="mt-3 text-xs text-[#8E8E8E]">
+            <p className="mt-3 text-xs text-[var(--muted)]">
               Installed translations are environment-wide. Your selection is saved per user.
             </p>
           </section>
