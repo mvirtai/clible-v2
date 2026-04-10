@@ -518,7 +518,12 @@ def test_search_text_handles_invalid_fts5_syntax(verse_repo, translation_repo):
     )
     verse_repo.save_verses(
         [
-            {"book_id": "ACT", "chapter": 1, "verse": 13, "text": "They went up into the upper room"},
+            {
+                "book_id": "ACT",
+                "chapter": 1,
+                "verse": 13,
+                "text": "They went up into the upper room",
+            },
             {"book_id": "JHN", "chapter": 3, "verse": 16, "text": "ACT 1:13"},
         ],
         "web",
