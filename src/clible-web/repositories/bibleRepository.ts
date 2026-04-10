@@ -230,6 +230,10 @@ export class BibleRepository {
           "<div class='glow' style='white-space:pre-wrap'>" +
           this._escapeXml(aiInsight) +
           "</div></section>";
+        const footerMarker = "<p class='footer-note'>";
+        if (content.includes(footerMarker)) {
+          return content.replace(footerMarker, section + footerMarker);
+        }
         return content.replace("</main>", section + "</main>");
       }
 
@@ -255,9 +259,10 @@ export class BibleRepository {
 
       case "xml": {
         const escaped = this._escapeXml(aiInsight);
-        return content.trimEnd().replace(/<\/[^>]+>$/, (closing) => `<ai-insight>${escaped}</ai-insight>\n${closing}`);
+        return content.trimEnd().replace(/<\/[^>]+>$/, (closing) => `  <ai-insight>${escaped}</ai-insight>\n${closing}`);
       }
 
+      case "csv":
       default:
         return content;
     }
