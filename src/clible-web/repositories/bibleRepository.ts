@@ -183,6 +183,28 @@ export class BibleRepository {
     logSearch('mapped rows count', out.rows.length);
     return out;
   }
+  async export(
+    cmd: "verse" | "search" | "analytics",
+    args: string,
+    format: string
+  ): Promise<{ content: string; contentType: string }> {
+    const exportArgs = `${args} --stdout-export ${format}`;
+    const response = await fetch(
+      `/api/clible?cmd=${cmd}&args=${encodeURIComponent(exportArgs)}`
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        (errorData as { error?: string }).error ?? "Export failed."
+      );
+    }
+
+    const content = await response.text();
+    const contentType = response.headers.get("Content-Type") || "text/plain";
+
+    return { content, contentType };
+  }
 }
 
 export const bibleRepository = new BibleRepository();

@@ -50,6 +50,11 @@ from clible.ui.verse_search_export import export_verses_bundle
     default=50,
     help="Verses per page for chapter or whole-book; 0 = show all in one view.",
 )
+@click.option(
+    "--stdout-export",
+    type=click.Choice(["csv", "html", "json", "md", "txt", "xml"], case_sensitive=False),
+    help="Output formatted content directly to stdout (for web download).",
+)
 @click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
 def verse(
     reference: str | None,
@@ -58,6 +63,7 @@ def verse(
     json: bool,
     page: int,
     page_size: int,
+    stdout_export: str | None,
     show_help: bool,
 ) -> None:
     """Display verse(s) from the local database.
@@ -120,6 +126,24 @@ def verse(
         except OSError as e:
             console.print(f"[red]Failed to write output file: {e}[/red]")
             raise SystemExit(1)
+        return
+
+    if stdout_export is not None:
+        resolved_t = translation_id
+        if resolved_t is None:
+            conn = get_connection()
+            default = TranslationRepo(conn).get_default()
+            conn.close()
+            resolved_t = default["id"] if default else None
+        
+        content = export_verses_bundle(
+            verses,
+            kind="verse",
+            title=f"Verses: {reference}",
+            format=stdout_export.lower(),
+            translation_id=resolved_t,
+        )
+        print(content)
         return
 
     if json:

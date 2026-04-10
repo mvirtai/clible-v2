@@ -170,6 +170,11 @@ def _display_verses(verses: list[dict], word: str, limit: int | None = None) -> 
     default=False,
     help="Output pure JSON to stdout (for web bridge).",
 )
+@click.option(
+    "--stdout-export",
+    type=click.Choice(["csv", "html", "json", "md", "txt", "xml"], case_sensitive=False),
+    help="Output formatted content directly to stdout (for web download).",
+)
 @click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
 def search(
     word: str | None,
@@ -179,6 +184,7 @@ def search(
     result_limit: int | None,
     export: ExportConfig | None,
     json: bool,
+    stdout_export: str | None,
     show_help: bool,
 ) -> None:
     """Search for verses containing a word with scope and statistics.
@@ -286,6 +292,29 @@ def search(
         except OSError as e:
             console.print(f"[red]Failed to write output file: {e}[/red]")
             raise SystemExit(1)
+        return
+
+    if stdout_export is not None:
+        resolved_t = translation_id
+        if resolved_t is None:
+            conn = get_connection()
+            default = TranslationRepo(conn).get_default()
+            conn.close()
+            resolved_t = default["id"] if default else None
+        
+        title = f'Search: "{word}" in {scope_label}'
+        content = export_verses_bundle(
+            filtered_verses,
+            kind="search",
+            title=title,
+            format=stdout_export.lower(),
+            translation_id=resolved_t,
+            search_word=word,
+            scope=scope,
+            scope_ref=scope_ref,
+            stats=stats,
+        )
+        print(content)
         return
 
     if json:
