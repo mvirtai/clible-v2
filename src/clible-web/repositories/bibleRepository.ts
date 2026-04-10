@@ -186,7 +186,8 @@ export class BibleRepository {
   async export(
     cmd: "verse" | "search" | "analytics",
     args: string,
-    format: string
+    format: string,
+    aiInsight?: string | null
   ): Promise<{ content: string; contentType: string }> {
     const exportArgs = `${args} --stdout-export ${format}`;
     const response = await fetch(
@@ -200,10 +201,62 @@ export class BibleRepository {
       );
     }
 
-    const content = await response.text();
+    let content = await response.text();
     const contentType = response.headers.get("Content-Type") || "text/plain";
 
+    if (aiInsight) {
+      content = this._appendAiInsight(content, aiInsight, format);
+    }
+
     return { content, contentType };
+  }
+
+  private _appendAiInsight(content: string, aiInsight: string, format: string): string {
+    switch (format) {
+      case "md":
+        return content.trimEnd() + "\n\n## AI Insight\n\n" + aiInsight + "\n";
+
+      case "html": {
+        const section =
+          "<section class='page-card'>" +
+          "<div class='section-title'><h2>AI Insight</h2><span>AI-generated context and study notes</span></div>" +
+          "<div class='glow' style='white-space:pre-wrap'>" +
+          aiInsight.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") +
+          "</div></section>";
+        return content.replace("</main>", section + "</main>");
+      }
+
+      case "txt":
+        return (
+          content.trimEnd() +
+          "\n\nAI INSIGHT\n" +
+          "-".repeat(40) +
+          "\n" +
+          aiInsight +
+          "\n"
+        );
+
+      case "json": {
+        try {
+          const parsed = JSON.parse(content) as Record<string, unknown>;
+          parsed.ai_insight = aiInsight;
+          return JSON.stringify(parsed, null, 2);
+        } catch {
+          return content;
+        }
+      }
+
+      case "xml": {
+        const escaped = aiInsight
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+        return content.replace(/<\/[^>]+>$/, (closing) => `<ai-insight>${escaped}</ai-insight>\n${closing}`);
+      }
+
+      default:
+        return content;
+    }
   }
 }
 

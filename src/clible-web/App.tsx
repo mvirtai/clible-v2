@@ -76,6 +76,7 @@ export default function App() {
     cmd: "verse" | "search" | "analytics";
     args: string;
     title: string;
+    aiInsight?: string | null;
   } | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -267,9 +268,10 @@ export default function App() {
   const triggerExport = (
     cmd: "verse" | "search" | "analytics",
     args: string,
-    title: string
+    title: string,
+    insight?: string | null
   ) => {
-    setExportContext({ cmd, args, title });
+    setExportContext({ cmd, args, title, aiInsight: insight });
     setShowExport(true);
   };
 
@@ -280,7 +282,8 @@ export default function App() {
       const { content, contentType } = await bibleRepository.export(
         exportContext.cmd,
         exportContext.args,
-        format
+        format,
+        exportContext.aiInsight ?? null
       );
 
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -432,7 +435,8 @@ export default function App() {
                     triggerExport(
                       'verse',
                       `"${result.reference}" -t ${settings.translationId}`,
-                      result.reference
+                      result.reference,
+                      aiInsight
                     );
                   }
                 }}
