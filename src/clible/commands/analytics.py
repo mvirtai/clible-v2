@@ -16,8 +16,9 @@ from clible.db.repositories.translation_repo import TranslationRepo
 from clible.db.repositories.verse_repo import VerseRepo
 from clible.services.analytic_service import AnalyticService
 from clible.services.verse_service import VerseService
+from clible.commands import get_saved_analysis_service
 from clible.ui.console import console
-from clible.ui.export import export_analysis, export_compare, write_text
+from clible.ui.export import export_analysis, export_compare, resolve_output_path, write_text
 from clible.ui.export_cli import EXPORT_PARAM, ExportConfig
 from clible.ui.help_texts import (
     ANALYTICS_BOOK_HELP,
@@ -78,7 +79,7 @@ def _resolve_compare_translation_id(
     return None
 
 
-def _display_translation_label(requested_id: str, resolved_id: str) -> str:
+def display_translation_label(requested_id: str, resolved_id: str) -> str:
     """Build a readable translation label for table headers."""
     if requested_id == resolved_id:
         return resolved_id
@@ -106,7 +107,7 @@ def _word_level_diff_markup(text_a: str, text_b: str) -> str:
     return " ".join(diff_tokens)
 
 
-def _render_analysis(console: Console, analysis: dict, scope_label: str) -> None:
+def render_analysis(console: Console, analysis: dict, scope_label: str) -> None:
     """Render analysis results as Rich tables."""
     console.print(f"\n[bold cyan]Text Analysis: {scope_label}[/bold cyan]\n")
 
@@ -154,7 +155,7 @@ def _render_analysis(console: Console, analysis: dict, scope_label: str) -> None
         console.print(trigrams_table)
 
 
-def _render_comparison(
+def render_comparison(
     console: Console,
     comparison: dict,
     left_label: str,
@@ -229,20 +230,29 @@ def _export_analysis_if_requested(
     analysis: dict,
     scope_label: str,
     export: ExportConfig | None,
+    output_path: str | None = None,
 ) -> None:
-    """Write analysis output to a file when --export is provided."""
-    if export is None:
+    """Write analysis output to a file when --export or --output is provided."""
+    if export is None and output_path is None:
         return
 
     try:
-        out_path = export.resolve()
-        content = export_analysis(analysis, scope_label=scope_label, format=export.format)
+        if output_path is not None:
+            out_path, fmt = resolve_output_path(output_path, None)
+        else:
+            # We already checked that one of them is not None
+            assert export is not None
+            out_path = export.resolve()
+            fmt = export.format
+
+        content = export_analysis(analysis, scope_label=scope_label, format=fmt)
         write_text(out_path, content)
-        console.print(
-            f"[green]Exported analytics ({export.format}):[/green] {out_path.resolve()}\n"
-            f"[dim]  PATH={export.path}  FILENAME={export.filename}  "
-            f"FORMAT={export.format}[/dim]"
-        )
+        console.print(f"[green]Exported analytics ({fmt}):[/green] {out_path.resolve()}\n")
+        if export:
+            console.print(
+                f"[dim]  PATH={export.path}  FILENAME={export.filename}  "
+                f"FORMAT={export.format}[/dim]"
+            )
     except ValueError as e:
         console.print(f"[red]{e}[/red]")
         raise SystemExit(1)
@@ -255,20 +265,28 @@ def _export_compare_if_requested(
     *,
     comparison: dict,
     export: ExportConfig | None,
+    output_path: str | None = None,
 ) -> None:
-    """Write comparison output to a file when --export is provided."""
-    if export is None:
+    """Write comparison output to a file when --export or --output is provided."""
+    if export is None and output_path is None:
         return
 
     try:
-        out_path = export.resolve()
-        content = export_compare(comparison, format=export.format)
+        if output_path is not None:
+            out_path, fmt = resolve_output_path(output_path, None)
+        else:
+            assert export is not None
+            out_path = export.resolve()
+            fmt = export.format
+
+        content = export_compare(comparison, format=fmt)
         write_text(out_path, content)
-        console.print(
-            f"[green]Exported comparison ({export.format}):[/green] {out_path.resolve()}\n"
-            f"[dim]  PATH={export.path}  FILENAME={export.filename}  "
-            f"FORMAT={export.format}[/dim]"
-        )
+        console.print(f"[green]Exported comparison ({fmt}):[/green] {out_path.resolve()}\n")
+        if export:
+            console.print(
+                f"[dim]  PATH={export.path}  FILENAME={export.filename}  "
+                f"FORMAT={export.format}[/dim]"
+            )
     except ValueError as e:
         console.print(f"[red]{e}[/red]")
         raise SystemExit(1)
@@ -303,7 +321,14 @@ def _export_compare_if_requested(
     "-exp",
     type=EXPORT_PARAM,
     default=None,
-    help="Export to file: 'PATH=~/out,FILENAME=analysis,FORMAT=json' (all optional).",
+    help="Export to file (advanced): 'PATH=~/out,FILENAME=analysis,FORMAT=json'.",
+)
+@click.option(
+    "--output",
+    "-o",
+    type=str,
+    default=None,
+    help="Output file path (format detected from extension, e.g. 'out.md').",
 )
 @click.option(
     "--json",
@@ -316,14 +341,22 @@ def _export_compare_if_requested(
     type=click.Choice(["csv", "html", "json", "md", "txt", "xml"], case_sensitive=False),
     help="Output formatted content directly to stdout (for web download).",
 )
+@click.option(
+    "--save",
+    "save_name",
+    default=None,
+    help="Save analysis parameters to current scope under this name.",
+)
 @click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
 def reference(
     ref: str | None,
     translation_id: str | None,
     top_n: int,
     export: ExportConfig | None,
+    output: str | None,
     json: bool,
     stdout_export: str | None,
+    save_name: str | None,
     show_help: bool,
 ) -> None:
     """Analyze verses in a reference (e.g. 'John 3:16' or 'John 3:16-18')."""
@@ -338,11 +371,22 @@ def reference(
     service = _get_analytic_service(translation_id)
     analysis = service.analyze_reference(ref, translation_id, top_n)
 
-    if export is not None:
+    if save_name:
+        get_saved_analysis_service().save_analysis(
+            name=save_name,
+            reference=ref,
+            analysis_type="reference",
+            translation_id=translation_id,
+            params={"top_n": top_n},
+        )
+        console.print(f"[green]Saved analysis '{save_name}' to current scope.[/green]")
+
+    if export is not None or output is not None:
         _export_analysis_if_requested(
             analysis=analysis,
             scope_label=ref,
             export=export,
+            output_path=output,
         )
         return
 
@@ -355,7 +399,7 @@ def reference(
         content = export_analysis(analysis, scope_label=ref, format="json")
         print(content)
         return
-    _render_analysis(console, analysis, ref)
+    render_analysis(console, analysis, ref)
 
 
 @click.command("chapter", add_help_option=False, context_settings={"help_option_names": []})
@@ -381,7 +425,14 @@ def reference(
     "-exp",
     type=EXPORT_PARAM,
     default=None,
-    help="Export to file: 'PATH=~/out,FILENAME=chapter_analysis,FORMAT=json' (all optional).",
+    help="Export to file (advanced): 'PATH=~/out,FILENAME=chapter_analysis,FORMAT=json'.",
+)
+@click.option(
+    "--output",
+    "-o",
+    type=str,
+    default=None,
+    help="Output file path (format detected from extension, e.g. 'out.md').",
 )
 @click.option(
     "--json",
@@ -390,9 +441,10 @@ def reference(
     help="Output pure JSON to stdout (for web bridge).",
 )
 @click.option(
-    "--stdout-export",
-    type=click.Choice(["csv", "html", "json", "md", "txt", "xml"], case_sensitive=False),
-    help="Output formatted content directly to stdout (for web download).",
+    "--save",
+    "save_name",
+    default=None,
+    help="Save analysis parameters to current scope under this name.",
 )
 @click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
 def chapter(
@@ -401,8 +453,10 @@ def chapter(
     translation_id: str | None,
     top_n: int,
     export: ExportConfig | None,
+    output: str | None,
     json: bool,
     stdout_export: str | None,
+    save_name: str | None,
     show_help: bool,
 ) -> None:
     """Analyze all verses in a chapter."""
@@ -418,11 +472,22 @@ def chapter(
     analysis = service.analyze_chapter(book_name, chapter_num, translation_id, top_n)
     scope_label = f"{book_name} {chapter_num}"
 
-    if export is not None:
+    if save_name:
+        get_saved_analysis_service().save_analysis(
+            name=save_name,
+            reference=scope_label,
+            analysis_type="chapter",
+            translation_id=translation_id,
+            params={"top_n": top_n},
+        )
+        console.print(f"[green]Saved analysis '{save_name}' to current scope.[/green]")
+
+    if export is not None or output is not None:
         _export_analysis_if_requested(
             analysis=analysis,
             scope_label=scope_label,
             export=export,
+            output_path=output,
         )
         return
 
@@ -435,7 +500,7 @@ def chapter(
         content = export_analysis(analysis, scope_label=scope_label, format="json")
         print(content)
         return
-    _render_analysis(console, analysis, scope_label)
+    render_analysis(console, analysis, scope_label)
 
 
 @click.command("book", add_help_option=False, context_settings={"help_option_names": []})
@@ -460,7 +525,14 @@ def chapter(
     "-exp",
     type=EXPORT_PARAM,
     default=None,
-    help="Export to file: 'PATH=~/out,FILENAME=book_analysis,FORMAT=json' (all optional).",
+    help="Export to file (advanced): 'PATH=~/out,FILENAME=book_analysis,FORMAT=json'.",
+)
+@click.option(
+    "--output",
+    "-o",
+    type=str,
+    default=None,
+    help="Output file path (format detected from extension, e.g. 'out.md').",
 )
 @click.option(
     "--json",
@@ -469,9 +541,10 @@ def chapter(
     help="Output pure JSON to stdout (for web bridge).",
 )
 @click.option(
-    "--stdout-export",
-    type=click.Choice(["csv", "html", "json", "md", "txt", "xml"], case_sensitive=False),
-    help="Output formatted content directly to stdout (for web download).",
+    "--save",
+    "save_name",
+    default=None,
+    help="Save analysis parameters to current scope under this name.",
 )
 @click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
 def book(
@@ -479,8 +552,10 @@ def book(
     translation_id: str | None,
     top_n: int,
     export: ExportConfig | None,
+    output: str | None,
     json: bool,
     stdout_export: str | None,
+    save_name: str | None,
     show_help: bool,
 ) -> None:
     """Analyze all verses in a book."""
@@ -495,11 +570,22 @@ def book(
     service = _get_analytic_service(translation_id)
     analysis = service.analyze_book(book_name, translation_id, top_n)
 
-    if export is not None:
+    if save_name:
+        get_saved_analysis_service().save_analysis(
+            name=save_name,
+            reference=book_name,
+            analysis_type="book",
+            translation_id=translation_id,
+            params={"top_n": top_n},
+        )
+        console.print(f"[green]Saved analysis '{save_name}' to current scope.[/green]")
+
+    if export is not None or output is not None:
         _export_analysis_if_requested(
             analysis=analysis,
             scope_label=book_name,
             export=export,
+            output_path=output,
         )
         return
 
@@ -512,7 +598,7 @@ def book(
         content = export_analysis(analysis, scope_label=book_name, format="json")
         print(content)
         return
-    _render_analysis(console, analysis, book_name)
+    render_analysis(console, analysis, book_name)
 
 
 @click.command(
@@ -540,7 +626,14 @@ def book(
     "-exp",
     type=EXPORT_PARAM,
     default=None,
-    help="Export to file: 'PATH=~/out,FILENAME=compare,FORMAT=json' (all optional).",
+    help="Export to file (advanced): 'PATH=~/out,FILENAME=compare,FORMAT=json'.",
+)
+@click.option(
+    "--output",
+    "-o",
+    type=str,
+    default=None,
+    help="Output file path (format detected from extension, e.g. 'out.md').",
 )
 @click.option(
     "--json",
@@ -553,14 +646,22 @@ def book(
     type=click.Choice(["csv", "html", "json", "md", "txt", "xml"], case_sensitive=False),
     help="Output formatted content directly to stdout (for web download).",
 )
+@click.option(
+    "--save",
+    "save_name",
+    default=None,
+    help="Save analysis parameters to current scope under this name.",
+)
 @click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
 def compare(
     ref: str | None,
     translation_a: str,
     translation_b: str,
     export: ExportConfig | None,
+    output: str | None,
     json: bool,
     stdout_export: str | None,
+    save_name: str | None,
     show_help: bool,
 ) -> None:
     """Compare two translations side-by-side with diffs and similarity stats."""
@@ -601,17 +702,28 @@ def compare(
     service = _get_analytic_service(resolved_a)
     comparison = service.compare_translations(ref, resolved_a, resolved_b)
 
+    if save_name:
+        get_saved_analysis_service().save_analysis(
+            name=save_name,
+            reference=ref,
+            analysis_type="compare",
+            translation_id=resolved_a,
+            params={"translation_b": resolved_b},
+        )
+        console.print(f"[green]Saved comparison '{save_name}' to current scope.[/green]")
+
     if not comparison["aligned_verses"]:
         console.print("[red]No verses found for this reference in the selected translations.[/red]")
         raise SystemExit(1)
 
-    left_label = _display_translation_label(translation_a, resolved_a)
-    right_label = _display_translation_label(translation_b, resolved_b)
+    left_label = display_translation_label(translation_a, resolved_a)
+    right_label = display_translation_label(translation_b, resolved_b)
 
-    if export is not None:
+    if export is not None or output is not None:
         _export_compare_if_requested(
             comparison=comparison,
             export=export,
+            output_path=output,
         )
         return
 
@@ -624,4 +736,4 @@ def compare(
         content = export_compare(comparison, format="json")
         print(content)
         return
-    _render_comparison(console, comparison, left_label, right_label)
+    render_comparison(console, comparison, left_label, right_label)

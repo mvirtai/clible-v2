@@ -10,7 +10,7 @@ from clible.db.connection import get_connection
 from clible.db.repositories.book_repo import BookRepo
 from clible.db.repositories.translation_repo import TranslationRepo
 from clible.db.repositories.verse_repo import VerseRepo
-from clible.parsers.factory import create_parser
+from clible.parsers.combined_parser import CombinedParser
 from clible.services.seed_service import SeedService
 from clible.services.translation_catalog_sync import (
     TranslationCatalogSyncError,
@@ -33,7 +33,7 @@ def _get_seed_service() -> SeedService:
         translation_repo=TranslationRepo(conn),
         verse_repo=VerseRepo(conn),
         book_repo=BookRepo(conn),
-        parser_factory=create_parser,
+        xml_parser=CombinedParser(),
     )
 
 

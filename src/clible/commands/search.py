@@ -6,7 +6,7 @@ import click
 from rich.panel import Panel
 from rich.table import Table
 
-from clible.commands import get_verse_service
+from clible.commands import get_verse_service, get_saved_search_service
 from clible.db.connection import get_connection
 from clible.db.repositories.translation_repo import TranslationRepo
 from clible.ui.console import console
@@ -28,14 +28,14 @@ def _highlight_word(text: str, word: str) -> str:
     return pattern.sub(repl, text)
 
 
-def _display_scope_label(scope: str, scope_ref: str | None) -> str:
+def display_scope_label(scope: str, scope_ref: str | None) -> str:
     """Format scope for display: e.g. testament ref 'ot' -> 'OT'."""
     if scope == "testament" and scope_ref:
         return scope_ref.upper()
     return scope_ref if scope_ref else scope.capitalize()
 
 
-def _render_statistics(stats: dict, word: str, scope_label: str) -> None:
+def render_statistics(stats: dict, word: str, scope_label: str) -> None:
     """Render search statistics as a Rich table."""
     console.print(f"\n[bold cyan]Search Results: '{word}' in {scope_label}[/bold cyan]\n")
 
@@ -104,7 +104,7 @@ def _ask_user_confirmation(verse_count: int) -> int | None:
         return 0
 
 
-def _display_verses(verses: list[dict], word: str, limit: int | None = None) -> None:
+def display_verses(verses: list[dict], word: str, limit: int | None = None) -> None:
     """Display verses with highlighted search word.
 
     Args:
@@ -175,6 +175,12 @@ def _display_verses(verses: list[dict], word: str, limit: int | None = None) -> 
     type=click.Choice(["csv", "html", "json", "md", "txt", "xml"], case_sensitive=False),
     help="Output formatted content directly to stdout (for web download).",
 )
+@click.option(
+    "--save",
+    "save_name",
+    default=None,
+    help="Save search parameters to current scope under this name.",
+)
 @click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
 def search(
     word: str | None,
@@ -185,6 +191,7 @@ def search(
     export: ExportConfig | None,
     json: bool,
     stdout_export: str | None,
+    save_name: str | None,
     show_help: bool,
 ) -> None:
     """Search for verses containing a word with scope and statistics.
@@ -227,8 +234,18 @@ def search(
         scope_ref=scope_ref,
     )
 
+    if save_name:
+        get_saved_search_service().save_search(
+            name=save_name,
+            query_text=word,
+            search_scope=scope,
+            scope_value=scope_ref,
+            translation_id=translation_id,
+        )
+        console.print(f"[green]Saved search '{save_name}' to current scope.[/green]")
+
     if not filtered_verses:
-        scope_label = _display_scope_label(scope, scope_ref)
+        scope_label = display_scope_label(scope, scope_ref)
         if json:
             resolved_t = translation_id
             if resolved_t is None:
@@ -256,7 +273,7 @@ def search(
         )
         return
 
-    scope_label = _display_scope_label(scope, scope_ref)
+    scope_label = display_scope_label(scope, scope_ref)
     stats = service.get_search_statistics(filtered_verses, word)
 
     if export is not None:
@@ -336,7 +353,7 @@ def search(
         print(content)
         return
 
-    _render_statistics(stats, word, scope_label)
+    render_statistics(stats, word, scope_label)
 
     verse_count = len(filtered_verses)
     display_limit = result_limit
@@ -348,4 +365,4 @@ def search(
             return
         display_limit = user_choice
 
-    _display_verses(filtered_verses, word, display_limit)
+    display_verses(filtered_verses, word, display_limit)

@@ -33,6 +33,8 @@ class Config:
         seed_base_url: Optional base URL for seed XML; when set, seed uses
             seed_base_url + catalog filename instead of catalog url. Set via
             CLIBLE_SEED_BASE_URL.
+        scope_name: Name of the current research context (scope).
+            Set via CLIBLE_SCOPE; default 'default'.
     """
 
     db_path: Path
@@ -42,6 +44,7 @@ class Config:
     gcs_backup_prefix: str
     gcs_upload_timeout: int
     seed_base_url: str | None
+    scope_name: str
 
 
 _default_data_dir = Path(__file__).resolve().parent / "data"
@@ -60,6 +63,7 @@ config = Config(
     gcs_backup_prefix=os.environ.get("CLIBLE_GCS_BACKUP_PREFIX", "backups"),
     gcs_upload_timeout=int(os.environ.get("CLIBLE_GCS_UPLOAD_TIMEOUT", "300")),
     seed_base_url=os.environ.get("CLIBLE_SEED_BASE_URL") or None,
+    scope_name=os.environ.get("CLIBLE_SCOPE", "default"),
 )
 
 

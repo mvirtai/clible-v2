@@ -548,3 +548,97 @@ def test_analytics_compare_export_with_only_format_uses_defaults(cli_uses_temp_d
     assert "left:" not in content
     assert "right:" not in content
     assert "john 3:16" in content
+
+
+def test_analytics_reference_output_json_creates_file(cli_uses_temp_db, tmp_path: Path):
+    """analytics reference exports analysis as JSON using --output."""
+    conn = get_connection()
+    TranslationRepo(conn).create({"id": "web", "name": "WEB", "language": "en", "format": "BEBLIA"})
+    VerseRepo(conn).save_verses(
+        [{"book_id": "GEN", "chapter": 1, "verse": 1, "text": "In the beginning..."}], "web"
+    )
+    conn.close()
+
+    out_file = tmp_path / "result.json"
+    runner = CliRunner()
+    result = runner.invoke(main, ["analytics", "reference", "Gen 1:1", "--output", str(out_file)])
+
+    assert result.exit_code == 0
+    assert out_file.exists()
+    data = json.loads(out_file.read_text(encoding="utf-8"))
+    assert data["type"] == "analysis"
+    assert data["scope"] == "Gen 1:1"
+
+
+def test_analytics_reference_output_md_creates_file(cli_uses_temp_db, tmp_path: Path):
+    """analytics reference exports analysis as Markdown using --output."""
+    conn = get_connection()
+    TranslationRepo(conn).create({"id": "web", "name": "WEB", "language": "en", "format": "BEBLIA"})
+    VerseRepo(conn).save_verses(
+        [{"book_id": "GEN", "chapter": 1, "verse": 1, "text": "In the beginning..."}], "web"
+    )
+    conn.close()
+
+    out_file = tmp_path / "result.md"
+    runner = CliRunner()
+    result = runner.invoke(main, ["analytics", "reference", "Gen 1:1", "-o", str(out_file)])
+
+    assert result.exit_code == 0
+    assert out_file.exists()
+    assert "# Text Analysis: Gen 1:1" in out_file.read_text(encoding="utf-8")
+
+
+def test_analytics_compare_output_html_creates_file(cli_uses_temp_db, tmp_path: Path):
+    """analytics compare exports comparison as HTML using --output."""
+    conn = get_connection()
+    repo = TranslationRepo(conn)
+    repo.create({"id": "web", "name": "WEB", "language": "en", "format": "BEBLIA"})
+    repo.create({"id": "kjv", "name": "KJV", "language": "en", "format": "BEBLIA"})
+    VerseRepo(conn).save_verses(
+        [{"book_id": "GEN", "chapter": 1, "verse": 1, "text": "In the beginning..."}], "web"
+    )
+    VerseRepo(conn).save_verses(
+        [{"book_id": "GEN", "chapter": 1, "verse": 1, "text": "In start..."}], "kjv"
+    )
+    conn.close()
+
+    out_file = tmp_path / "diff.html"
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        ["analytics", "compare", "Gen 1:1", "--left", "web", "--right", "kjv", "-o", str(out_file)],
+    )
+
+    assert result.exit_code == 0
+    assert out_file.exists()
+    content = out_file.read_text(encoding="utf-8").lower()
+    assert "<!doctype html>" in content
+    assert "gen 1:1" in content
+
+
+def test_analytics_output_fails_on_unsupported_extension(cli_uses_temp_db, tmp_path: Path):
+    """analytics reference fails gracefully when extension is not supported."""
+    conn = get_connection()
+    TranslationRepo(conn).create({"id": "web", "name": "WEB", "language": "en", "format": "BEBLIA"})
+    conn.close()
+
+    out_file = tmp_path / "result.pdf"
+    runner = CliRunner()
+    result = runner.invoke(main, ["analytics", "reference", "Gen 1:1", "--output", str(out_file)])
+
+    assert result.exit_code != 0
+    assert "Unsupported --output format '.pdf'" in result.output
+
+
+def test_analytics_output_fails_on_missing_extension(cli_uses_temp_db, tmp_path: Path):
+    """analytics reference fails gracefully when extension is missing."""
+    conn = get_connection()
+    TranslationRepo(conn).create({"id": "web", "name": "WEB", "language": "en", "format": "BEBLIA"})
+    conn.close()
+
+    out_file = tmp_path / "result_no_ext"
+    runner = CliRunner()
+    result = runner.invoke(main, ["analytics", "reference", "Gen 1:1", "--output", str(out_file)])
+
+    assert result.exit_code != 0
+    assert "Missing file extension for --output" in result.output
