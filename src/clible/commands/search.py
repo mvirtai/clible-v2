@@ -335,7 +335,7 @@ def search(
         return
 
     if json:
-        scope_label = _display_scope_label(scope, scope_ref)
+        scope_label = display_scope_label(scope, scope_ref)
         verses_for_json = filtered_verses
         if result_limit is not None:
             verses_for_json = filtered_verses[: max(result_limit, 0)]
