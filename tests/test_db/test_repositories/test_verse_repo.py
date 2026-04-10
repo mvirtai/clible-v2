@@ -504,3 +504,34 @@ def test_get_book_verses_filters_by_translation(verse_repo, translation_repo):
     result = verse_repo.get_book_verses("web", "JHN")
     assert len(result) == 1
     assert result[0]["translation_id"] == "web"
+
+
+def test_search_text_handles_invalid_fts5_syntax(verse_repo, translation_repo):
+    """search_text falls back to literal phrase search when FTS5 syntax fails."""
+    translation_repo.create(
+        {
+            "id": "web",
+            "name": "World English Bible",
+            "language": "en",
+            "format": "USFX",
+        }
+    )
+    verse_repo.save_verses(
+        [
+            {
+                "book_id": "ACT",
+                "chapter": 1,
+                "verse": 13,
+                "text": "They went up into the upper room",
+            },
+            {"book_id": "JHN", "chapter": 3, "verse": 16, "text": "ACT 1:13"},
+        ],
+        "web",
+    )
+
+    # "1:13" triggers a "no such column: 1" OperationalError in FTS5 because of the colon.
+    # We expect the repository to catch this and fall back to searching literally.
+    results = verse_repo.search_text("ACT 1:13")
+    assert len(results) == 1
+    assert results[0]["book_id"] == "JHN"
+    assert results[0]["text"] == "ACT 1:13"

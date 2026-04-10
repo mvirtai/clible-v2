@@ -164,7 +164,7 @@ export default function App() {
     localStorage.setItem('clible_history', JSON.stringify(newHistory));
   };
 
-  const handleSearch = async (q: string) => {
+  const handleSearch = async (q: string, overrideType?: SearchType) => {
     if (!q.trim()) return;
     if (!settings?.translationId) {
       setError(
@@ -180,14 +180,17 @@ export default function App() {
     setNativeFrequency([]);
 
     try {
-      if (searchType === 'verse') {
+      const typeToUse = overrideType ?? searchType;
+      if (typeToUse === 'verse') {
         const data = await bibleRepository.getVerse(q, settings.translationId);
         setResult(data);
         setViewMode('reader');
+        setSearchType('verse');
       } else {
         const response = await bibleRepository.search(q, settings.translationId);
         setSearchResponse(response);
         setViewMode('search');
+        setSearchType('search');
       }
       saveToHistory(q);
       setQuery('');
@@ -392,7 +395,7 @@ export default function App() {
             <motion.div key="search" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
               <SearchView
                 searchResponse={searchResponse}
-                onResultClick={handleSearch}
+                onResultClick={(ref) => void handleSearch(ref, 'verse')}
               />
             </motion.div>
           )}

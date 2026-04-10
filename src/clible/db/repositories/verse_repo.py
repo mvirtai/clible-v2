@@ -208,5 +208,17 @@ class VerseRepo:
 
         query += " ORDER BY v.book_id, v.chapter, v.verse"
 
-        cursor = self.conn.execute(query, params)
-        return [_row_to_verse(row) for row in cursor.fetchall()]
+        try:
+            cursor = self.conn.execute(query, params)
+            return [_row_to_verse(row) for row in cursor.fetchall()]
+        except sqlite3.OperationalError as e:
+            if "syntax error" in str(e) or "no such column" in str(e):
+                # Fallback to literal phrase search if FTS5 syntax is broken by user input
+                safe_word = f'"{word.replace(chr(34), chr(34) + chr(34))}"'
+                params[0] = safe_word
+                try:
+                    cursor = self.conn.execute(query, params)
+                    return [_row_to_verse(row) for row in cursor.fetchall()]
+                except sqlite3.OperationalError:
+                    return []
+            raise
