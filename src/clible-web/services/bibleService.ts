@@ -20,7 +20,7 @@ export class BibleService {
       } catch {
         // ignore
       }
-      const message = details?.hint || details?.error || "Failed to generate insights.";
+      const message = details?.hint || details?.details || details?.error || "Failed to generate insights.";
       throw new Error(message);
     }
 
@@ -42,7 +42,7 @@ export class BibleService {
       } catch {
         // ignore
       }
-      const message = details?.hint || details?.error || "Failed to analyze tone.";
+      const message = details?.hint || details?.details || details?.error || "Failed to analyze tone.";
       throw new Error(message);
     }
 
