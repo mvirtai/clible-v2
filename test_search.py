@@ -4,7 +4,8 @@ import sqlite3
 def run():
     conn = sqlite3.connect(":memory:")
     conn.execute(
-        "CREATE VIRTUAL TABLE verses_fts USING fts5(text, book_id UNINDEXED, chapter UNINDEXED, verse UNINDEXED)"
+        "CREATE VIRTUAL TABLE verses_fts USING fts5("
+        "text, book_id UNINDEXED, chapter UNINDEXED, verse UNINDEXED)"
     )
     try:
         conn.execute("SELECT * FROM verses_fts WHERE text MATCH ?", ('"ACT 1:13"',))
