@@ -11,7 +11,8 @@
   "venvPath": "/home/vivaldev/code/clible-v2",
   "venv": ".venv",
   "extraPaths": [
-    "src"
+    "src",
+    "/home/vivaldev/code/clible-v2/.venv/lib/python3.12/site-packages"
   ],
   "typeCheckingMode": "basic",
   "reportMissingImports": true,
