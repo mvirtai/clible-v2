@@ -30,14 +30,24 @@ import { SearchView } from './components/SearchView';
 import { AnalyticsView } from './components/AnalyticsView';
 import type { AnalyticsMode } from './components/AnalyticsView';
 import { TranslationModal } from './components/TranslationModal';
+import { SettingsPanel } from './components/SettingsPanel';
 import { useAuth } from './AuthContext';
 import { LoginView } from './views/LoginView';
+import { useSettings } from './user/SettingsContext';
 
 type ViewMode = 'reader' | 'analytics' | 'search';
 type SearchType = 'verse' | 'search';
 
 export default function App() {
   const { user, loading: authLoading, login, logout } = useAuth();
+  const {
+    settings,
+    loading: settingsLoading,
+    error: settingsError,
+    updateSettings,
+  } = useSettings();
+
+  const [effectiveTheme, setEffectiveTheme] = useState<'light' | 'dark'>('light');
 
   const [query, setQuery] = useState('');
   const [result, setResult] = useState<BibleResponse | null>(null);
@@ -52,14 +62,48 @@ export default function App() {
   const [searchType, setSearchType] = useState<SearchType>('verse');
   const [analyticsMode, setAnalyticsMode] = useState<AnalyticsMode>('reference');
   const [toneAnalysis, setToneAnalysis] = useState<string | null>(null);
-  const [translation, setTranslation] = useState<string | null>(null);
   const [installedTranslations, setInstalledTranslations] = useState<InstalledTranslation[]>([]);
   const [translationsLoadError, setTranslationsLoadError] = useState<string | null>(null);
   const [showTranslations, setShowTranslations] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [nativeStats, setNativeStats] = useState<TextStats | null>(null);
   const [nativeFrequency, setNativeFrequency] = useState<WordFrequency[]>([]);
 
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (settingsError) {
+      setTranslationsLoadError(settingsError);
+    }
+  }, [settingsError]);
+
+  useEffect(() => {
+    const selected = settings?.theme ?? 'system';
+    const mq = window.matchMedia?.('(prefers-color-scheme: dark)');
+
+    const compute = () => {
+      if (selected === 'light' || selected === 'dark') {
+        setEffectiveTheme(selected);
+        return;
+      }
+      setEffectiveTheme(mq?.matches ? 'dark' : 'light');
+    };
+
+    compute();
+
+    if (selected === 'system' && mq) {
+      mq.addEventListener('change', compute);
+      return () => mq.removeEventListener('change', compute);
+    }
+    return;
+  }, [settings?.theme]);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = effectiveTheme;
+    return () => {
+      delete document.documentElement.dataset.theme;
+    };
+  }, [effectiveTheme]);
 
   useEffect(() => {
     if (!user) return;
@@ -77,10 +121,6 @@ export default function App() {
         if (cancelled) return;
         setInstalledTranslations(list);
         setTranslationsLoadError(null);
-        const savedId = localStorage.getItem('clible_translation_id');
-        if (savedId && list.some((t) => t.id === savedId)) {
-          setTranslation(savedId);
-        }
       } catch (e: unknown) {
         if (!cancelled) {
           setTranslationsLoadError(
@@ -94,6 +134,27 @@ export default function App() {
     };
   }, [user]);
 
+  useEffect(() => {
+    if (!user) return;
+    if (settingsLoading) return;
+    if (!settings) return;
+    if (settings.translationId) return;
+    if (installedTranslations.length === 0) return;
+
+    // One-time migration from legacy localStorage key into server settings.
+    const legacyId = localStorage.getItem("clible_translation_id");
+    if (!legacyId) return;
+    if (!installedTranslations.some((t) => t.id === legacyId)) return;
+
+    void updateSettings({ translationId: legacyId })
+      .then(() => {
+        localStorage.removeItem("clible_translation_id");
+      })
+      .catch(() => {
+        // Keep legacy value if server write failed.
+      });
+  }, [user, settingsLoading, settings, installedTranslations, updateSettings]);
+
   if (authLoading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   if (!user) return <LoginView onSuccess={login} />;
 
@@ -105,7 +166,7 @@ export default function App() {
 
   const handleSearch = async (q: string) => {
     if (!q.trim()) return;
-    if (!translation) {
+    if (!settings?.translationId) {
       setError(
         'Select a translation first (globe menu). Install one with: clible seed install <id>'
       );
@@ -120,11 +181,11 @@ export default function App() {
 
     try {
       if (searchType === 'verse') {
-        const data = await bibleRepository.getVerse(q, translation);
+        const data = await bibleRepository.getVerse(q, settings.translationId);
         setResult(data);
         setViewMode('reader');
       } else {
-        const response = await bibleRepository.search(q, translation);
+        const response = await bibleRepository.search(q, settings.translationId);
         setSearchResponse(response);
         setViewMode('search');
       }
@@ -152,7 +213,7 @@ export default function App() {
 
   const handleAnalytics = async (modeOverride?: AnalyticsMode) => {
     if (!result) return;
-    if (!translation) {
+    if (!settings?.translationId) {
       setError(
         'Select a translation first (globe menu). Install one with: clible seed install <id>'
       );
@@ -166,7 +227,7 @@ export default function App() {
       const { stats, frequency } = await bibleService.getNativeAnalytics(
         mode,
         result.reference,
-        translation
+        settings.translationId
       );
       setNativeStats(stats);
       setNativeFrequency(frequency);
@@ -182,8 +243,11 @@ export default function App() {
   };
 
   const handleTranslationSelect = (id: string) => {
-    setTranslation(id);
-    localStorage.setItem('clible_translation_id', id);
+    void updateSettings({ translationId: id }).catch((e: unknown) => {
+      setTranslationsLoadError(
+        e instanceof Error ? e.message : "Failed to save settings."
+      );
+    });
     setShowTranslations(false);
     setError(null);
   };
@@ -193,8 +257,12 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFCFB] text-[#1A1A1A] font-sans selection:bg-[#E6D5B8] selection:text-[#1A1A1A]">
-      <header className="border-b border-[#E5E5E5] bg-white/80 backdrop-blur-md sticky top-0 z-50">
+    <div
+      className="min-h-screen font-sans selection:bg-[#E6D5B8] selection:text-[#1A1A1A] bg-[var(--bg)] text-[var(--text)]"
+    >
+      <header
+        className="border-b backdrop-blur-md sticky top-0 z-50 border-[var(--border)] bg-[color:color-mix(in_srgb,var(--surface)_80%,transparent)]"
+      >
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-[#1A1A1A] rounded-lg flex items-center justify-center text-white">
@@ -211,8 +279,12 @@ export default function App() {
               className="flex items-center gap-2 px-3 py-1.5 hover:bg-[#F5F5F5] rounded-full transition-colors text-sm font-medium border border-[#E5E5E5]"
             >
               <Globe size={16} className="text-[#D4A373]" />
-              <span className={translation ? 'uppercase' : 'text-[#8E8E8E] normal-case'}>
-                {translation ?? 'Choose translation'}
+              <span
+                className={
+                  settings?.translationId ? 'uppercase' : 'text-[#8E8E8E] normal-case'
+                }
+              >
+                {settings?.translationId ?? 'Choose translation'}
               </span>
             </button>
             <button
@@ -224,7 +296,11 @@ export default function App() {
                 <span className="absolute top-1 right-1 w-2 h-2 bg-[#D4A373] rounded-full" />
               )}
             </button>
-            <button className="p-2 hover:bg-[#F5F5F5] rounded-full transition-colors">
+            <button
+              onClick={() => setShowSettings(true)}
+              className="p-2 hover:bg-[#F5F5F5] rounded-full transition-colors"
+              title="Settings"
+            >
               <Settings size={20} />
             </button>
             <div className="flex items-center gap-2 pl-2 border-l border-[#E5E5E5]">
@@ -340,9 +416,31 @@ export default function App() {
           <TranslationModal
             installedTranslations={installedTranslations}
             translationsLoadError={translationsLoadError}
-            activeTranslation={translation}
+            activeTranslation={settings?.translationId ?? null}
             onSelect={handleTranslationSelect}
             onClose={() => setShowTranslations(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showSettings && (
+          <SettingsPanel
+            open={showSettings}
+            onClose={() => setShowSettings(false)}
+            username={user!.username}
+            userId={user!.id}
+            settings={settings}
+            loading={settingsLoading}
+            error={settingsError}
+            installedTranslations={installedTranslations}
+            onPickTranslation={() => {
+              setShowSettings(false);
+              setShowTranslations(true);
+            }}
+            onSetTheme={(theme) => {
+              void updateSettings({ theme }).catch(() => {});
+            }}
           />
         )}
       </AnimatePresence>

@@ -24,4 +24,12 @@ usersDb.exec(`
         query_id TEXT NOT NULL,
         PRIMARY KEY (session_id, query_id)
     );
+
+    CREATE TABLE IF NOT EXISTS user_settings (
+        user_id TEXT PRIMARY KEY,
+        translation_id TEXT,
+        theme TEXT NOT NULL DEFAULT 'system',
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
     `);

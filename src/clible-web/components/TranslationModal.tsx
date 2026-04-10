@@ -22,14 +22,14 @@ export function TranslationModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center p-6"
+      className="fixed inset-0 z-[100] bg-[var(--overlay)] backdrop-blur-sm flex items-center justify-center p-6"
     >
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden"
+        className="bg-[var(--surface)] text-[var(--text)] w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden border border-[var(--border)]"
       >
-        <div className="p-6 border-b border-[#F5F5F5] flex justify-between items-center">
+        <div className="p-6 border-b border-[var(--border-soft)] flex justify-between items-center">
           <h3 className="text-lg font-semibold">Select Translation</h3>
           <button onClick={onClose}><X size={20} /></button>
         </div>
@@ -40,10 +40,10 @@ export function TranslationModal({
             </p>
           )}
           {!translationsLoadError && installedTranslations.length === 0 && (
-            <p className="col-span-full text-sm text-[#8E8E8E]">
+            <p className="col-span-full text-sm text-[var(--muted)]">
               No translations installed. On the machine or container where Clible runs, install
               one with:{' '}
-              <code className="font-mono text-[#1A1A1A]">clible seed install &lt;id&gt;</code>
+              <code className="font-mono text-[var(--text)]">clible seed install &lt;id&gt;</code>
               . Then refresh this page.
             </p>
           )}
@@ -51,20 +51,24 @@ export function TranslationModal({
             <button
               key={t.id}
               onClick={() => onSelect(t.id)}
-              className={`px-4 py-3 rounded-xl text-left border-2 transition-all ${activeTranslation === t.id ? 'border-[#1A1A1A] bg-[#F5F5F5]' : 'border-[#E5E5E5] hover:border-[#1A1A1A]'}`}
+              className={`px-4 py-3 rounded-xl text-left border-2 transition-all ${
+                activeTranslation === t.id
+                  ? 'border-[var(--text)] bg-[var(--surface-2)]'
+                  : 'border-[var(--border)] hover:border-[var(--text)]'
+              }`}
             >
               <span className="uppercase font-bold text-sm block">{t.id}</span>
-              <span className="text-xs text-[#8E8E8E] block mt-1">{t.name}</span>
-              <span className="text-[10px] text-[#8E8E8E] uppercase tracking-wide">
+              <span className="text-xs text-[var(--muted)] block mt-1">{t.name}</span>
+              <span className="text-[10px] text-[var(--muted)] uppercase tracking-wide">
                 {t.language} · {t.format}
               </span>
             </button>
           ))}
         </div>
-        <div className="p-6 bg-[#F5F5F5] text-xs text-[#8E8E8E]">
+        <div className="p-6 bg-[var(--surface-2)] text-xs text-[var(--muted)] border-t border-[var(--border-soft)]">
           <p>
             Only translations installed in this environment appear here. Use{' '}
-            <code className="font-mono text-[#1A1A1A]">clible seed list</code> in the terminal to
+            <code className="font-mono text-[var(--text)]">clible seed list</code> in the terminal to
             verify.
           </p>
         </div>
