@@ -82,7 +82,7 @@ export function markdownComponents(options: {
       <strong
         className={
           toneLayout && invert
-            ? 'font-semibold text-[var(--text)]'
+            ? 'font-semibold text-white'
             : strongCls
         }
       >
