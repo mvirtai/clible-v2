@@ -49,7 +49,9 @@ class SavedSearchRepo:
         search_id = str(uuid.uuid4())
         self.conn.execute(
             """
-            INSERT INTO saved_searches (id, scope_id, name, query_text, search_scope, scope_value, translation_id)
+            INSERT INTO saved_searches (
+                id, scope_id, name, query_text, search_scope, scope_value, translation_id
+            )
             VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             (search_id, scope_id, name, query_text, search_scope, scope_value, translation_id),

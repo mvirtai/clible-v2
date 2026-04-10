@@ -7,6 +7,8 @@ from clible.commands.analytics import chapter as analytics_chapter
 from clible.commands.analytics import compare as analytics_compare
 from clible.commands.analytics import reference as analytics_reference
 from clible.commands.backup import backup
+from clible.commands.saved import saved
+from clible.commands.scope import scope
 from clible.commands.search import search
 from clible.commands.seed import (
     available,
@@ -15,8 +17,6 @@ from clible.commands.seed import (
     remove,
     sync_catalog,
 )
-from clible.commands.saved import saved
-from clible.commands.scope import scope
 from clible.commands.verse import verse
 from clible.ui.help_texts import CLI_ROOT_HELP
 
