@@ -446,6 +446,11 @@ def reference(
     default=None,
     help="Save analysis parameters to current scope under this name.",
 )
+@click.option(
+    "--stdout-export",
+    type=click.Choice(["csv", "html", "json", "md", "txt", "xml"], case_sensitive=False),
+    help="Output formatted content directly to stdout (for web download).",
+)
 @click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
 def chapter(
     book_name: str | None,
@@ -545,6 +550,11 @@ def chapter(
     "save_name",
     default=None,
     help="Save analysis parameters to current scope under this name.",
+)
+@click.option(
+    "--stdout-export",
+    type=click.Choice(["csv", "html", "json", "md", "txt", "xml"], case_sensitive=False),
+    help="Output formatted content directly to stdout (for web download).",
 )
 @click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
 def book(
