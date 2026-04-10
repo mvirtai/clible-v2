@@ -8,8 +8,8 @@
  */
 
 export const geminiModels = {
-  insight: process.env.GEMINI_MODEL_INSIGHT?.trim() || "gemini-3-flash-preview",
-  tone: process.env.GEMINI_MODEL_TONE?.trim() || "gemini-3-flash-preview",
+  insight: process.env.GEMINI_MODEL_INSIGHT?.trim() || "gemini-flash-latest",
+  tone: process.env.GEMINI_MODEL_TONE?.trim() || "gemini-flash-latest",
 } as const;
 
 /**

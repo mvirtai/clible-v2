@@ -279,12 +279,35 @@ export default function App() {
     if (!exportContext) return;
     setExporting(true);
     try {
-      const { content, contentType } = await bibleRepository.export(
+      let { content, contentType } = await bibleRepository.export(
         exportContext.cmd,
         exportContext.args,
         format,
         exportContext.aiInsight ?? null
       );
+
+      // Append AI Insight if this is a verse export and we have one
+      if (exportContext.cmd === 'verse' && aiInsight && (format === 'md' || format === 'txt')) {
+        const separator = format === 'md' ? '\n\n---\n\n## AI Study Notes\n\n' : '\n\n---\n\nAI STUDY NOTES:\n\n';
+        content += separator + aiInsight;
+      }
+
+      if (exportContext.cmd === 'verse' && toneAnalysis && (format === 'html')) {
+        const separator = '\n\n---\n\n<h2>AI Study Notes</h2>\n\n';
+        content += separator + toneAnalysis;
+      }
+
+
+      if (exportContext.cmd === 'verse' && toneAnalysis && (format === 'txt')) {
+        const separator = '\n\n---\n\nAI Study Notes\n\n';
+        content += separator + toneAnalysis;
+      }
+
+      // Append Tone Analysis if this is an analytics export and we have one
+      if (exportContext.cmd === 'analytics' && toneAnalysis && (format === 'md' || format === 'txt')) {
+        const separator = format === 'md' ? '\n\n---\n\n## AI Tone & Style Analysis\n\n' : '\n\n---\n\nAI TONE & STYLE ANALYSIS:\n\n';
+        content += separator + toneAnalysis;
+      }
 
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
       const filename = `clible_export_${timestamp}.${format}`;
@@ -534,7 +557,7 @@ export default function App() {
               setShowTranslations(true);
             }}
             onSetTheme={(theme) => {
-              void updateSettings({ theme }).catch(() => {});
+              void updateSettings({ theme }).catch(() => { });
             }}
           />
         )}

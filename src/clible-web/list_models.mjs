@@ -15,17 +15,13 @@ const ai = new GoogleGenAI({ apiKey });
 
 async function run() {
     try {
-        const response = await ai.models.generateContent({
-            model: "gemini-1.5-flash",
-            contents: "Tell me a joke about Jesus.",
-            config: {
-                systemInstruction: "You are a helpful assistant.",
-            },
+        const models = await ai.models.list();
+        console.log("Available models:");
+        models.models.forEach(m => {
+            console.log(`- ${m.name} (${m.supportedGenerationMethods.join(", ")})`);
         });
-        console.log("Success:", !!response.text);
     } catch (e) {
         console.error("AI Error:", e.message);
-        console.error(e.stack);
     }
 }
 run();

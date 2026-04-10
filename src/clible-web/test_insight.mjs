@@ -49,13 +49,13 @@ ${passageText}`;
 async function run() {
     try {
         const response = await ai.models.generateContent({
-            model: "gemini-3-flash-preview",
+            model: "gemini-1.5-flash",
             contents: buildInsightUserPrompt("Jesus walks on water"),
             config: {
                 systemInstruction: insightSystemInstruction,
             },
         });
-        console.log("Success with gemini-3-flash-preview:", !!response.text);
+        console.log("Success with gemini-1.5-flash:", !!response.text);
     } catch (e) {
         console.error("SDK Error:", e);
     }

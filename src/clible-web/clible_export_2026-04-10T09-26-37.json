@@ -1,0 +1,13 @@
+{
+  "type": "verse_lookup",
+  "title": "Verses: 1CO 15:10",
+  "translation_id": "fin-1992",
+  "verses": [
+    {
+      "book_id": "1CO",
+      "chapter": 15,
+      "verse": 10,
+      "text": "Mutta Jumalan armosta minä olen se mikä olen, eikä hänen armonsa minua kohtaan ole mennyt hukkaan. Olen tehnyt enemmän työtä kuin kukaan heistä, en tosin minä itse, vaan Jumalan armo, joka on ollut voimani."
+    }
+  ]
+}
