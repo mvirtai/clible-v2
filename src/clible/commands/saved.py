@@ -3,7 +3,7 @@ import json
 import click
 from rich.table import Table
 
-from clible.commands import (
+from . import (
     get_saved_analysis_service,
     get_saved_search_service,
     get_verse_service,

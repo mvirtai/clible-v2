@@ -10,7 +10,7 @@ from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
 
-from clible.commands import get_saved_analysis_service
+from . import get_saved_analysis_service
 from clible.db.connection import get_connection
 from clible.db.repositories.book_repo import BookRepo
 from clible.db.repositories.translation_repo import TranslationRepo

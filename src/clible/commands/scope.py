@@ -1,7 +1,7 @@
 import click
 from rich.table import Table
 
-from clible.commands import get_scope_service
+from . import get_scope_service
 from clible.ui.console import console
 
 

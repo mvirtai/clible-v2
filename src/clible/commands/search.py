@@ -6,7 +6,7 @@ import click
 from rich.panel import Panel
 from rich.table import Table
 
-from clible.commands import get_saved_search_service, get_verse_service
+from . import get_saved_search_service, get_verse_service
 from clible.db.connection import get_connection
 from clible.db.repositories.translation_repo import TranslationRepo
 from clible.ui.console import console
