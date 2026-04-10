@@ -211,6 +211,13 @@ export class BibleRepository {
     return { content, contentType };
   }
 
+  private _escapeXml(text: string): string {
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
   private _appendAiInsight(content: string, aiInsight: string, format: string): string {
     switch (format) {
       case "md":
@@ -221,7 +228,7 @@ export class BibleRepository {
           "<section class='page-card'>" +
           "<div class='section-title'><h2>AI Insight</h2><span>AI-generated context and study notes</span></div>" +
           "<div class='glow' style='white-space:pre-wrap'>" +
-          aiInsight.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") +
+          this._escapeXml(aiInsight) +
           "</div></section>";
         return content.replace("</main>", section + "</main>");
       }
@@ -247,11 +254,8 @@ export class BibleRepository {
       }
 
       case "xml": {
-        const escaped = aiInsight
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;");
-        return content.replace(/<\/[^>]+>$/, (closing) => `<ai-insight>${escaped}</ai-insight>\n${closing}`);
+        const escaped = this._escapeXml(aiInsight);
+        return content.trimEnd().replace(/<\/[^>]+>$/, (closing) => `<ai-insight>${escaped}</ai-insight>\n${closing}`);
       }
 
       default:
