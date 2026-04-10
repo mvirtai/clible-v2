@@ -301,7 +301,7 @@ def search(
             default = TranslationRepo(conn).get_default()
             conn.close()
             resolved_t = default["id"] if default else None
-        
+
         title = f'Search: "{word}" in {scope_label}'
         content = export_verses_bundle(
             filtered_verses,

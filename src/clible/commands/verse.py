@@ -135,7 +135,7 @@ def verse(
             default = TranslationRepo(conn).get_default()
             conn.close()
             resolved_t = default["id"] if default else None
-        
+
         content = export_verses_bundle(
             verses,
             kind="verse",
