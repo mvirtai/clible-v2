@@ -8,12 +8,10 @@
     "**/__pycache__",
     ".venv"
   ],
-  "venvPath": ".",
+  "venvPath": "/home/vivaldev/code/clible-v2",
   "venv": ".venv",
-  "executionEnvironments": [
-    {
-      "root": "src"
-    }
+  "extraPaths": [
+    "src"
   ],
   "typeCheckingMode": "basic",
   "reportMissingImports": true,
