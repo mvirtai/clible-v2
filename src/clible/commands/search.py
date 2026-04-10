@@ -6,6 +6,7 @@ import click
 from rich.panel import Panel
 from rich.table import Table
 
+from clible.commands import get_verse_service, get_saved_search_service
 from clible.db.connection import get_connection
 from clible.db.repositories.translation_repo import TranslationRepo
 from clible.ui.console import console
@@ -13,8 +14,6 @@ from clible.ui.export import write_text
 from clible.ui.export_cli import EXPORT_PARAM, ExportConfig
 from clible.ui.help_texts import SEARCH_HELP
 from clible.ui.verse_search_export import export_verses_bundle
-
-from . import get_saved_search_service, get_verse_service
 
 
 def _highlight_word(text: str, word: str) -> str:
@@ -336,7 +335,7 @@ def search(
         return
 
     if json:
-        scope_label = display_scope_label(scope, scope_ref)
+        scope_label = _display_scope_label(scope, scope_ref)
         verses_for_json = filtered_verses
         if result_limit is not None:
             verses_for_json = filtered_verses[: max(result_limit, 0)]

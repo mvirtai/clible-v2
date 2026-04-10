@@ -16,6 +16,7 @@ from clible.db.repositories.translation_repo import TranslationRepo
 from clible.db.repositories.verse_repo import VerseRepo
 from clible.services.analytic_service import AnalyticService
 from clible.services.verse_service import VerseService
+from clible.commands import get_saved_analysis_service
 from clible.ui.console import console
 from clible.ui.export import export_analysis, export_compare, resolve_output_path, write_text
 from clible.ui.export_cli import EXPORT_PARAM, ExportConfig
@@ -25,8 +26,6 @@ from clible.ui.help_texts import (
     ANALYTICS_COMPARE_HELP,
     ANALYTICS_REFERENCE_HELP,
 )
-
-from . import get_saved_analysis_service
 
 _TRANSLATIONS_FILE = Path(__file__).parent.parent / "data" / "translations.json"
 
@@ -447,11 +446,6 @@ def reference(
     default=None,
     help="Save analysis parameters to current scope under this name.",
 )
-@click.option(
-    "--stdout-export",
-    type=click.Choice(["csv", "html", "json", "md", "txt", "xml"], case_sensitive=False),
-    help="Output formatted content directly to stdout (for web download).",
-)
 @click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
 def chapter(
     book_name: str | None,
@@ -551,11 +545,6 @@ def chapter(
     "save_name",
     default=None,
     help="Save analysis parameters to current scope under this name.",
-)
-@click.option(
-    "--stdout-export",
-    type=click.Choice(["csv", "html", "json", "md", "txt", "xml"], case_sensitive=False),
-    help="Output formatted content directly to stdout (for web download).",
 )
 @click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
 def book(

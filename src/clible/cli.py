@@ -17,6 +17,8 @@ from clible.commands.seed import (
     remove,
     sync_catalog,
 )
+from clible.commands.saved import saved
+from clible.commands.scope import scope
 from clible.commands.verse import verse
 from clible.ui.help_texts import CLI_ROOT_HELP
 

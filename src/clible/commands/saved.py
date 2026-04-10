@@ -3,6 +3,11 @@ import json
 import click
 from rich.table import Table
 
+from clible.commands import (
+    get_saved_analysis_service,
+    get_saved_search_service,
+    get_verse_service,
+)
 from clible.commands.analytics import (
     display_translation_label,
     render_analysis,
@@ -10,12 +15,6 @@ from clible.commands.analytics import (
 )
 from clible.commands.search import display_scope_label, display_verses, render_statistics
 from clible.ui.console import console
-
-from . import (
-    get_saved_analysis_service,
-    get_saved_search_service,
-    get_verse_service,
-)
 
 
 @click.group()

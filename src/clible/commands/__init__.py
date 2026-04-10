@@ -1,18 +1,18 @@
 """CLI command modules and shared wiring helpers."""
 
-from clible.config import get_config
 from clible.db.connection import get_connection
 from clible.db.repositories.book_repo import BookRepo
-from clible.db.repositories.saved_analysis_repo import SavedAnalysisRepo
-from clible.db.repositories.saved_search_repo import SavedSearchRepo
-from clible.db.repositories.scope_repo import ScopeRepo
 from clible.db.repositories.translation_repo import TranslationRepo
 from clible.db.repositories.verse_repo import VerseRepo
-from clible.services.analytic_service import AnalyticService
-from clible.services.saved_analysis_service import SavedAnalysisService
-from clible.services.saved_search_service import SavedSearchService
-from clible.services.scope_service import ScopeService
+from clible.db.repositories.scope_repo import ScopeRepo
+from clible.db.repositories.saved_search_repo import SavedSearchRepo
+from clible.db.repositories.saved_analysis_repo import SavedAnalysisRepo
 from clible.services.verse_service import VerseService
+from clible.services.scope_service import ScopeService
+from clible.services.saved_search_service import SavedSearchService
+from clible.services.saved_analysis_service import SavedAnalysisService
+from clible.services.analytic_service import AnalyticService
+from clible.config import get_config
 
 
 def get_verse_service() -> VerseService:
