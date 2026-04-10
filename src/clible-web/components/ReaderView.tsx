@@ -8,9 +8,10 @@ interface ReaderViewProps {
   aiInsight: string | null;
   aiLoading: boolean;
   onAiInsight: () => void;
+  onExport: () => void;
 }
 
-export function ReaderView({ result, aiInsight, aiLoading, onAiInsight }: ReaderViewProps) {
+export function ReaderView({ result, aiInsight, aiLoading, onAiInsight, onExport }: ReaderViewProps) {
   if (!result) {
     return (
       <div className="py-24 text-center space-y-6">
@@ -61,7 +62,10 @@ export function ReaderView({ result, aiInsight, aiLoading, onAiInsight }: Reader
           <button className="flex items-center gap-2 px-4 py-2 bg-[var(--surface-2)] hover:opacity-90 rounded-full text-sm font-medium transition-colors">
             <Share2 size={16} /> Share
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-[var(--surface-2)] hover:opacity-90 rounded-full text-sm font-medium transition-colors">
+          <button
+            onClick={onExport}
+            className="flex items-center gap-2 px-4 py-2 bg-[var(--surface-2)] hover:opacity-90 rounded-full text-sm font-medium transition-colors"
+          >
             <Download size={16} /> Export
           </button>
         </div>

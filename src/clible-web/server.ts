@@ -84,10 +84,14 @@ function parseClibleArgTokens(sanitized: string): string[] {
 
 function buildClibleArgv(cmd: string, tokens: string[]): string[] {
   const argv = [cmd, ...tokens];
-  if (cmd === "verse" || cmd === "search" || cmd === "analytics") {
-    argv.push("--json");
-  } else if (cmd === "seed" && tokens[0] === "list") {
-    argv.push("--json");
+  const isExport = tokens.some((t) => t.includes("--stdout-export"));
+
+  if (!isExport) {
+    if (cmd === "verse" || cmd === "search" || cmd === "analytics") {
+      argv.push("--json");
+    } else if (cmd === "seed" && tokens[0] === "list") {
+      argv.push("--json");
+    }
   }
   return argv;
 }
@@ -277,6 +281,24 @@ async function startServer() {
 
       if (stderr && !stdout.trim()) {
         return res.status(500).json({ error: stderr });
+      }
+
+      const isExport = tokens.some((t) => t.includes("--stdout-export"));
+      if (isExport) {
+        // Return raw content for exports
+        const formatMatch = sanitizedArgs.match(/--stdout-export\s+(\w+)/i);
+        const format = formatMatch ? formatMatch[1].toLowerCase() : "txt";
+        
+        const contentTypes: Record<string, string> = {
+          html: "text/html",
+          json: "application/json",
+          csv: "text/csv",
+          xml: "application/xml",
+          md: "text/markdown",
+        };
+        
+        res.setHeader("Content-Type", contentTypes[format] || "text/plain");
+        return res.send(stdout);
       }
 
       try {

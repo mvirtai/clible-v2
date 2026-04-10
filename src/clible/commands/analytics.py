@@ -311,6 +311,11 @@ def _export_compare_if_requested(
     default=False,
     help="Output pure JSON to stdout (for web bridge).",
 )
+@click.option(
+    "--stdout-export",
+    type=click.Choice(["csv", "html", "json", "md", "txt", "xml"], case_sensitive=False),
+    help="Output formatted content directly to stdout (for web download).",
+)
 @click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
 def reference(
     ref: str | None,
@@ -318,6 +323,7 @@ def reference(
     top_n: int,
     export: ExportConfig | None,
     json: bool,
+    stdout_export: str | None,
     show_help: bool,
 ) -> None:
     """Analyze verses in a reference (e.g. 'John 3:16' or 'John 3:16-18')."""
@@ -338,6 +344,11 @@ def reference(
             scope_label=ref,
             export=export,
         )
+        return
+
+    if stdout_export is not None:
+        content = export_analysis(analysis, scope_label=ref, format=stdout_export.lower())
+        print(content)
         return
 
     if json:
@@ -378,6 +389,11 @@ def reference(
     default=False,
     help="Output pure JSON to stdout (for web bridge).",
 )
+@click.option(
+    "--stdout-export",
+    type=click.Choice(["csv", "html", "json", "md", "txt", "xml"], case_sensitive=False),
+    help="Output formatted content directly to stdout (for web download).",
+)
 @click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
 def chapter(
     book_name: str | None,
@@ -386,6 +402,7 @@ def chapter(
     top_n: int,
     export: ExportConfig | None,
     json: bool,
+    stdout_export: str | None,
     show_help: bool,
 ) -> None:
     """Analyze all verses in a chapter."""
@@ -407,6 +424,11 @@ def chapter(
             scope_label=scope_label,
             export=export,
         )
+        return
+
+    if stdout_export is not None:
+        content = export_analysis(analysis, scope_label=scope_label, format=stdout_export.lower())
+        print(content)
         return
 
     if json:
@@ -446,6 +468,11 @@ def chapter(
     default=False,
     help="Output pure JSON to stdout (for web bridge).",
 )
+@click.option(
+    "--stdout-export",
+    type=click.Choice(["csv", "html", "json", "md", "txt", "xml"], case_sensitive=False),
+    help="Output formatted content directly to stdout (for web download).",
+)
 @click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
 def book(
     book_name: str | None,
@@ -453,6 +480,7 @@ def book(
     top_n: int,
     export: ExportConfig | None,
     json: bool,
+    stdout_export: str | None,
     show_help: bool,
 ) -> None:
     """Analyze all verses in a book."""
@@ -473,6 +501,11 @@ def book(
             scope_label=book_name,
             export=export,
         )
+        return
+
+    if stdout_export is not None:
+        content = export_analysis(analysis, scope_label=book_name, format=stdout_export.lower())
+        print(content)
         return
 
     if json:
@@ -516,17 +549,18 @@ def book(
     help="Output pure JSON to stdout (for web bridge).",
 )
 @click.option(
-    "--help",
-    "show_help",
-    is_flag=True,
-    help="Show this message and exit.",
+    "--stdout-export",
+    type=click.Choice(["csv", "html", "json", "md", "txt", "xml"], case_sensitive=False),
+    help="Output formatted content directly to stdout (for web download).",
 )
+@click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
 def compare(
     ref: str | None,
     translation_a: str,
     translation_b: str,
     export: ExportConfig | None,
     json: bool,
+    stdout_export: str | None,
     show_help: bool,
 ) -> None:
     """Compare two translations side-by-side with diffs and similarity stats."""
@@ -579,6 +613,11 @@ def compare(
             comparison=comparison,
             export=export,
         )
+        return
+
+    if stdout_export is not None:
+        content = export_compare(comparison, format=stdout_export.lower())
+        print(content)
         return
 
     if json:

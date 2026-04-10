@@ -8,11 +8,11 @@ interface StatMetricProps {
 
 function StatMetric({ label, value }: StatMetricProps) {
   return (
-    <div className="rounded-xl border border-[#E5E5E5] bg-[#FAF9F6] px-3 py-2">
-      <div className="text-[10px] uppercase tracking-wider text-[#8E8E8E]">
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
+      <div className="text-[10px] uppercase tracking-wider text-[var(--muted)]">
         {label}
       </div>
-      <div className="font-mono font-semibold text-[#1A1A1A]">{value}</div>
+      <div className="font-mono font-semibold text-[var(--text)]">{value}</div>
     </div>
   );
 }
@@ -35,17 +35,17 @@ export function SearchStatsPanel({ statistics, rowCount }: SearchStatsPanelProps
           <StatMetric label="Books" value={statistics.booksWithMatches} />
         </div>
 
-        <div className="rounded-xl border border-[#E5E5E5] bg-[#FAF9F6] px-3 py-2">
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
           <div className="flex items-center justify-between">
-            <div className="text-[10px] uppercase tracking-wider text-[#8E8E8E]">
+            <div className="text-[10px] uppercase tracking-wider text-[var(--muted)]">
               Top books
             </div>
-            <div className="text-[10px] uppercase tracking-wider text-[#8E8E8E]">
+            <div className="text-[10px] uppercase tracking-wider text-[var(--muted)]">
               Occurrences
             </div>
           </div>
           {statistics.topBooks.length === 0 ? (
-            <div className="pt-2 font-mono text-xs text-[#8E8E8E]">—</div>
+            <div className="pt-2 font-mono text-xs text-[var(--muted)]">—</div>
           ) : (
             <ol className="pt-2 space-y-1">
               {statistics.topBooks.map(([bookId, count], idx) => (
@@ -54,17 +54,17 @@ export function SearchStatsPanel({ statistics, rowCount }: SearchStatsPanelProps
                   className="flex items-baseline justify-between gap-3"
                 >
                   <div className="flex items-baseline gap-2 min-w-0">
-                    <span className="inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border border-[#E5E5E5] bg-white text-[10px] font-semibold text-[#8E8E8E]">
+                    <span className="inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[10px] font-semibold text-[var(--muted)]">
                       {idx + 1}
                     </span>
-                    <span className="truncate text-xs text-[#1A1A1A]">
+                    <span className="truncate text-xs text-[var(--text)]">
                       {bookName(bookId)}{' '}
-                      <span className="font-mono font-semibold text-[#D4A373]">
+                      <span className="font-mono font-semibold text-[var(--accent)]">
                         {bookId}
                       </span>
                     </span>
                   </div>
-                  <span className="font-mono text-xs text-[#4A4A4A]">
+                  <span className="font-mono text-xs text-[var(--text-2)]">
                     {count}
                   </span>
                 </li>
@@ -75,7 +75,7 @@ export function SearchStatsPanel({ statistics, rowCount }: SearchStatsPanelProps
       </div>
 
       {truncated && (
-        <p className="text-sm text-[#8E8E8E]">
+        <p className="text-sm text-[var(--muted)]">
           Showing first {rowCount} of {statistics.uniqueVerses} matching verses
           (limit).
         </p>

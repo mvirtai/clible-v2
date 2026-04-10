@@ -1,4 +1,4 @@
-import { BarChart3, Hash, MessageSquareQuote, Activity, Sparkles, Loader2 } from 'lucide-react';
+import { BarChart3, Hash, MessageSquareQuote, Activity, Sparkles, Loader2, Download } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import {
   BarChart,
@@ -21,6 +21,7 @@ interface AnalyticsViewProps {
   toneAnalysis: string | null;
   aiLoading: boolean;
   onModeChange: (mode: AnalyticsMode) => void;
+  onExport: () => void;
 }
 
 export function AnalyticsView({
@@ -30,23 +31,32 @@ export function AnalyticsView({
   toneAnalysis,
   aiLoading,
   onModeChange,
+  onExport,
 }: AnalyticsViewProps) {
   return (
     <div className="space-y-8">
-      <div className="flex gap-2 bg-[var(--surface-2)] p-1 rounded-xl w-fit border border-[var(--border-soft)]">
-        {(['reference', 'chapter', 'book'] as const).map((m) => (
-          <button
-            key={m}
-            onClick={() => onModeChange(m)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize ${
-              analyticsMode === m
-                ? 'bg-[var(--surface)] shadow-sm text-[var(--text)]'
-                : 'text-[var(--muted)] hover:text-[var(--text)]'
-            }`}
-          >
-            {m}
-          </button>
-        ))}
+      <div className="flex items-center justify-between">
+        <div className="flex gap-2 bg-[var(--surface-2)] p-1 rounded-xl w-fit border border-[var(--border-soft)]">
+          {(['reference', 'chapter', 'book'] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => onModeChange(m)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize ${
+                analyticsMode === m
+                  ? 'bg-[var(--surface)] shadow-sm text-[var(--text)]'
+                  : 'text-[var(--muted)] hover:text-[var(--text)]'
+              }`}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={onExport}
+          className="flex items-center gap-2 px-4 py-2 bg-[var(--surface-2)] hover:opacity-90 rounded-full text-sm font-medium transition-colors border border-[var(--border)]"
+        >
+          <Download size={16} /> Export Analytics
+        </button>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

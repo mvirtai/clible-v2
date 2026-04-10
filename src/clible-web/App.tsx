@@ -34,6 +34,8 @@ import { SettingsPanel } from './components/SettingsPanel';
 import { useAuth } from './AuthContext';
 import { LoginView } from './views/LoginView';
 import { useSettings } from './user/SettingsContext';
+import { ExportModal, ExportFormat } from './components/ExportModal';
+import { downloadFile } from './utils/download';
 
 type ViewMode = 'reader' | 'analytics' | 'search';
 type SearchType = 'verse' | 'search';
@@ -68,6 +70,13 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [nativeStats, setNativeStats] = useState<TextStats | null>(null);
   const [nativeFrequency, setNativeFrequency] = useState<WordFrequency[]>([]);
+  const [showExport, setShowExport] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportContext, setExportContext] = useState<{
+    cmd: "verse" | "search" | "analytics";
+    args: string;
+    title: string;
+  } | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -255,6 +264,36 @@ export default function App() {
     setError(null);
   };
 
+  const triggerExport = (
+    cmd: "verse" | "search" | "analytics",
+    args: string,
+    title: string
+  ) => {
+    setExportContext({ cmd, args, title });
+    setShowExport(true);
+  };
+
+  const handleExport = async (format: ExportFormat) => {
+    if (!exportContext) return;
+    setExporting(true);
+    try {
+      const { content, contentType } = await bibleRepository.export(
+        exportContext.cmd,
+        exportContext.args,
+        format
+      );
+
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const filename = `clible_export_${timestamp}.${format}`;
+      downloadFile(content, filename, contentType);
+      setShowExport(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Export failed.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Enter') handleSearch(query);
   };
@@ -388,6 +427,15 @@ export default function App() {
                 aiInsight={aiInsight}
                 aiLoading={aiLoading}
                 onAiInsight={handleAiInsight}
+                onExport={() => {
+                  if (result && settings?.translationId) {
+                    triggerExport(
+                      'verse',
+                      `"${result.reference}" -t ${settings.translationId}`,
+                      result.reference
+                    );
+                  }
+                }}
               />
             </motion.div>
           )}
@@ -396,6 +444,16 @@ export default function App() {
               <SearchView
                 searchResponse={searchResponse}
                 onResultClick={(ref) => void handleSearch(ref, 'verse')}
+                onExport={() => {
+                  if (searchResponse && settings?.translationId) {
+                    let args = `"${searchResponse.query}" -t ${settings.translationId}`;
+                    if (searchResponse.scope) args += ` --scope ${searchResponse.scope}`;
+                    if (searchResponse.scopeRef) args += ` -r "${searchResponse.scopeRef}"`;
+                    // For export we might want a higher limit or no limit, 
+                    // but for now let's use what's shown.
+                    triggerExport('search', args, `Search: ${searchResponse.query}`);
+                  }
+                }}
               />
             </motion.div>
           )}
@@ -408,6 +466,25 @@ export default function App() {
                 toneAnalysis={toneAnalysis}
                 aiLoading={aiLoading}
                 onModeChange={(m) => void handleAnalytics(m)}
+                onExport={() => {
+                  if (result && settings?.translationId) {
+                    let args = '';
+                    if (analyticsMode === 'reference') {
+                      args = `reference "${result.reference}" -t ${settings.translationId}`;
+                    } else if (analyticsMode === 'chapter') {
+                      const parts = result.reference.split(' ');
+                      const book = parts.slice(0, -1).join(' ');
+                      const chapter = parts[parts.length - 1].split(':')[0];
+                      args = `chapter "${book}" ${chapter} -t ${settings.translationId}`;
+                    } else if (analyticsMode === 'book') {
+                      const book = result.reference.split(' ')[0];
+                      args = `book "${book}" -t ${settings.translationId}`;
+                    }
+                    if (args) {
+                      triggerExport('analytics', args, `Analytics: ${result.reference}`);
+                    }
+                  }
+                }}
               />
             </motion.div>
           )}
@@ -422,6 +499,17 @@ export default function App() {
             activeTranslation={settings?.translationId ?? null}
             onSelect={handleTranslationSelect}
             onClose={() => setShowTranslations(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showExport && exportContext && (
+          <ExportModal
+            title={exportContext.title}
+            isExporting={exporting}
+            onExport={handleExport}
+            onClose={() => setShowExport(false)}
           />
         )}
       </AnimatePresence>

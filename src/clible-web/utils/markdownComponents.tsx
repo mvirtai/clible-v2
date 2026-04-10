@@ -109,7 +109,7 @@ export function markdownComponents(options: {
     ),
     hr: () => (
       <hr
-        className={`my-4 border-0 border-t ${invert ? 'border-[var(--border)]' : 'border-[#E5E5E5]'}`}
+        className={`my-4 border-0 border-t ${invert ? 'border-gray-700' : 'border-[var(--border-soft)]'}`}
       />
     ),
   };
