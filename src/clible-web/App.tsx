@@ -287,26 +287,28 @@ export default function App() {
       );
 
       // Append AI Insight if this is a verse export and we have one
-      if (exportContext.cmd === 'verse' && aiInsight && (format === 'md' || format === 'txt')) {
-        const separator = format === 'md' ? '\n\n---\n\n## AI Study Notes\n\n' : '\n\n---\n\nAI STUDY NOTES:\n\n';
-        content += separator + aiInsight;
-      }
+      if (exportContext.cmd === 'verse' && (aiInsight || toneAnalysis)) {
+        const aiText = aiInsight || toneAnalysis;
+        let separator = '';
+        if (format === 'md') separator = '\n\n---\n\n## AI Study Notes\n\n';
+        else if (format === 'txt') separator = '\n\n---\n\nAI STUDY NOTES:\n\n';
+        else if (format === 'html') separator = '\n\n---\n\n<h2>AI Study Notes</h2>\n\n';
+        else if (format === 'xml') separator = '\n\n---\n\n<ai_study_notes>\n';
 
-      if (exportContext.cmd === 'verse' && toneAnalysis && (format === 'html')) {
-        const separator = '\n\n---\n\n<h2>AI Study Notes</h2>\n\n';
-        content += separator + toneAnalysis;
-      }
-
-
-      if (exportContext.cmd === 'verse' && toneAnalysis && (format === 'txt')) {
-        const separator = '\n\n---\n\nAI Study Notes\n\n';
-        content += separator + toneAnalysis;
+        if (separator) {
+          content += separator + aiText;
+          if (format === 'xml') content += '\n</ai_study_notes>';
+        }
       }
 
       // Append Tone Analysis if this is an analytics export and we have one
-      if (exportContext.cmd === 'analytics' && toneAnalysis && (format === 'md' || format === 'txt')) {
-        const separator = format === 'md' ? '\n\n---\n\n## AI Tone & Style Analysis\n\n' : '\n\n---\n\nAI TONE & STYLE ANALYSIS:\n\n';
-        content += separator + toneAnalysis;
+      if (exportContext.cmd === 'analytics' && toneAnalysis) {
+        let separator = '';
+        if (format === 'md') separator = '\n\n---\n\n## AI Tone & Style Analysis\n\n';
+        else if (format === 'txt') separator = '\n\n---\n\nAI TONE & STYLE ANALYSIS:\n\n';
+        else if (format === 'html') separator = '\n\n---\n\n<h2>AI Tone & Style Analysis</h2>\n\n';
+
+        if (separator) content += separator + toneAnalysis;
       }
 
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);

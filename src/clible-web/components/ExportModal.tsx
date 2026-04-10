@@ -39,7 +39,7 @@ export function ExportModal({ title, onExport, onClose, isExporting }: ExportMod
           </div>
           <button onClick={onClose} disabled={isExporting}><X size={20} /></button>
         </div>
-        
+
         <div className="p-6 space-y-3">
           <div className="grid grid-cols-1 gap-3">
             {formats.map((f) => (
@@ -60,7 +60,7 @@ export function ExportModal({ title, onExport, onClose, isExporting }: ExportMod
             ))}
           </div>
         </div>
-        
+
         {isExporting && (
           <div className="px-6 pb-6 text-center">
             <p className="text-xs text-[var(--muted)] animate-pulse">Preparing your archives...</p>
