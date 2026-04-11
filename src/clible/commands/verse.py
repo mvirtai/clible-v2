@@ -5,7 +5,6 @@ import math
 import click
 from rich.panel import Panel
 
-from . import get_verse_service
 from clible.db.connection import get_connection
 from clible.db.repositories.translation_repo import TranslationRepo
 from clible.services.reference_parser import ReferenceScope, parse_reference
@@ -14,6 +13,8 @@ from clible.ui.export import write_text
 from clible.ui.export_cli import EXPORT_PARAM, ExportConfig
 from clible.ui.help_texts import VERSE_HELP
 from clible.ui.verse_search_export import export_verses_bundle
+
+from . import get_verse_service
 
 
 @click.command(add_help_option=False, context_settings={"help_option_names": []})

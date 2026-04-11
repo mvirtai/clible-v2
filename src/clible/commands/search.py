@@ -6,7 +6,6 @@ import click
 from rich.panel import Panel
 from rich.table import Table
 
-from . import get_saved_search_service, get_verse_service
 from clible.db.connection import get_connection
 from clible.db.repositories.translation_repo import TranslationRepo
 from clible.ui.console import console
@@ -14,6 +13,8 @@ from clible.ui.export import write_text
 from clible.ui.export_cli import EXPORT_PARAM, ExportConfig
 from clible.ui.help_texts import SEARCH_HELP
 from clible.ui.verse_search_export import export_verses_bundle
+
+from . import get_saved_search_service, get_verse_service
 
 
 def _highlight_word(text: str, word: str) -> str:

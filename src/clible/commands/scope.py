@@ -1,8 +1,9 @@
 import click
 from rich.table import Table
 
-from . import get_scope_service
 from clible.ui.console import console
+
+from . import get_scope_service
 
 
 @click.group()
