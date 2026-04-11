@@ -13,8 +13,8 @@ async function run() {
         console.log("Listing models...");
         const response = await ai.models.list();
         console.log("Found models:");
-        for (const model of response.data) {
-            console.log(`- ${model.name} (${model.supportedGenerationMethods?.join(", ")})`);
+        for await (const model of response) {
+            console.log(`- ${model.name} (${model.displayName ?? "No display name"})`);
         }
     } catch (e) {
         console.error("List Error:", e.message);
