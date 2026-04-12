@@ -425,7 +425,7 @@ export default function App() {
                   ? "Enter verse (e.g., John 3:16)..."
                   : "Search text (e.g., 'mountain', 'grace')..."
               }
-              className="w-full bg-white border-2 border-[#E5E5E5] focus:border-[#1A1A1A] rounded-2xl py-4 pl-12 pr-4 text-lg outline-none transition-all shadow-sm hover:shadow-md"
+              className="w-full bg-white border-2 border-gray-500 text-gray-700 focus:border-[#1A1A1A] rounded-2xl py-4 pl-12 pr-4 text-lg outline-none transition-all shadow-sm hover:shadow-md "
             />
           </div>
         </div>
