@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import "./load-env";
 import express from "express";
 import { exec, spawn } from "child_process";
 import { promisify } from "util";

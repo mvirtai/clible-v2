@@ -39,13 +39,13 @@ class SeedService:
         translation_repo: "TranslationRepo",
         verse_repo: "VerseRepo",
         book_repo: "BookRepo",
-        parser_factory: Callable[[Path], XMLParserProtocol],
+        xml_parser: XMLParserProtocol,
     ):
-        """Initialize with injected repositories and parser factory."""
+        """Initialize with injected repositories and unified XML parser."""
         self._translation_repo = translation_repo
         self._verse_repo = verse_repo
         self._book_repo = book_repo
-        self._parser_factory = parser_factory
+        self._xml_parser = xml_parser
 
     def list_available(self) -> list[dict]:
         """List all translations from the catalog.
@@ -118,8 +118,7 @@ class SeedService:
         with tempfile.NamedTemporaryFile(suffix=".xml", delete=True) as tmp:
             tmp.write(response.content)
             tmp.flush()
-            parser = self._parser_factory(Path(tmp.name))
-            verses = parser.parse_file(Path(tmp.name))
+            verses = self._xml_parser.parse_file(Path(tmp.name))
 
         valid_book_ids = {b["id"] for b in self._book_repo.get_all()}
         filtered = []

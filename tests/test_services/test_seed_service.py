@@ -5,18 +5,18 @@ from unittest.mock import patch
 
 import pytest
 
-from clible.parsers.factory import create_parser
+from clible.parsers.combined_parser import CombinedParser
 from clible.services.seed_service import SeedService
 
 
 @pytest.fixture
 def seed_service(translation_repo, verse_repo, book_repo):
-    """SeedService with parser factory and repo fixtures."""
+    """SeedService with CombinedParser and repo fixtures."""
     return SeedService(
         translation_repo=translation_repo,
         verse_repo=verse_repo,
         book_repo=book_repo,
-        parser_factory=create_parser,
+        xml_parser=CombinedParser(),
     )
 
 

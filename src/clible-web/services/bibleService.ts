@@ -61,17 +61,21 @@ export class BibleService {
     compareTranslation?: string
   ): Promise<{ stats: TextStats, frequency: WordFrequency[] }> {
     let args = '';
-    
+
     if (type === 'reference') {
       args = `reference "${value}" --translation ${translation} --top ${top}`;
     } else if (type === 'chapter') {
-      // Assuming value is "Book Chapter" (e.g., "John 3")
-      const parts = value.split(' ');
+      // value is a full reference like "John 3:16" — extract book and chapter number
+      const colonIdx = value.lastIndexOf(':');
+      const beforeColon = colonIdx !== -1 ? value.slice(0, colonIdx) : value;
+      const parts = beforeColon.split(' ');
       const book = parts.slice(0, -1).join(' ');
       const chapter = parts[parts.length - 1];
       args = `chapter "${book}" ${chapter} --translation ${translation} --top ${top}`;
     } else if (type === 'book') {
-      args = `book "${value}" --translation ${translation} --top ${top}`;
+      // value is a full reference like "John 3:16" — extract only the book name
+      const bookName = value.replace(/\s+\d.*$/, '');
+      args = `book "${bookName}" --translation ${translation} --top ${top}`;
     } else if (type === 'compare') {
       if (!compareTranslation?.trim()) {
         throw new Error(

@@ -279,12 +279,37 @@ export default function App() {
     if (!exportContext) return;
     setExporting(true);
     try {
-      const { content, contentType } = await bibleRepository.export(
+      let { content, contentType } = await bibleRepository.export(
         exportContext.cmd,
         exportContext.args,
         format,
         exportContext.aiInsight ?? null
       );
+
+      // Append AI Insight if this is a verse export and we have one
+      if (exportContext.cmd === 'verse' && (aiInsight || toneAnalysis)) {
+        const aiText = aiInsight || toneAnalysis;
+        let separator = '';
+        if (format === 'md') separator = '\n\n---\n\n## AI Study Notes\n\n';
+        else if (format === 'txt') separator = '\n\n---\n\nAI STUDY NOTES:\n\n';
+        else if (format === 'html') separator = '\n\n---\n\n<h2>AI Study Notes</h2>\n\n';
+        else if (format === 'xml') separator = '\n\n---\n\n<ai_study_notes>\n';
+
+        if (separator) {
+          content += separator + aiText;
+          if (format === 'xml') content += '\n</ai_study_notes>';
+        }
+      }
+
+      // Append Tone Analysis if this is an analytics export and we have one
+      if (exportContext.cmd === 'analytics' && toneAnalysis) {
+        let separator = '';
+        if (format === 'md') separator = '\n\n---\n\n## AI Tone & Style Analysis\n\n';
+        else if (format === 'txt') separator = '\n\n---\n\nAI TONE & STYLE ANALYSIS:\n\n';
+        else if (format === 'html') separator = '\n\n---\n\n<h2>AI Tone & Style Analysis</h2>\n\n';
+
+        if (separator) content += separator + toneAnalysis;
+      }
 
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
       const filename = `clible_export_${timestamp}.${format}`;
@@ -400,7 +425,7 @@ export default function App() {
                   ? "Enter verse (e.g., John 3:16)..."
                   : "Search text (e.g., 'mountain', 'grace')..."
               }
-              className="w-full bg-white border-2 border-[#E5E5E5] focus:border-[#1A1A1A] rounded-2xl py-4 pl-12 pr-4 text-lg outline-none transition-all shadow-sm hover:shadow-md"
+              className="w-full bg-white border-2 border-gray-500 text-gray-700 focus:border-[#1A1A1A] rounded-2xl py-4 pl-12 pr-4 text-lg outline-none transition-all shadow-sm hover:shadow-md "
             />
           </div>
         </div>
@@ -534,7 +559,7 @@ export default function App() {
               setShowTranslations(true);
             }}
             onSetTheme={(theme) => {
-              void updateSettings({ theme }).catch(() => {});
+              void updateSettings({ theme }).catch(() => { });
             }}
           />
         )}
