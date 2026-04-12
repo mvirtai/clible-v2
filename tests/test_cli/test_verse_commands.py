@@ -258,3 +258,53 @@ def test_verse_export_md_uses_default_when_format_omitted(cli_uses_temp_db, tmp_
     content = out_path.read_text(encoding="utf-8")
     assert "# Verses: John 3:16" in content
     assert "## Verses" in content
+
+
+def test_verse_panel_title_includes_translation_id(cli_uses_temp_db):
+    """Verse panel title shows '(translation_id)' so users know which language is shown."""
+    conn = get_connection()
+    translation_repo = TranslationRepo(conn)
+    verse_repo = VerseRepo(conn)
+    translation_repo.create(
+        {
+            "id": "greek",
+            "name": "Greek New Testament",
+            "language": "grc",
+            "format": "BEBLIA",
+        }
+    )
+    verse_repo.save_verses(
+        [{"book_id": "JHN", "chapter": 3, "verse": 16, "text": "Οὕτως γὰρ ἠγάπησεν"}],
+        "greek",
+    )
+    conn.close()
+
+    runner = CliRunner()
+    result = runner.invoke(main, ["verse", "John 3:16", "-t", "greek"])
+    assert result.exit_code == 0
+    assert "(greek)" in result.output
+
+
+def test_verse_panel_title_includes_default_translation_id_when_none_specified(cli_uses_temp_db):
+    """Verse panel title shows the default translation ID when --translation is not given."""
+    conn = get_connection()
+    translation_repo = TranslationRepo(conn)
+    verse_repo = VerseRepo(conn)
+    translation_repo.create(
+        {
+            "id": "web",
+            "name": "World English Bible",
+            "language": "en",
+            "format": "USFX",
+        }
+    )
+    verse_repo.save_verses(
+        [{"book_id": "JHN", "chapter": 3, "verse": 16, "text": "For God so loved"}],
+        "web",
+    )
+    conn.close()
+
+    runner = CliRunner()
+    result = runner.invoke(main, ["verse", "John 3:16"])
+    assert result.exit_code == 0
+    assert "(web)" in result.output

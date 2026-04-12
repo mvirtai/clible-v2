@@ -566,3 +566,28 @@ def test_search_export_md_all_keys_explicit(cli_uses_temp_db, tmp_path: Path):
     assert "loved" in content
     assert "## Statistics" in content
     assert "## Verses" in content
+
+
+def test_search_panel_title_includes_translation_id(cli_uses_temp_db):
+    """Search verse panel titles show '(translation_id)' to indicate the text language."""
+    conn = get_connection()
+    translation_repo = TranslationRepo(conn)
+    verse_repo = VerseRepo(conn)
+    translation_repo.create(
+        {
+            "id": "greek",
+            "name": "Greek New Testament",
+            "language": "grc",
+            "format": "BEBLIA",
+        }
+    )
+    verse_repo.save_verses(
+        [{"book_id": "JHN", "chapter": 3, "verse": 16, "text": "θεός κόσμον ἠγάπησεν"}],
+        "greek",
+    )
+    conn.close()
+
+    runner = CliRunner()
+    result = runner.invoke(main, ["search", "θεός", "-t", "greek", "--limit", "5"])
+    assert result.exit_code == 0
+    assert "(greek)" in result.output

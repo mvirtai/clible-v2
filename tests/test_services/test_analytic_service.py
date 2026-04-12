@@ -416,3 +416,46 @@ def test_compare_translations_ignores_unaligned_verses_in_most_similar_summary(
     assert result["summary"]["fully_aligned_verses"] == 0
     assert result["summary"]["average_similarity"] == 0.0
     assert result["summary"]["most_similar_verse"] is None
+
+
+def test_stopwords_loaded_for_grc_language(verse_service_mock):
+    """AnalyticService with language='grc' loads Ancient Greek stopwords."""
+    service = AnalyticService(
+        verse_service=verse_service_mock, filter_stopwords=True, language="grc"
+    )
+    # Common Ancient Greek function words must be filtered out
+    verse_service_mock.get_verses.return_value = [{"text": "καί ἐν λόγος θεός"}]
+    top = service.top_words("John 1:1", n=10)
+    filtered_words = [w for w, _ in top]
+    assert "καί" not in filtered_words
+    assert "ἐν" not in filtered_words
+    # Content words must remain
+    assert "λόγος" in filtered_words
+    assert "θεός" in filtered_words
+
+
+def test_stopwords_loaded_for_el_language(verse_service_mock):
+    """AnalyticService with language='el' loads Modern Greek stopwords."""
+    service = AnalyticService(
+        verse_service=verse_service_mock, filter_stopwords=True, language="el"
+    )
+    verse_service_mock.get_verses.return_value = [{"text": "και ο θεός λόγος"}]
+    top = service.top_words("John 1:1", n=10)
+    filtered_words = [w for w, _ in top]
+    assert "και" not in filtered_words
+    assert "ο" not in filtered_words
+    assert "λόγος" in filtered_words
+    assert "θεός" in filtered_words
+
+
+def test_analytics_language_defaults_to_en_stopwords(verse_service_mock):
+    """AnalyticService defaults to English stopwords when no language is specified."""
+    service = AnalyticService(verse_service=verse_service_mock, filter_stopwords=True)
+    verse_service_mock.get_verses.return_value = [
+        {"text": "In the beginning God created the heaven"}
+    ]
+    top = service.top_words("Genesis 1:1", n=10)
+    filtered_words = [w for w, _ in top]
+    assert "the" not in filtered_words
+    assert "in" not in filtered_words
+    assert "god" in filtered_words

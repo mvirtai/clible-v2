@@ -311,3 +311,54 @@ def test_get_book_verses_returns_empty_for_nonexistent_book(verse_service):
     """get_book_verses returns empty list when book not found."""
     result = verse_service.get_book_verses("Nonexistent", "web")
     assert result == []
+
+
+def test_english_reference_resolves_greek_translation_text(
+    verse_service, verse_repo, translation_repo
+):
+    """English book names ('John 3:16') correctly look up verses in a Greek translation.
+
+    Users enter references in English regardless of the translation language.
+    BookRepo uses the English canonical book structure, so Greek translation IDs
+    work transparently with English reference strings.
+    """
+    translation_repo.create(
+        {
+            "id": "greek",
+            "name": "Greek New Testament",
+            "language": "grc",
+            "format": "BEBLIA",
+        }
+    )
+    greek_text = "Οὕτως γὰρ ἠγάπησεν ὁ θεὸς τὸν κόσμον"
+    verse_repo.save_verses(
+        [{"book_id": "JHN", "chapter": 3, "verse": 16, "text": greek_text}],
+        "greek",
+    )
+    result = verse_service.get_verse("John 3:16", translation_id="greek")
+    assert result is not None
+    assert result["text"] == greek_text
+    assert result["book_id"] == "JHN"
+    assert result["chapter"] == 3
+    assert result["verse"] == 16
+
+
+def test_english_reference_resolves_across_all_non_english_translations(
+    verse_service, verse_repo, translation_repo
+):
+    """English references work correctly for Finnish, Greek, and Chinese translations."""
+    translations = [
+        ("fin-1992", "Sillä niin on Jumala maailmaa rakastanut", "fi"),
+        ("greek", "Οὕτως γὰρ ἠγάπησεν ὁ θεός", "grc"),
+    ]
+    for tid, text, lang in translations:
+        translation_repo.create({"id": tid, "name": tid, "language": lang, "format": "BEBLIA"})
+        verse_repo.save_verses(
+            [{"book_id": "JHN", "chapter": 3, "verse": 16, "text": text}],
+            tid,
+        )
+
+    for tid, expected_text, _ in translations:
+        result = verse_service.get_verse("John 3:16", translation_id=tid)
+        assert result is not None, f"Expected verse for translation '{tid}'"
+        assert result["text"] == expected_text

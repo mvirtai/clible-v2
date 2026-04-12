@@ -1,8 +1,6 @@
 """Analytics commands: text analysis for verses, chapters, books, and comparison."""
 
 import difflib
-import json as json_stdlib
-from pathlib import Path
 
 import click
 from rich.console import Console
@@ -10,6 +8,7 @@ from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
 
+from clible.config import get_config
 from clible.db.connection import get_connection
 from clible.db.repositories.book_repo import BookRepo
 from clible.db.repositories.translation_repo import TranslationRepo
@@ -28,35 +27,24 @@ from clible.ui.help_texts import (
 
 from . import get_saved_analysis_service
 
-_TRANSLATIONS_FILE = Path(__file__).parent.parent / "data" / "translations.json"
-
-
-def _language_for_translation(translation_id: str) -> str:
-    """Look up the language code for a given translation ID."""
-    if not _TRANSLATIONS_FILE.exists():
-        return "en"
-    with open(_TRANSLATIONS_FILE, encoding="utf-8") as f:
-        catalog = json_stdlib.load(f)
-    return catalog.get(translation_id, {}).get("language", "en")
-
 
 def _get_analytic_service(translation_id: str | None) -> AnalyticService:
-    """Build AnalyticService with real dependencies."""
+    """Build AnalyticService with real dependencies.
+
+    Stopword filtering uses ``config.analytics_language`` (default ``en``), which
+    is independent of the selected translation's language.  A user studying Greek
+    text therefore still gets English stopword filtering unless they explicitly set
+    ``CLIBLE_ANALYTICS_LANGUAGE=grc``.
+    """
     conn = get_connection()
     translation_repo = TranslationRepo(conn)
-
-    resolved_id = translation_id
-    if resolved_id is None:
-        default = translation_repo.get_default()
-        resolved_id = default["id"] if default else None
-
-    language = _language_for_translation(resolved_id) if resolved_id else "en"
 
     verse_service = VerseService(
         verse_repo=VerseRepo(conn),
         book_repo=BookRepo(conn),
         translation_repo=translation_repo,
     )
+    language = get_config().analytics_language
     return AnalyticService(verse_service=verse_service, language=language)
 
 

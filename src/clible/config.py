@@ -35,6 +35,10 @@ class Config:
             CLIBLE_SEED_BASE_URL.
         scope_name: Name of the current research context (scope).
             Set via CLIBLE_SCOPE; default 'default'.
+        analytics_language: Language code used for stopword filtering in analytics.
+            Defaults to 'en' regardless of the Bible text translation's language,
+            so the CLI interface and insights remain in English even when studying
+            Greek or other non-English translations. Set via CLIBLE_ANALYTICS_LANGUAGE.
     """
 
     db_path: Path
@@ -45,6 +49,7 @@ class Config:
     gcs_upload_timeout: int
     seed_base_url: str | None
     scope_name: str
+    analytics_language: str
 
 
 _default_data_dir = Path(__file__).resolve().parent / "data"
@@ -64,6 +69,7 @@ config = Config(
     gcs_upload_timeout=int(os.environ.get("CLIBLE_GCS_UPLOAD_TIMEOUT", "300")),
     seed_base_url=os.environ.get("CLIBLE_SEED_BASE_URL") or None,
     scope_name=os.environ.get("CLIBLE_SCOPE", "default"),
+    analytics_language=os.environ.get("CLIBLE_ANALYTICS_LANGUAGE", "en"),
 )
 
 

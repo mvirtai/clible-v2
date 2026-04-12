@@ -3057,7 +3057,7 @@
   },
   "greek1550": {
     "name": "Greek1550",
-    "language": "en",
+    "language": "grc",
     "format": "BEBLIA",
     "filename": "Greek1550Bible.xml",
     "url": "https://raw.githubusercontent.com/Beblia/Holy-Bible-XML-Format/master/Greek1550Bible.xml",
@@ -3065,7 +3065,7 @@
   },
   "greekbyz04": {
     "name": "Greekbyz04",
-    "language": "en",
+    "language": "grc",
     "format": "BEBLIA",
     "filename": "GreekBYZ04Bible.xml",
     "url": "https://raw.githubusercontent.com/Beblia/Holy-Bible-XML-Format/master/GreekBYZ04Bible.xml",
@@ -3073,7 +3073,7 @@
   },
   "greekbyz18": {
     "name": "Greekbyz18",
-    "language": "en",
+    "language": "grc",
     "format": "BEBLIA",
     "filename": "GreekBYZ18Bible.xml",
     "url": "https://raw.githubusercontent.com/Beblia/Holy-Bible-XML-Format/master/GreekBYZ18Bible.xml",
@@ -3081,7 +3081,7 @@
   },
   "greek": {
     "name": "Greek",
-    "language": "en",
+    "language": "grc",
     "format": "BEBLIA",
     "filename": "GreekBible.xml",
     "url": "https://raw.githubusercontent.com/Beblia/Holy-Bible-XML-Format/master/GreekBible.xml",
@@ -3089,7 +3089,7 @@
   },
   "greekelzevir": {
     "name": "Greekelzevir",
-    "language": "en",
+    "language": "grc",
     "format": "BEBLIA",
     "filename": "GreekElzevirBible.xml",
     "url": "https://raw.githubusercontent.com/Beblia/Holy-Bible-XML-Format/master/GreekElzevirBible.xml",
@@ -3097,7 +3097,7 @@
   },
   "greekf35": {
     "name": "Greekf35",
-    "language": "en",
+    "language": "grc",
     "format": "BEBLIA",
     "filename": "GreekF35Bible.xml",
     "url": "https://raw.githubusercontent.com/Beblia/Holy-Bible-XML-Format/master/GreekF35Bible.xml",
@@ -3105,7 +3105,7 @@
   },
   "greekfpb": {
     "name": "Greekfpb",
-    "language": "en",
+    "language": "grc",
     "format": "BEBLIA",
     "filename": "GreekFPBBible.xml",
     "url": "https://raw.githubusercontent.com/Beblia/Holy-Bible-XML-Format/master/GreekFPBBible.xml",
@@ -3113,7 +3113,7 @@
   },
   "greekgnt": {
     "name": "Greekgnt",
-    "language": "en",
+    "language": "grc",
     "format": "BEBLIA",
     "filename": "GreekGNTBible.xml",
     "url": "https://raw.githubusercontent.com/Beblia/Holy-Bible-XML-Format/master/GreekGNTBible.xml",
@@ -3121,7 +3121,7 @@
   },
   "greeklmgnt": {
     "name": "Greeklmgnt",
-    "language": "en",
+    "language": "grc",
     "format": "BEBLIA",
     "filename": "GreekLMGNTBible.xml",
     "url": "https://raw.githubusercontent.com/Beblia/Holy-Bible-XML-Format/master/GreekLMGNTBible.xml",
@@ -3129,7 +3129,7 @@
   },
   "greekmodern1904": {
     "name": "Greekmodern1904",
-    "language": "en",
+    "language": "el",
     "format": "BEBLIA",
     "filename": "GreekModern1904Bible.xml",
     "url": "https://raw.githubusercontent.com/Beblia/Holy-Bible-XML-Format/master/GreekModern1904Bible.xml",
@@ -3137,7 +3137,7 @@
   },
   "greekmodernfpb": {
     "name": "Greekmodernfpb",
-    "language": "en",
+    "language": "el",
     "format": "BEBLIA",
     "filename": "GreekModernFPBBible.xml",
     "url": "https://raw.githubusercontent.com/Beblia/Holy-Bible-XML-Format/master/GreekModernFPBBible.xml",
@@ -3145,7 +3145,7 @@
   },
   "greekntv": {
     "name": "Greekntv",
-    "language": "en",
+    "language": "grc",
     "format": "BEBLIA",
     "filename": "GreekNTVBible.xml",
     "url": "https://raw.githubusercontent.com/Beblia/Holy-Bible-XML-Format/master/GreekNTVBible.xml",
@@ -3153,7 +3153,7 @@
   },
   "greeksblgnt": {
     "name": "Greeksblgnt",
-    "language": "en",
+    "language": "grc",
     "format": "BEBLIA",
     "filename": "GreekSBLGNTBible.xml",
     "url": "https://raw.githubusercontent.com/Beblia/Holy-Bible-XML-Format/master/GreekSBLGNTBible.xml",
@@ -3161,7 +3161,7 @@
   },
   "greektcgnt": {
     "name": "Greektcgnt",
-    "language": "en",
+    "language": "grc",
     "format": "BEBLIA",
     "filename": "GreekTCGNTBible.xml",
     "url": "https://raw.githubusercontent.com/Beblia/Holy-Bible-XML-Format/master/GreekTCGNTBible.xml",
@@ -3169,7 +3169,7 @@
   },
   "greektgv": {
     "name": "Greektgv",
-    "language": "en",
+    "language": "grc",
     "format": "BEBLIA",
     "filename": "GreekTGVBible.xml",
     "url": "https://raw.githubusercontent.com/Beblia/Holy-Bible-XML-Format/master/GreekTGVBible.xml",
@@ -3177,7 +3177,7 @@
   },
   "greekthgnt": {
     "name": "Greekthgnt",
-    "language": "en",
+    "language": "grc",
     "format": "BEBLIA",
     "filename": "GreekTHGNTBible.xml",
     "url": "https://raw.githubusercontent.com/Beblia/Holy-Bible-XML-Format/master/GreekTHGNTBible.xml",
@@ -3185,7 +3185,7 @@
   },
   "greektr1894": {
     "name": "Greektr1894",
-    "language": "en",
+    "language": "grc",
     "format": "BEBLIA",
     "filename": "GreekTR1894Bible.xml",
     "url": "https://raw.githubusercontent.com/Beblia/Holy-Bible-XML-Format/master/GreekTR1894Bible.xml",
@@ -5833,7 +5833,7 @@
   },
   "originalgreek": {
     "name": "Originalgreek",
-    "language": "en",
+    "language": "grc",
     "format": "BEBLIA",
     "filename": "OriginalGreekBible.xml",
     "url": "https://raw.githubusercontent.com/Beblia/Holy-Bible-XML-Format/master/OriginalGreekBible.xml",

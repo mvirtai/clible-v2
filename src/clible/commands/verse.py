@@ -206,6 +206,15 @@ def verse(
             f"--page-size 0 shows all.[/dim]\n"
         )
 
+    display_t = translation_id
+    if display_t is None:
+        conn = get_connection()
+        default = TranslationRepo(conn).get_default()
+        conn.close()
+        display_t = default["id"] if default else None
+
     for v in to_show:
         ref_display = f"{v['book_id']} {v['chapter']}:{v['verse']}"
+        if display_t:
+            ref_display = f"{ref_display} ({display_t})"
         console.print(Panel(v["text"], title=ref_display, border_style="dim"))
