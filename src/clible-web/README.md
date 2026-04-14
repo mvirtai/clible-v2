@@ -2,22 +2,33 @@
 <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
 
-# Run and deploy your AI Studio app
+# Clible Web
 
-This contains everything you need to run your app locally.
+A modern, offline-first React web interface for the [Clible v2](../../README.md) Bible study CLI tool. Verse lookup, FTS5 full-text search, multi-scope text analytics, AI-powered insights, and multi-user support — all served from a single Docker container alongside the Python CLI engine.
 
-View your app in AI Studio: https://ai.studio/apps/78955bc0-b17d-47fa-adca-b4816c2b6882
+## Features
+
+- **Verse Lookup** — fetch a single verse, a verse range, or a full chapter/book by reference
+- **FTS5 Search** — full-text search powered by SQLite FTS5; click any result to inspect the verse
+- **Text Analytics** — three analysis scopes per verse:
+  - **Reference** — stats for the exact verse/range
+  - **Chapter** — stats for the verse's entire chapter
+  - **Book** — stats for the verse's entire book
+- **AI Tone Analysis** — Gemini-powered tone & style summary (optional, requires `GEMINI_API_KEY`)
+- **AI Study Notes** — contextual exegesis per verse (Reader view)
+- **Export** — download results in CSV, HTML, JSON, Markdown, TXT, or XML
+- **User Auth** — JWT-based login; per-user settings (translation preference, theme)
+- **Translation management** — globe menu lists installed translations; install more with `clible seed install <id>`
 
 ## Run Locally
 
-**Prerequisites:**  Node.js
+**Prerequisites:** Node.js 20+, `clible` CLI installed and at least one translation seeded (`clible seed install web`).
 
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in `.env.local` (or your shell env) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+```bash
+npm install
+cp .env.example .env          # set GEMINI_API_KEY if you want AI features
+npm run dev                   # Vite + Express on http://localhost:5173 / :3000
+```
 
 ## Docker
 
@@ -57,3 +68,36 @@ The server is receiving *some* key, but Google rejects it. Check:
 1. **Use a current key** from [Google AI Studio](https://aistudio.google.com/apikey) (or Cloud Console with **Generative Language API** enabled for that key).
 2. **`.env` format**: use `GEMINI_API_KEY=AIza...` on one line, no spaces around `=`. Avoid pasting the placeholder `MY_GEMINI_API_KEY`.
 3. **Cloud API key restrictions**: if the key is restricted to **HTTP referrers** or **IP addresses**, server-side calls from Docker will fail. For local testing, use **None** or restrict by API only (allow Generative Language API).
+
+## Analytics Scopes
+
+After fetching a verse (or clicking a search result), switch to the **Analytics** tab. Use the scope buttons to change what text is analysed:
+
+| Scope | What is analysed | CLI equivalent |
+|---|---|---|
+| **Reference** | The fetched verse/range | `clible analytics reference "John 3:16"` |
+| **Chapter** | The verse's entire chapter | `clible analytics chapter John 3` |
+| **Book** | The verse's entire book | `clible analytics book John` |
+
+Metrics are fetched from the CLI engine via the Express API bridge — no JavaScript re-computation.
+
+## Architecture
+
+```
+Browser (React/Vite)
+  └─▶ /api/*   Express (server.ts)  ──┐
+                                      │ child_process → clible CLI
+                                      │                 (Python / SQLite / FTS5)
+                                      └──────────────────────────────────────────
+```
+
+Frontend layers (TypeScript):
+
+| Layer | Path | Responsibility |
+|---|---|---|
+| Types | `types/` | Shared data shapes (`BibleResponse`, `TextStats`, …) |
+| Repository | `repositories/` | HTTP calls to `/api/*` |
+| Service | `services/` | Business logic, AI integration, analytics arg-building |
+| UI | `App.tsx`, `components/`, `views/` | Render only; no fetch calls |
+
+See [INTEGRATION.md](./INTEGRATION.md) for a deeper dive into the bridge architecture.
