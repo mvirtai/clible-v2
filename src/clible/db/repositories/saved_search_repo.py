@@ -54,7 +54,15 @@ class SavedSearchRepo:
             )
             VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (search_id, scope_id, name, query_text, search_scope, scope_value, translation_id),
+            (
+                search_id,
+                scope_id,
+                name,
+                query_text,
+                search_scope,
+                scope_value,
+                translation_id,
+            ),
         )
         self.conn.commit()
         return search_id
