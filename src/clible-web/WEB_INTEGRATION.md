@@ -128,6 +128,7 @@ spawn('clible', ['verse', 'John 3:16', '-t', 'web', '--json'])
 ### 2. Manages Authentication
 
 Before running **any** clible command, the server checks:
+
 - Is this user logged in? (Session cookie)
 - If not → Block the request with 401 Unauthorized
 
@@ -141,6 +142,7 @@ app.get('/api/clible', requireAuth, async (req, res) => {
 ### 3. Proxies Gemini AI Calls
 
 AI features (tone analysis, study insights) use Google's Gemini API. The server:
+
 - Receives text from the frontend
 - Sends it to Gemini with your API key (**never exposed to the browser**)
 - Returns the result to you
@@ -219,6 +221,7 @@ async getVerse(reference: string, translation: string): Promise<BibleResponse> {
 ```
 
 This layer handles:
+
 - Building correct query strings
 - Error handling
 - JSON parsing
@@ -251,6 +254,7 @@ async getNativeAnalytics(
 ```
 
 This layer handles:
+
 - Converting "John 3" to `chapter "John" 3` (correct CLI format)
 - AI insight prompts
 - Combining multiple API calls
@@ -314,6 +318,7 @@ async function handleSearch(query: string) {
 ### Session Storage
 
 Sessions are stored in SQLite (not memory), so:
+
 - Sessions persist across server restarts
 - Multiple instances can share sessions (with same database)
 - Sessions auto-expire after 24 hours
@@ -408,6 +413,7 @@ Frontend renders:    Chart + Statistics
 | **Book** | Entire Bible book | `"John"` = 19,000+ words |
 
 This lets you see:
+
 - Which words are emphasized in THIS verse?
 - How does this verse compare to its chapter context?
 - What's the pattern across the entire book?
@@ -449,6 +455,7 @@ npm run dev:web
 ```
 
 Then:
+
 - Frontend at `http://localhost:5173` (proxies `/api` to `http://localhost:3000`)
 - Backend at `http://localhost:3000`
 
@@ -481,6 +488,7 @@ docker build -f src/clible-web/Dockerfile -t clible-web .
 ```
 
 The Dockerfile:
+
 1. Starts with `clible-v2dev` image (has Clible CLI pre-installed)
 2. Adds Node.js
 3. Installs npm dependencies
@@ -505,6 +513,7 @@ docker run \
 ### `/api/clible` — Bible Engine Bridge
 
 **Query Parameters:**
+
 - `cmd` — Command name: `verse`, `search`, `analytics`, `seed`
 - `args` — Space-separated arguments (URL-encoded)
 
@@ -517,6 +526,7 @@ GET /api/clible?cmd=analytics&args=reference+"John+3:16"+-t+web
 ```
 
 **Response:**
+
 ```json
 {
   "reference": "John 3:16",
@@ -529,6 +539,7 @@ GET /api/clible?cmd=analytics&args=reference+"John+3:16"+-t+web
 ### `/api/ai/insight` — Study Insights
 
 **POST** with JSON body:
+
 ```json
 {
   "text": "For God so loved the world that he gave his only son..."
@@ -536,6 +547,7 @@ GET /api/clible?cmd=analytics&args=reference+"John+3:16"+-t+web
 ```
 
 **Response:**
+
 ```json
 {
   "text": "This verse emphasizes God's unconditional love and the significance of Christ's sacrifice..."
@@ -549,6 +561,7 @@ Similar to `/api/ai/insight`, returns emotional tone and style analysis.
 ### `/api/auth/register` — Create Account
 
 **POST** with:
+
 ```json
 {
   "username": "user123",
@@ -560,6 +573,7 @@ Similar to `/api/ai/insight`, returns emotional tone and style analysis.
 
 **GET** — Retrieve current settings
 **POST** — Update settings
+
 ```json
 {
   "translation_id": "esv",
@@ -578,6 +592,7 @@ NODE_ENV=development npm run dev:api
 ```
 
 In console, look for:
+
 ```
 [clible-web] bridge: argv clible verse "John 3:16" --json
 [clible-web] bridge: stdout chars 543 stderr chars 0

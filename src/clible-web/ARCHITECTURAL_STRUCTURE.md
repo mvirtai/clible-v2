@@ -229,6 +229,7 @@ const [nativeFrequency, setNativeFrequency] = useState<WordFrequency[]>([]);
 ```
 
 **Rationale:**
+
 - Simple, predictable state updates
 - No reducer boilerplate
 - Type-safe with TypeScript inference
@@ -275,6 +276,7 @@ const handleSearch = async (query: string) => {
 ```
 
 Guarantees:
+
 - Loading state always cleared (catch + finally)
 - Errors always displayed
 - Type-safe error handling
@@ -383,6 +385,7 @@ function buildClibleArgv(cmd: string, tokens: string[]): string[] {
 ```
 
 **Security mechanisms:**
+
 1. **Explicit command allowlist** — Only `verse`, `search`, `analytics`, `seed`
 2. **Regex tokenization** — Respectful of quoted arguments
 3. **Subprocess isolation** — `spawn()` not shell `exec()`
@@ -528,6 +531,7 @@ const match = await bcrypt.compare(password, storedHash);
 ```
 
 **Note:** Work factor 12 is chosen for:
+
 - ~500ms on modern CPU (prevents brute force)
 - Acceptable for login UX
 - Not so high it causes timeout on slow boxes
@@ -559,6 +563,7 @@ function SearchBar() {
 ```
 
 Benefits:
+
 - Single source of truth (React state)
 - Validation on change
 - Undo/redo capability if needed
@@ -681,6 +686,7 @@ const bibleService = new BibleService();
 ```
 
 **Design benefits:**
+
 - Single responsibility (per method)
 - Easy to test (mock repository layer)
 - Reusable across components
@@ -1034,6 +1040,7 @@ export default defineConfig(({ mode }) => {
 ```
 
 **Note:** `strict: true` enables:
+
 - `noImplicitAny`
 - `strictNullChecks`
 - `strictFunctionTypes`
