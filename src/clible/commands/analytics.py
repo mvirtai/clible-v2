@@ -10,13 +10,13 @@ from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
 
+from clible.commands import get_saved_analysis_service
 from clible.db.connection import get_connection
 from clible.db.repositories.book_repo import BookRepo
 from clible.db.repositories.translation_repo import TranslationRepo
 from clible.db.repositories.verse_repo import VerseRepo
 from clible.services.analytic_service import AnalyticService
 from clible.services.verse_service import VerseService
-from clible.commands import get_saved_analysis_service
 from clible.ui.console import console
 from clible.ui.export import export_analysis, export_compare, resolve_output_path, write_text
 from clible.ui.export_cli import EXPORT_PARAM, ExportConfig

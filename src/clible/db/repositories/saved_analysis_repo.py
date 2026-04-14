@@ -49,7 +49,9 @@ class SavedAnalysisRepo:
         analysis_id = str(uuid.uuid4())
         self.conn.execute(
             """
-            INSERT INTO saved_analyses (id, scope_id, name, reference, analysis_type, translation_id, params_json)
+            INSERT INTO saved_analyses (
+                id, scope_id, name, reference, analysis_type, translation_id, params_json
+            )
             VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             (analysis_id, scope_id, name, reference, analysis_type, translation_id, params_json),
