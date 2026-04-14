@@ -37,9 +37,7 @@ def display_scope_label(scope: str, scope_ref: str | None) -> str:
 
 def render_statistics(stats: dict, word: str, scope_label: str) -> None:
     """Render search statistics as a Rich table."""
-    console.print(
-        f"\n[bold cyan]Search Results: '{word}' in {scope_label}[/bold cyan]\n"
-    )
+    console.print(f"\n[bold cyan]Search Results: '{word}' in {scope_label}[/bold cyan]\n")
 
     table = Table(title="Statistics", show_header=True)
     table.add_column("Metric", style="dim")
@@ -132,9 +130,7 @@ def display_verses(verses: list[dict], word: str, limit: int | None = None) -> N
 @click.option(
     "--scope",
     "-s",
-    type=click.Choice(
-        ["verse", "chapter", "book", "testament", "bible"], case_sensitive=False
-    ),
+    type=click.Choice(["verse", "chapter", "book", "testament", "bible"], case_sensitive=False),
     default="bible",
     show_default=True,
     help="Search scope: verse range, chapter, book, testament (OT/NT), or whole bible.",
@@ -176,9 +172,7 @@ def display_verses(verses: list[dict], word: str, limit: int | None = None) -> N
 )
 @click.option(
     "--stdout-export",
-    type=click.Choice(
-        ["csv", "html", "json", "md", "txt", "xml"], case_sensitive=False
-    ),
+    type=click.Choice(["csv", "html", "json", "md", "txt", "xml"], case_sensitive=False),
     help="Output formatted content directly to stdout (for web download).",
 )
 @click.option(
