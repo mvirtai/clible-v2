@@ -73,3 +73,4 @@ src/clible/data/clible.db
 
 # test outputs
 outputs/
+.amazonq/rules/read-agentsmd.md
