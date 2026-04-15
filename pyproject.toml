@@ -7,7 +7,7 @@ packages = ["src/clible"]
 
 [project]
 name = "clible-v2"
-version = "0.2.0"
+version = \"0.2.2\"
 description = "Bible Study tool in CLI with users, sessions, text analytic experiments, export to different file types and basic read, diff, ref properties."
 readme = "README.md"
 requires-python = ">=3.12"
