@@ -346,7 +346,7 @@ def test_english_reference_resolves_greek_translation_text(
 def test_english_reference_resolves_across_all_non_english_translations(
     verse_service, verse_repo, translation_repo
 ):
-    """English references work correctly for Finnish, Greek, and Chinese translations."""
+    """English references work correctly for Finnish and Greek translations."""
     translations = [
         ("fin-1992", "Sillä niin on Jumala maailmaa rakastanut", "fi"),
         ("greek", "Οὕτως γὰρ ἠγάπησεν ὁ θεός", "grc"),

@@ -28,7 +28,7 @@ from clible.ui.help_texts import (
 from . import get_saved_analysis_service
 
 
-def _get_analytic_service(translation_id: str | None) -> AnalyticService:
+def _get_analytic_service(_translation_id: str | None) -> AnalyticService:
     """Build AnalyticService with real dependencies.
 
     Stopword filtering uses ``config.analytics_language`` (default ``en``), which

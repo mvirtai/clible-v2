@@ -169,7 +169,7 @@ uv run clible verse "John 3:16" -t greek
 # Search in the Greek text
 uv run clible search θεός -t greek
 
-# Analyse the Greek text
+# Analyze the Greek text
 uv run clible analytics reference "John 3:16" -t greek
 
 # Compare the Greek text against an English translation
