@@ -47,6 +47,10 @@ From the repository root:
 uv sync
 ```
 
+## Projects deps initialization processes
+
+This will create a virtual environment and install the Python dependencies. The `clible` CLI command will be available in that environment.
+
 That will install the Python dependencies and create the locked environment for the project.
 
 ### If you do not have `uv`
@@ -103,6 +107,7 @@ From `src/clible-web`:
 npm run dev
 ```
 
+this
 This starts the Vite frontend and the Express API server together.
 
 ### Docker-based run (recommended for non-programmers)
