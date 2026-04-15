@@ -107,7 +107,6 @@ From `src/clible-web`:
 npm run dev
 ```
 
-this
 This starts the Vite frontend and the Express API server together.
 
 ### Docker-based run (recommended for non-programmers)
