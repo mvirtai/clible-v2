@@ -9,6 +9,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from clible.config import get_config
+from clible.commands import get_saved_analysis_service
 from clible.db.connection import get_connection
 from clible.db.repositories.book_repo import BookRepo
 from clible.db.repositories.translation_repo import TranslationRepo
@@ -27,6 +28,7 @@ from clible.ui.help_texts import (
 
 from . import get_saved_analysis_service
 
+_TRANSLATIONS_FILE = Path(__file__).parent.parent / "data" / "translations.json"
 
 def _get_analytic_service(_translation_id: str | None) -> AnalyticService:
     """Build AnalyticService with real dependencies.
@@ -435,11 +437,6 @@ def reference(
     default=None,
     help="Save analysis parameters to current scope under this name.",
 )
-@click.option(
-    "--stdout-export",
-    type=click.Choice(["csv", "html", "json", "md", "txt", "xml"], case_sensitive=False),
-    help="Output formatted content directly to stdout (for web download).",
-)
 @click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
 def chapter(
     book_name: str | None,
@@ -539,11 +536,6 @@ def chapter(
     "save_name",
     default=None,
     help="Save analysis parameters to current scope under this name.",
-)
-@click.option(
-    "--stdout-export",
-    type=click.Choice(["csv", "html", "json", "md", "txt", "xml"], case_sensitive=False),
-    help="Output formatted content directly to stdout (for web download).",
 )
 @click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
 def book(

@@ -1,6 +1,6 @@
 # clible v2 — Project Overview
 
-**Last updated:** 2026-03-26
+**Last updated:** 2026-04-12
 
 This document provides a comprehensive picture of the clible v2 application: what it is, its architecture, current implementation status, and where all the pieces live.
 
@@ -80,6 +80,8 @@ clible is a command-line Bible study tool. The v2 rebuild aims for:
 | **CI** | `.github/workflows/ci.yml` | uv, ruff, pytest on push/PR |
 | **Task automation** | `Taskfile.yml` | lint/test/check + Docker build/push tasks |
 | **Dependencies** | `pyproject.toml` | click, rich, requests, ruff, pytest, pytest-mock |
+| **Web UI** | `src/clible-web/` | React/Vite + Express bridge; verse lookup, FTS5 search, analytics, export, AI insights, JWT auth |
+| **Analytics scopes (web)** | `src/clible-web/services/bibleService.ts` | Reference/Chapter/Book scope arg-building with correct reference parsing |
 
 ### Planned (not yet implemented)
 
@@ -93,6 +95,17 @@ clible is a command-line Bible study tool. The v2 rebuild aims for:
 
 ```text
 clible-v2/
+├── src/clible-web/                 # Web UI (React/Vite + Express bridge)
+│   ├── server.ts                  # Express: API bridge, auth, AI proxy
+│   ├── App.tsx                    # Root component; state, routing, analytics
+│   ├── components/                # AnalyticsView, ReaderView, SearchView, …
+│   ├── services/bibleService.ts   # Analytics scope arg-building, AI calls
+│   ├── repositories/              # HTTP calls to /api/*
+│   ├── types/                     # Shared TS types (BibleResponse, TextStats, …)
+│   ├── views/                     # Full-page views (LoginView)
+│   ├── user/                      # SettingsContext, per-user prefs
+│   ├── INTEGRATION.md             # Web↔CLI bridge docs (Finnish)
+│   └── README.md                  # Setup, features, architecture
 ├── src/clible/
 │   ├── cli.py                 # Entry point, CLI groups
 │   ├── config.py              # Configuration (env overrides)
@@ -208,7 +221,8 @@ Backlog is tracked in:
 - `plans/future-directions_2026-03-26.plan.md` (feature direction by theme)
 - `PLAN.md` (original ticket breakdown / learning order)
 
-High-impact remaining items (as of `2026-03-26`):
-- **Verse search performance**: push scope filtering into `VerseRepo` SQL instead of filtering all FTS matches in Python.
+High-impact remaining items (as of `2026-04-12`):
+- **Extended analytics scopes**: multi-book, Old/New Testament, whole-Bible analysis.
+- **Concordance view (web)**: expose the CLI concordance command in the web UI.
 - **CLI connection management refactor**: use Click context to keep a single DB connection per command invocation.
 - **Export deduplication**: consolidate shared export flow/helpers across verse/search/analytics.
