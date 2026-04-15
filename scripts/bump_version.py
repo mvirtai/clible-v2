@@ -1,7 +1,7 @@
 import argparse
 import re
-from pathlib import Path
 import sys
+from pathlib import Path
 
 VERSION_COMMENT_PREFIX = "# Version "
 PYPROJECT_VERSION_RE = re.compile(r'^(version\s*=\s*)"([^"]+)"', re.MULTILINE)
@@ -88,7 +88,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "version",
         nargs="?",
-        help="Version string to set, e.g. 2.0.0-beta. If omitted, reads current version interactively.",
+        help="Version string to set, e.g. 2.0.0-beta. If omitted, reads current version interactively.",  # noqa: E501
     )
     parser.add_argument(
         "--bump",
@@ -128,9 +128,7 @@ def main() -> int:
         version = normalize_version(args.version)
     else:
         if sys.stdin.isatty():
-            version = normalize_version(
-                input("Enter version to set (e.g. 2.0.0-beta): ").strip()
-            )
+            version = normalize_version(input("Enter version to set (e.g. 2.0.0-beta): ").strip())
         else:
             raise ValueError("Version is required when not running interactively.")
 
