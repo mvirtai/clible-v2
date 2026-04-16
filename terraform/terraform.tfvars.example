@@ -1,0 +1,10 @@
+# Copy this file to terraform.tfvars and fill in your values
+# DO NOT commit terraform.tfvars to version control
+
+project_id = "your-gcp-project-id"
+region     = "europe-north1"
+domain     = "bible.yourdomain.com"  # Leave empty if not using custom domain
+
+# Generate with: openssl rand -hex 32
+gemini_api_key = "your-gemini-api-key"
+session_secret = "your-session-secret-64-chars"
