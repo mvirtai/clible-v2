@@ -290,6 +290,8 @@ To push to **Google Cloud Artifact Registry** instead of Docker Hub, set `CLIBLE
 ## Documentation
 
 - **[docs/PROJECT_OVERVIEW.md](docs/PROJECT_OVERVIEW.md)** — Architecture, schema, implementation status
+- **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** — Cloud deployment guide (GCP, AWS, DigitalOcean, etc.)
+- **[docs/DEPLOY_FREE.md](docs/DEPLOY_FREE.md)** — Free deployment options without custom domain
 - **[docs/GCP_SETUP.md](docs/GCP_SETUP.md)** — Google Cloud (GCS backup, seed from GCS, Artifact Registry)
 - **[docs/INTEGRATION.md](docs/INTEGRATION.md)** — CLI and web integration guide
 - **[docs/SEARCH_FLOW.md](docs/SEARCH_FLOW.md)** — FTS5 full-text search flow
