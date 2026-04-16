@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: clible-web
+    runtime: docker
+    dockerfilePath: ./src/clible-web/Dockerfile
+    dockerContext: .
+    plan: starter
+    region: frankfurt
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: PORT
+        value: 3000
+    disk:
+      name: clible-data
+      mountPath: /home/clible/.clible-data
+      sizeGB: 1
