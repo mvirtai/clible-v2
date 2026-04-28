@@ -12,7 +12,7 @@ This PR removes duplicate XML parser implementations and aligns runtime, tests, 
 
 ## Files added
 
-- `pr_stories/pr-TBD-remove-duplicate-parser-paths.md` — PR description for this change.
+- `pr_stories/pr-TBD-combined-parser-consolidation.md` — PR description for this change.
 
 ## Files modified
 
