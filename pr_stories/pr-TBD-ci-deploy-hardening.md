@@ -21,6 +21,6 @@ This PR tightens the web deployment path so Cloud Run deploys are gated by the s
 
 ## Tests
 
-- `npm run lint` — TypeScript checks for the web app.
-- `npm run build` — Vite production build.
-- `docker build -f src/clible-web/Dockerfile .` — validates the runtime image and Docker health check path.
+- `npm ci && npm run lint && npm run build` — passed; verifies the same web install, TypeScript, and Vite build checks used by deploy preflight.
+- `curl -i http://localhost:3000/health` — passed against the production-mode Express server; returned `HTTP/1.1 200 OK` and `{"status":"ok"}`.
+- `docker build -f src/clible-web/Dockerfile -t clible-web-healthcheck-test .` — not run locally because Docker is not installed in this environment.
