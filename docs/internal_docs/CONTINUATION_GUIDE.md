@@ -67,19 +67,20 @@ Follow the seed implementation plan. Each step builds on the previous one.
 
 ---
 
-### 4. ~~USFX parser~~ ✅ Done
+### 4. ~~Combined XML parser~~ ✅ Done
 
-**Why:** Converts XML to verse dicts for bulk insert.
+**Why:** Converts all supported XML formats to verse dicts for bulk insert with one parser path.
 
 **Create:**
 - `src/clible/parsers/__init__.py`
-- `src/clible/parsers/usfx_parser.py` — `USFXParser.parse_file(xml_path) -> list[dict]`
+- `src/clible/parsers/combined_parser.py` — `CombinedParser.parse_file(xml_path) -> list[dict]`
+- `src/clible/parsers/osis_book_map.py` — OSIS book-code normalization map
 - `tests/fixtures/sample.usfx.xml` — Minimal John 1:1-5 for tests
-- `tests/test_parsers/test_usfx_parser.py`
+- `tests/test_parsers/test_combined_parser.py`
 
 **Output shape:** `{book_id, chapter, verse, text}` (book_id = GEN, JHN, etc.)
 
-**Implementation:** Use `xml.etree.ElementTree` (stdlib). Map USFX book ids (GEN, JHN) to `books` table ids. Skip prefaces, footnotes for v1.
+**Implementation:** Use `xml.etree.ElementTree` (stdlib). Detect root format and parse USFX/OSIS/BEBLIA/ZEFANIA to `{book_id, chapter, verse, text}`. Skip non-canonical content and inline note/reference text when needed.
 
 **Reference:** `src/clible/data/eng-web.usfx.xml` — structure: `<book id="GEN">`, `<c id="1"/>`, `<v id="1"/>` with text before `<ve/>`
 

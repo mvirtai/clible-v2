@@ -1,6 +1,6 @@
 # clible v2 — Project Overview
 
-**Last updated:** 2026-04-12
+**Last updated:** 2026-04-29
 
 This document provides a comprehensive picture of the clible v2 application: what it is, its architecture, current implementation status, and where all the pieces live.
 
@@ -34,9 +34,9 @@ clible is a command-line Bible study tool. The v2 rebuild aims for:
                │                              │
 ┌──────────────▼──────────────┐  ┌─────────────▼──────────────────┐
 │ Repositories                │  │ Parsers                         │
-│   TranslationRepo           │  │   USFXParser, OSISParser,        │
-│   BookRepo                  │  │   BebliaParser                   │
-│   VerseRepo                 │  │   (XML → verse dicts)           │
+│   TranslationRepo           │  │   CombinedParser                │
+│   BookRepo                  │  │   (USFX/OSIS/BEBLIA/ZEFANIA    │
+│   VerseRepo                 │  │    XML → verse dicts)           │
 └──────────────┬──────────────┘  └─────────────────────────────────┘
                │
 ┌──────────────▼──────────────┐
@@ -66,9 +66,7 @@ clible is a command-line Bible study tool. The v2 rebuild aims for:
 | **TranslationRepo** | `src/clible/db/repositories/translation_repo.py` | get_all, get_by_id, exists, create, delete, get_default |
 | **BookRepo** | `src/clible/db/repositories/book_repo.py` | get_all, get_by_id, get_by_name, search |
 | **VerseRepo** | `src/clible/db/repositories/verse_repo.py` | get_verse, get_verses, get_verses_in_range, save_verses, search_text |
-| **USFX parser** | `src/clible/parsers/usfx_parser.py` | parse_file(xml_path) → list of verse dicts |
-| **OSIS parser** | `src/clible/parsers/osis_parser.py` | parse_file(xml_path) → list of verse dicts (container + milestone) |
-| **Beblia parser** | `src/clible/parsers/beblia_parser.py` | parse_file(xml_path) for BEBLIA XML format |
+| **Combined parser** | `src/clible/parsers/combined_parser.py` | parse_file(xml_path) detects and parses USFX/OSIS/BEBLIA/ZEFANIA |
 | **OSIS book map** | `src/clible/parsers/osis_book_map.py` | OSIS book IDs → clible book IDs |
 | **SeedService** | `src/clible/services/seed_service.py` | list_available, list_installed, seed_translation, remove_translation |
 | **VerseService** | `src/clible/services/verse_service.py` | get_verse/get_verses (single + range), chapter/book retrieval, FTS search |
@@ -129,10 +127,9 @@ clible-v2/
 │   │       ├── translation_repo.py
 │   │       └── verse_repo.py
 │   ├── parsers/
-│   │   ├── beblia_parser.py   # BEBLIA XML → verse dicts
+│   │   ├── combined_parser.py # Unified XML parser (USFX/OSIS/BEBLIA/ZEFANIA)
 │   │   ├── osis_book_map.py   # OSIS → clible book ID mapping
-│   │   ├── osis_parser.py     # OSIS XML → verse dicts
-│   │   └── usfx_parser.py     # USFX XML → verse dicts
+│   │   └── protocol.py        # XML parser protocol
 │   ├── services/
 │   │   ├── analytic_service.py
 │   │   ├── seed_service.py
