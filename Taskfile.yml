@@ -153,7 +153,10 @@ tasks:
 
   check:
     desc: Run lint, format check, and tests
-    deps: [lint, format-check, test]
+    cmds:
+      - task: lint
+      - task: format-check
+      - task: test
 
   build:
     desc: Build Docker image with latest and commit tags
