@@ -1,6 +1,7 @@
 """Seed subcommands: install, list, available, remove."""
 
 import json
+from pathlib import Path
 
 import click
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -35,6 +36,17 @@ def _get_seed_service() -> SeedService:
         book_repo=BookRepo(conn),
         xml_parser=CombinedParser(),
     )
+
+
+def _load_available_catalog() -> list[dict]:
+    """Load available translations from the bundled catalog without DB access."""
+    catalog_path = Path(__file__).resolve().parent.parent / "data" / "translations.json"
+    with open(catalog_path, encoding="utf-8") as f:
+        catalog = json.load(f)
+    return [
+        {"id": tid, **{k: v for k, v in meta.items() if k != "filename"}}
+        for tid, meta in catalog.items()
+    ]
 
 
 @click.command("install", add_help_option=False, context_settings={"help_option_names": []})
@@ -188,8 +200,6 @@ def available(
         console.print(SEED_AVAILABLE_HELP)
         return
 
-    service = _get_seed_service()
-
     if limit < 0:
         console.print("[red]Error: --limit must be >= 0.[/red]")
         raise SystemExit(1)
@@ -197,7 +207,7 @@ def available(
         console.print("[red]Error: --offset must be >= 0.[/red]")
         raise SystemExit(1)
 
-    items = service.list_available()
+    items = _load_available_catalog()
 
     if format_filters:
         allowed_formats = {f.upper() for f in format_filters}

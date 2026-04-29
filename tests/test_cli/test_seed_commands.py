@@ -122,6 +122,21 @@ def test_seed_available_json_limit_zero_returns_many(cli_uses_temp_db):
     assert all("id" in row for row in data)
 
 
+def test_seed_available_works_without_seed_service(monkeypatch, cli_uses_temp_db):
+    """seed available should not require opening DB-backed SeedService."""
+    import clible.commands.seed as seed_commands
+
+    def fail_if_called():
+        raise RuntimeError("SeedService should not be called for available.")
+
+    monkeypatch.setattr(seed_commands, "_get_seed_service", fail_if_called)
+    runner = CliRunner()
+    result = runner.invoke(main, ["seed", "available", "--json", "--limit", "1"])
+    assert result.exit_code == 0
+    data = json.loads(result.output.strip())
+    assert len(data) == 1
+
+
 def test_seed_list_empty_shows_hint(cli_uses_temp_db):
     """seed list shows hint when no translations installed."""
     runner = CliRunner()
