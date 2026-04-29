@@ -1,6 +1,6 @@
 # Clible Web
 
-A modern, offline-first React web interface for the [Clible v2](../../README.md) Bible study tool. Search scriptures, analyze text, get AI-powered insights, and share results—all running locally in your browser or from a single Docker container.
+A modern React web interface for the [Clible v2](../../README.md) Bible study tool. Search scriptures, analyze text, get AI-powered insights, and share results—all from a single Docker container or a Cloud Run deployment.
 
 ## 🎯 What You Can Do
 
@@ -21,6 +21,7 @@ The easiest way to run Clible Web is with Docker. You just need:
 
 1. [Docker Desktop](https://www.docker.com/products/docker-desktop) installed and running
 2. A terminal (Command Prompt on Windows, Terminal on Mac/Linux)
+3. A PostgreSQL connection string (see [CLOUD_SQL_SETUP.md](../../docs/CLOUD_SQL_SETUP.md) — [Neon](https://neon.tech) offers a free tier)
 
 **One-time setup:**
 
@@ -32,7 +33,9 @@ docker build -f src/clible-web/Dockerfile -t clible-web .
 **Run it:**
 
 ```bash
-docker run --rm -p 3000:3000 -v clible-data:/home/clible/.clible-data clible-web
+docker run --rm -p 3000:3000 \
+  -e DATABASE_URL="postgresql://user:pass@host/dbname?sslmode=require" \
+  clible-web
 ```
 
 Then open your browser to: **<http://localhost:3000>**
@@ -181,19 +184,16 @@ docker build -f src/clible-web/Dockerfile -t clible-web .
 ### Run with Custom Port
 
 ```bash
-docker run -p 8080:3000 clible-web  # Access at http://localhost:8080
-```
-
-### Persist Data Between Runs
-
-```bash
-docker run -v clible-data:/home/clible/.clible-data clible-web
+docker run -p 8080:3000 -e DATABASE_URL="..." clible-web  # Access at http://localhost:8080
 ```
 
 ### Add Custom Environment Variables
 
 ```bash
-docker run -e GEMINI_API_KEY="your-key-here" clible-web
+docker run \
+  -e DATABASE_URL="postgresql://..." \
+  -e GEMINI_API_KEY="your-key-here" \
+  clible-web
 ```
 
 ### Check Container Logs
@@ -205,8 +205,8 @@ docker logs <CONTAINER_ID>
 ## 🔒 Security Notes
 
 - **Your API Key is Safe**: The Gemini API key never reaches your browser—it only lives on the server
-- **Offline by Default**: Once you've downloaded a Bible translation, all lookups and searches work offline
-- **User Passwords**: Stored securely with encryption; never sent to any external service
+- **Bible Data is Offline**: Once a translation is seeded, all verse lookups and searches work without network access
+- **User Accounts use PostgreSQL**: Passwords are hashed (bcrypt) and stored in your own PostgreSQL database; never sent to any external service
 - **No Tracking**: Clible Web doesn't track you or send data anywhere
 
 ## 🆘 Troubleshooting
@@ -233,7 +233,8 @@ docker logs <CONTAINER_ID>
 
 - Make sure the Docker container is running: `docker ps`
 - Check that port 3000 isn't already in use
-- Try a different port: `docker run -p 8080:3000 clible-web`
+- Try a different port: `docker run -p 8080:3000 -e DATABASE_URL="..." clible-web`
+- Verify `DATABASE_URL` is set and points to a reachable PostgreSQL instance
 
 ### Forgot Password
 
