@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'src/clible-web/**'
+      - 'Taskfile.yml'
       - '.github/workflows/deploy-web.yml'
   workflow_dispatch:
 
@@ -23,6 +24,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install Task
+        uses: go-task/setup-task@v1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: src/clible-web/package-lock.json
+
+      - name: Run web preflight checks
+        run: task web-check-no-docker
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
@@ -35,25 +49,35 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Configure Docker for Artifact Registry
-        run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev
+        env:
+          CLIBLE_GCP_ARTIFACT_REGISTRY: ${{ secrets.CLIBLE_GCP_ARTIFACT_REGISTRY }}
+        run: |
+          REGISTRY_HOST="${CLIBLE_GCP_ARTIFACT_REGISTRY%%/*}"
+          gcloud auth configure-docker "${REGISTRY_HOST}"
 
       - name: Build web Docker image
+        env:
+          CLIBLE_GCP_ARTIFACT_REGISTRY: ${{ secrets.CLIBLE_GCP_ARTIFACT_REGISTRY }}
         run: |
           docker build \
             -f src/clible-web/Dockerfile \
-            -t ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/clible/clible-web:${{ github.sha }} \
-            -t ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/clible/clible-web:latest \
+            -t "${CLIBLE_GCP_ARTIFACT_REGISTRY}/clible-web:${{ github.sha }}" \
+            -t "${CLIBLE_GCP_ARTIFACT_REGISTRY}/clible-web:latest" \
             .
 
       - name: Push Docker image
+        env:
+          CLIBLE_GCP_ARTIFACT_REGISTRY: ${{ secrets.CLIBLE_GCP_ARTIFACT_REGISTRY }}
         run: |
-          docker push ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/clible/clible-web:${{ github.sha }}
-          docker push ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/clible/clible-web:latest
+          docker push "${CLIBLE_GCP_ARTIFACT_REGISTRY}/clible-web:${{ github.sha }}"
+          docker push "${CLIBLE_GCP_ARTIFACT_REGISTRY}/clible-web:latest"
 
       - name: Deploy to Cloud Run
+        env:
+          CLIBLE_GCP_ARTIFACT_REGISTRY: ${{ secrets.CLIBLE_GCP_ARTIFACT_REGISTRY }}
         run: |
           gcloud run deploy ${{ env.SERVICE_NAME }} \
-            --image=${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/clible/clible-web:${{ github.sha }} \
+            --image="${CLIBLE_GCP_ARTIFACT_REGISTRY}/clible-web:${{ github.sha }}" \
             --platform=managed \
             --region=${{ env.GCP_REGION }} \
             --allow-unauthenticated \
