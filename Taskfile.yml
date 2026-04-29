@@ -256,6 +256,8 @@ tasks:
       - sh: 'test -n "${GEMINI_API_KEY_FOR_BETA_TESTERS}${GEMINI_API_KEY_FOR_BETAS}"'
         msg: "Set GEMINI_API_KEY_FOR_BETA_TESTERS (or GEMINI_API_KEY_FOR_BETAS)."
       - sh: 'test -n "${DATABASE_URL}"'
+        msg: "Set DATABASE_URL."
+      - sh: 'test -n "${DATABASE_URL}"'
         msg: "Set DATABASE_URL (e.g. postgresql://user:pass@host/db from Neon or similar)."
     cmds:
       - |
@@ -273,6 +275,14 @@ tasks:
           --timeout=60 \
           --set-env-vars="NODE_ENV=production,MAX_REQUESTS_PER_HOUR=${MAX_REQUESTS_PER_HOUR:-20},SESSION_SECRET=${SESSION_SECRET},GEMINI_API_KEY_FOR_BETA_TESTERS=${GEMINI_API_KEY_FOR_BETA_TESTERS:-${GEMINI_API_KEY_FOR_BETAS}},DATABASE_URL=${DATABASE_URL}"
 
+  gcp-web-preflight:
+    desc: Validate required env vars for Cloud Run web deploy
+    preconditions:
+      - sh: "command -v bash >/dev/null 2>&1"
+        msg: "bash is required."
+    cmds:
+      - bash scripts/check-gcp-web-env.sh
+
   gcp-web-update-env:
     desc: Update Cloud Run environment variables without rebuilding image
     preconditions:
@@ -286,6 +296,8 @@ tasks:
         msg: "Set SESSION_SECRET."
       - sh: 'test -n "${GEMINI_API_KEY_FOR_BETA_TESTERS}${GEMINI_API_KEY_FOR_BETAS}"'
         msg: "Set GEMINI_API_KEY_FOR_BETA_TESTERS (or GEMINI_API_KEY_FOR_BETAS)."
+      - sh: 'test -n "${DATABASE_URL}"'
+        msg: "Set DATABASE_URL."
       - sh: 'test -n "${DATABASE_URL}"'
         msg: "Set DATABASE_URL."
     cmds:
