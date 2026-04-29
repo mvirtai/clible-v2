@@ -104,19 +104,24 @@ def _ask_user_confirmation(verse_count: int) -> int | None:
         return 0
 
 
-def display_verses(verses: list[dict], word: str, limit: int | None = None) -> None:
+def display_verses(
+    verses: list[dict], word: str, limit: int | None = None, translation_id: str | None = None
+) -> None:
     """Display verses with highlighted search word.
 
     Args:
         verses: List of verse dicts to display.
         word: Search word for highlighting.
         limit: Optional limit on number of verses to display.
+        translation_id: Translation ID shown in panel titles to indicate text language.
     """
     display_verses = verses[:limit] if limit else verses
 
     console.print()
     for v in display_verses:
         ref_display = f"{v['book_id']} {v['chapter']}:{v['verse']}"
+        if translation_id:
+            ref_display = f"{ref_display} ({translation_id})"
         highlighted = _highlight_word(v["text"], word)
         console.print(Panel(highlighted, title=ref_display, border_style="dim"))
 
@@ -365,4 +370,11 @@ def search(
             return
         display_limit = user_choice
 
-    display_verses(filtered_verses, word, display_limit)
+    resolved_t = translation_id
+    if resolved_t is None:
+        conn = get_connection()
+        default = TranslationRepo(conn).get_default()
+        conn.close()
+        resolved_t = default["id"] if default else None
+
+    display_verses(filtered_verses, word, display_limit, translation_id=resolved_t)

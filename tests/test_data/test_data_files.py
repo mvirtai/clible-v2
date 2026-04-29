@@ -31,6 +31,59 @@ def test_translations_json_loads_and_has_expected_structure():
     assert "Beblia" in data["fin-1992"]["url"]
 
 
+def test_all_translations_have_required_keys():
+    """Every entry in translations.json has the required keys."""
+    path = DATA_DIR / "translations.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    required_keys = {"name", "language", "format", "filename", "url", "size_mb"}
+
+    for tid, entry in data.items():
+        for key in required_keys:
+            assert key in entry, f"translation '{tid}' is missing key '{key}'"
+        assert isinstance(entry["name"], str) and entry["name"], f"'{tid}' name is empty"
+        assert isinstance(entry["language"], str) and entry["language"], (
+            f"'{tid}' language is empty"
+        )
+        assert isinstance(entry["url"], str) and entry["url"].startswith("http"), (
+            f"'{tid}' url looks invalid: {entry['url']!r}"
+        )
+
+
+def test_greek_translations_have_correct_language_codes():
+    """Greek translation entries use 'grc' (ancient) or 'el' (modern), not 'en'."""
+    path = DATA_DIR / "translations.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+
+    ancient_greek_ids = {
+        "greek",
+        "greek1550",
+        "greekbyz04",
+        "greekbyz18",
+        "greekelzevir",
+        "greekf35",
+        "greekfpb",
+        "greekgnt",
+        "greeklmgnt",
+        "greekntv",
+        "greeksblgnt",
+        "greektcgnt",
+        "greektgv",
+        "greekthgnt",
+        "greektr1894",
+        "originalgreek",
+    }
+    modern_greek_ids = {"greekmodern1904", "greekmodernfpb"}
+
+    for tid in ancient_greek_ids:
+        assert data[tid]["language"] == "grc", (
+            f"'{tid}' should have language='grc', got {data[tid]['language']!r}"
+        )
+    for tid in modern_greek_ids:
+        assert data[tid]["language"] == "el", (
+            f"'{tid}' should have language='el', got {data[tid]['language']!r}"
+        )
+
+
 def test_progress_quotes_json_loads_and_has_expected_structure():
     """progress_quotes.json is valid and each entry has text and reference."""
     path = DATA_DIR / "progress_quotes.json"

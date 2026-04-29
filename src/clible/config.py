@@ -14,7 +14,30 @@ from pathlib import Path
 
 @dataclass
 class Config:
-    """Immutable configuration for the clible application."""
+    """Immutable configuration for the clible application.
+
+    Attributes:
+        db_path: Path to the SQLite database file. Defaults to data_dir/clible.db
+            unless CLIBLE_DB_PATH is set.
+        data_dir: Directory for data files (exports, stop words). The default
+            db_path is placed inside this directory.
+        request_timeout: HTTP request timeout in seconds for seed downloads.
+            Set via CLIBLE_REQUEST_TIMEOUT; default 60.
+        gcs_bucket: GCS bucket name for backup (optional). Set via CLIBLE_GCS_BUCKET.
+        gcs_backup_prefix: Object name prefix for backups (e.g. backups). Set via
+            CLIBLE_GCS_BACKUP_PREFIX; default backups.
+        gcs_upload_timeout: Timeout in seconds for GCS upload (large DB or slow network).
+            Set via CLIBLE_GCS_UPLOAD_TIMEOUT; default 300.
+        seed_base_url: Optional base URL for seed XML; when set, seed uses
+            seed_base_url + catalog filename instead of catalog url. Set via
+            CLIBLE_SEED_BASE_URL.
+        scope_name: Name of the current research context (scope).
+            Set via CLIBLE_SCOPE; default 'default'.
+        analytics_language: Language code used for stopword filtering in analytics.
+            Defaults to 'en' regardless of the Bible text translation's language,
+            so the CLI interface and insights remain in English even when studying
+            Greek or other non-English translations. Set via CLIBLE_ANALYTICS_LANGUAGE.
+    """
 
     db_path: Path
     data_dir: Path
@@ -24,6 +47,7 @@ class Config:
     gcs_upload_timeout: int
     seed_base_url: str | None
     scope_name: str
+    analytics_language: str
 
     # NEW 🔥
     analytics_language: str

@@ -93,8 +93,9 @@ Shows statistics (total occurrences, unique verses, top books) before displaying
 ### Text analytics (`clible analytics`)
 
 Analyze token frequencies, lexical diversity, and n-grams for any scope.
-Stopwords (articles, prepositions, pronouns) are filtered by default.
-Stopword language is resolved from the selected translation's `language` in `src/clible/data/translations.json` (fallback: `en`).
+Stopwords (articles, prepositions, pronouns) are filtered by default using English
+stopwords. Override the stopword language with `CLIBLE_ANALYTICS_LANGUAGE` — the CLI
+interface and all labels remain English regardless (see [Multilanguage](#multilanguage-support)).
 
 ```bash
 # Analyze specific verses
@@ -145,6 +146,80 @@ clible analytics compare "John 3:16" --left web --right kjv --export "PATH=/tmp,
 
 Serialization lives in `src/clible/ui/analytics_export.py`, `src/clible/ui/verse_search_export.py`, and the shared parser in `src/clible/ui/export_cli.py` (UI layer only; no DB access).
 
+## Multilanguage support
+
+clible keeps two concerns strictly separate: the **Bible text language** (controlled by `-t / --translation`) and the **interface language** (always English).
+
+### Reading Greek (or any non-English) text
+
+All 18 Greek translation variants in the catalog are supported via the Beblia format.
+Install and use them the same way as any other translation:
+
+```bash
+# Install an Ancient Greek New Testament
+uv run clible seed install greek
+
+# Look up a verse — enter the reference in English, read the Greek text
+uv run clible verse "John 3:16" -t greek
+
+# The panel title shows "(greek)" so you always know which text you are reading
+# ╭─ JHN 3:16 (greek) ─╮
+# │  Οὕτως γὰρ ἠγάπησεν ὁ θεὸς τὸν κόσμον ...  │
+
+# Search in the Greek text
+uv run clible search θεός -t greek
+
+# Analyze the Greek text
+uv run clible analytics reference "John 3:16" -t greek
+
+# Compare the Greek text against an English translation
+uv run clible analytics compare "John 3:16" --left greek --right web
+```
+
+Available Greek variants (all BEBLIA format from Beblia/Holy-Bible-XML-Format):
+
+| ID | Description |
+| -- | ----------- |
+| `greek` | Greek New Testament |
+| `greek1550` | Textus Receptus 1550 |
+| `greekbyz04` | Byzantine 2004 |
+| `greekbyz18` | Byzantine 2018 |
+| `greeksblgnt` | SBL Greek New Testament |
+| `greektcgnt` | TC Greek New Testament |
+| `greekgnt` | GNT |
+| `greekmodern1904` | Modern Greek 1904 |
+| `originalgreek` | Original Greek |
+| *(and more — see `clible seed available`)* | |
+
+### Analytics language vs. Bible text language
+
+Stopword filtering in `clible analytics` is **always English by default**, regardless of the
+translation you select. This means analytics labels, metric names, and the filtered word
+lists remain in English even when you analyze Greek or Finnish text.
+
+If you want to filter stopwords based on the Bible text language (e.g. to analyze Greek
+vocabulary more accurately), set `CLIBLE_ANALYTICS_LANGUAGE`:
+
+```bash
+# Filter Ancient Greek stopwords (καί, ἐν, ὁ, …) instead of English ones
+CLIBLE_ANALYTICS_LANGUAGE=grc clible analytics reference "John 3:16" -t greek
+
+# Filter Modern Greek stopwords
+CLIBLE_ANALYTICS_LANGUAGE=el clible analytics reference "John 3:16" -t greekmodern1904
+```
+
+Supported languages for stopword filtering: `en` (English), `fi` (Finnish), `grc` (Ancient Greek), `el` (Modern Greek). For any other language code, no stopwords are filtered.
+
+### Design principle
+
+| Concern | Behaviour |
+| ------- | --------- |
+| Bible text language | Set per-command with `-t / --translation` |
+| CLI interface language | Always English — no i18n framework |
+| Analytics/insights labels | Always English |
+| Stopword list | `CLIBLE_ANALYTICS_LANGUAGE` (default `en`) |
+| Book-name input | Always English, regardless of translation |
+
 ## Configuration
 
 Override via environment variables:
@@ -153,6 +228,7 @@ Override via environment variables:
 | -------- | ------- | ----------- |
 | `CLIBLE_DB_PATH` | `{data_dir}/clible.db` | SQLite database path |
 | `CLIBLE_DATA_DIR` | `src/clible/data` | Data and config directory |
+| `CLIBLE_ANALYTICS_LANGUAGE` | `en` | Stopword language for analytics (see [Multilanguage](#multilanguage-support)) |
 
 ### Google Cloud (optional)
 
