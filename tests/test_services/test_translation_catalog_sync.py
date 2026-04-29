@@ -268,9 +268,7 @@ def test_sync_translations_catalog_writes_merged_output(tmp_path, mocker):
 def test_sync_translations_catalog_raises_when_file_missing(tmp_path):
     missing_path = tmp_path / "missing.json"
     try:
-        sync_translations_catalog(
-            catalog_path=missing_path, github_token=None, timeout_seconds=5
-        )
+        sync_translations_catalog(catalog_path=missing_path, github_token=None, timeout_seconds=5)
         assert False, "Expected TranslationCatalogSyncError"
     except TranslationCatalogSyncError as exc:
         assert "Catalog file not found" in str(exc)
