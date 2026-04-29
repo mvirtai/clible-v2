@@ -642,3 +642,66 @@ def test_analytics_output_fails_on_missing_extension(cli_uses_temp_db, tmp_path:
 
     assert result.exit_code != 0
     assert "Missing file extension for --output" in result.output
+
+
+def test_analytics_chapter_json_works_for_web_bridge(cli_uses_temp_db):
+    """analytics chapter --json should work (web bridge compatibility regression test)."""
+    conn = get_connection()
+    TranslationRepo(conn).create(
+        {"id": "fin-1992", "name": "FIN1992", "language": "fi", "format": "BEBLIA"}
+    )
+    VerseRepo(conn).save_verses(
+        [{"book_id": "PSA", "chapter": 1, "verse": 1, "text": "Autuas se mies"}],
+        "fin-1992",
+    )
+    conn.close()
+
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        [
+            "analytics",
+            "chapter",
+            "PSA",
+            "1",
+            "--translation",
+            "fin-1992",
+            "--json",
+        ],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["type"] == "analysis"
+    assert payload["scope"] == "PSA 1"
+
+
+def test_analytics_book_json_works_for_web_bridge(cli_uses_temp_db):
+    """analytics book --json should work (web bridge compatibility regression test)."""
+    conn = get_connection()
+    TranslationRepo(conn).create(
+        {"id": "fin-1992", "name": "FIN1992", "language": "fi", "format": "BEBLIA"}
+    )
+    VerseRepo(conn).save_verses(
+        [{"book_id": "PSA", "chapter": 1, "verse": 1, "text": "Autuas se mies"}],
+        "fin-1992",
+    )
+    conn.close()
+
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        [
+            "analytics",
+            "book",
+            "PSA",
+            "--translation",
+            "fin-1992",
+            "--json",
+        ],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["type"] == "analysis"
+    assert payload["scope"] == "PSA"

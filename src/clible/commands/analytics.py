@@ -429,6 +429,11 @@ def reference(
     help="Output pure JSON to stdout (for web bridge).",
 )
 @click.option(
+    "--stdout-export",
+    type=click.Choice(["csv", "html", "json", "md", "txt", "xml"], case_sensitive=False),
+    help="Output formatted content directly to stdout (for web download).",
+)
+@click.option(
     "--save",
     "save_name",
     default=None,
@@ -527,6 +532,11 @@ def chapter(
     is_flag=True,
     default=False,
     help="Output pure JSON to stdout (for web bridge).",
+)
+@click.option(
+    "--stdout-export",
+    type=click.Choice(["csv", "html", "json", "md", "txt", "xml"], case_sensitive=False),
+    help="Output formatted content directly to stdout (for web download).",
 )
 @click.option(
     "--save",
