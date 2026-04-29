@@ -153,7 +153,10 @@ tasks:
 
   check:
     desc: Run lint, format check, and tests
-    deps: [lint, format-check, test]
+    cmds:
+      - task: lint
+      - task: format-check
+      - task: test
 
   build:
     desc: Build Docker image with latest and commit tags
@@ -201,3 +204,67 @@ tasks:
       - echo "Pushing {{.GCP_IMAGE_COMMIT}} and {{.GCP_IMAGE_LATEST}}"
       - docker push {{.GCP_IMAGE_COMMIT}}
       - docker push {{.GCP_IMAGE_LATEST}}
+
+  web-push-to-gcp:
+    desc: Build and push web image to GCP Artifact Registry
+    deps: [web-docker-build]
+    preconditions:
+      - sh: "command -v docker >/dev/null 2>&1"
+        msg: "Docker is required to push images."
+      - sh: 'test -n "${CLIBLE_GCP_ARTIFACT_REGISTRY}"'
+        msg: "Set CLIBLE_GCP_ARTIFACT_REGISTRY."
+    cmds:
+      - docker tag clible-web-ci {{.GCP_REGISTRY}}/clible-web:latest
+      - docker tag clible-web-ci {{.GCP_REGISTRY}}/clible-web:{{.GIT_SHA}}
+      - docker push {{.GCP_REGISTRY}}/clible-web:latest
+      - docker push {{.GCP_REGISTRY}}/clible-web:{{.GIT_SHA}}
+
+  deploy-cloud-run:
+    desc: Deploy web app to Google Cloud Run
+    deps: [web-push-to-gcp]
+    preconditions:
+      - sh: "command -v gcloud >/dev/null 2>&1"
+        msg: "gcloud CLI is required."
+      - sh: 'test -n "${GCP_PROJECT_ID}"'
+        msg: "Set GCP_PROJECT_ID environment variable."
+    cmds:
+      - |
+        gcloud run deploy clible-web \
+          --image={{.GCP_REGISTRY}}/clible-web:{{.GIT_SHA}} \
+          --platform=managed \
+          --region=europe-north1 \
+          --allow-unauthenticated \
+          --memory=512Mi \
+          --cpu=1 \
+          --min-instances=0 \
+          --max-instances=10 \
+          --set-env-vars="GEMINI_API_KEY=${GEMINI_API_KEY},SESSION_SECRET=${SESSION_SECRET},NODE_ENV=production" \
+          --project=${GCP_PROJECT_ID}
+
+  terraform-init:
+    desc: Initialize Terraform
+    dir: terraform
+    cmds:
+      - terraform init
+
+  terraform-plan:
+    desc: Plan Terraform changes
+    dir: terraform
+    deps: [terraform-init]
+    cmds:
+      - terraform plan
+
+  terraform-apply:
+    desc: Apply Terraform configuration
+    dir: terraform
+    deps: [terraform-init]
+    cmds:
+      - terraform apply
+
+  prod-local:
+    desc: Run production stack locally with docker-compose
+    preconditions:
+      - sh: "command -v docker >/dev/null 2>&1"
+        msg: "Docker is required."
+    cmds:
+      - docker compose -f docker-compose.prod.yml up --build

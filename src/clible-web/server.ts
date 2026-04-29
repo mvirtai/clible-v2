@@ -22,6 +22,7 @@ import { usersDb } from "./auth/db";
 import { authRouter } from "./auth/routes";
 import { requireAuth } from "./auth/middleware";
 import { settingsRouter } from "./user/settings_routes";
+import { createRateLimiter } from "./middleware/rateLimit";
 
 const execAsync = promisify(exec);
 
@@ -144,16 +145,23 @@ function runClible(argv: string[]): Promise<{ stdout: string; stderr: string }> 
 }
 
 function getAiClientOrNull(): GoogleGenAI | null {
-  const apiKey = normalizeGeminiApiKey(process.env.GEMINI_API_KEY);
+  // Prefer beta key if set, fallback to regular key
+  const apiKey = normalizeGeminiApiKey(
+    process.env.GEMINI_API_KEY_FOR_BETA_TESTERS || process.env.GEMINI_API_KEY
+  );
   if (!apiKey) return null;
   return new GoogleGenAI({ apiKey });
 }
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = parseInt(process.env.PORT || "3000");
 
   app.use(express.json());
+
+  app.get("/health", (_req, res) => {
+    res.status(200).json({ status: "ok" });
+  });
 
   app.use(
     session({
@@ -175,7 +183,14 @@ async function startServer() {
   // Authenticated user settings
   app.use("/api/user/settings", settingsRouter);
 
-  app.post("/api/ai/insight", requireAuth, async (req, res) => {
+  // Rate limiters for AI endpoints
+  const aiRateLimit = createRateLimiter({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    maxRequests: parseInt(process.env.MAX_REQUESTS_PER_HOUR || "20"),
+    message: "AI request limit reached. Please try again later.",
+  });
+
+  app.post("/api/ai/insight", requireAuth, aiRateLimit, async (req, res) => {
     const ai = getAiClientOrNull();
     if (!ai) {
       return res.status(503).json({
@@ -208,7 +223,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/ai/tone", requireAuth, async (req, res) => {
+  app.post("/api/ai/tone", requireAuth, aiRateLimit, async (req, res) => {
     const ai = getAiClientOrNull();
     if (!ai) {
       return res.status(503).json({

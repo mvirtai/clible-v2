@@ -8,6 +8,7 @@ packages = ["src/clible"]
 [project]
 dependencies = [
   "click>=8.1.0",
+  "go-task-bin>=3.50.0",
   "google-cloud-storage>=2.14.0",
   "requests>=2.31.0",
   "rich>=13.0.0",

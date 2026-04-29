@@ -1,0 +1,52 @@
+{
+    # Global options
+    admin off
+    auto_https on
+}
+
+# Replace with your domain
+{$DOMAIN:localhost} {
+    # Reverse proxy to clible-web container
+    reverse_proxy clible-web:3000 {
+        # Health check
+        health_uri /health
+        health_interval 30s
+        health_timeout 10s
+    }
+
+    # Security headers
+    header {
+        # Enable HSTS
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        # Prevent clickjacking
+        X-Frame-Options "SAMEORIGIN"
+        # Prevent MIME sniffing
+        X-Content-Type-Options "nosniff"
+        # XSS protection
+        X-XSS-Protection "1; mode=block"
+        # Referrer policy
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # Remove server header
+        -Server
+    }
+
+    # Logging
+    log {
+        output file /data/access.log
+        format json
+    }
+
+    # Compression
+    encode gzip zstd
+
+    # Rate limiting (optional, requires caddy-rate-limit plugin)
+    # rate_limit {
+    #     zone dynamic {
+    #         key {remote_host}
+    #         events 100
+    #         window 1m
+    #     }
+    # }
+}
+
+# HTTP to HTTPS redirect (automatic with auto_https)
