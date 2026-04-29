@@ -60,7 +60,7 @@ def test_export_compare_txt_has_sections():
 def test_export_compare_xml_has_expected_nodes():
     result = export_compare(_sample_comparison(), format="xml")
     assert '<?xml version="1.0"' in result
-    assert "<comparison type=\"translation-compare\">" in result
+    assert '<comparison type="translation-compare">' in result
     assert "<reference>John 3:16</reference>" in result
     assert "<aligned-verses>" in result
 

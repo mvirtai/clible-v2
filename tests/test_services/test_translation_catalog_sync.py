@@ -255,7 +255,9 @@ def test_sync_translations_catalog_writes_merged_output(tmp_path, mocker):
         ],
     )
 
-    result = sync_translations_catalog(catalog_path=catalog_path, github_token=None, timeout_seconds=5)
+    result = sync_translations_catalog(
+        catalog_path=catalog_path, github_token=None, timeout_seconds=5
+    )
 
     assert result == {"existing_count": 1, "discovered_count": 2, "merged_count": 2}
     content = catalog_path.read_text(encoding="utf-8")
