@@ -8,8 +8,8 @@ from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
 
-from clible.config import get_config
 from clible.commands import get_saved_analysis_service
+from clible.config import get_config
 from clible.db.connection import get_connection
 from clible.db.repositories.book_repo import BookRepo
 from clible.db.repositories.translation_repo import TranslationRepo
@@ -26,9 +26,6 @@ from clible.ui.help_texts import (
     ANALYTICS_REFERENCE_HELP,
 )
 
-from . import get_saved_analysis_service
-
-_TRANSLATIONS_FILE = Path(__file__).parent.parent / "data" / "translations.json"
 
 def _get_analytic_service(_translation_id: str | None) -> AnalyticService:
     """Build AnalyticService with real dependencies.
