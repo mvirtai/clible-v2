@@ -75,3 +75,4 @@ src/clible/data/clible.db
 outputs/
 .amazonq/rules/read-agentsmd.md
 docs/GCLOUD_CHEATSHEET.md
+.coverage
