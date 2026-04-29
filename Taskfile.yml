@@ -59,7 +59,7 @@ tasks:
       - task: web-build
 
   web-docker-run:
-    desc: Build clible-web image and run it locally (PORT=3000 by default).
+    desc: Build clible-web image and run it locally (PORT=3000 by default). Requires DATABASE_URL or PG* env vars.
     deps: [web-docker-build]
     vars:
       PORT: '{{default "3000" .PORT}}'
@@ -72,17 +72,14 @@ tasks:
         if [ -f .env ]; then
           docker run --rm -p {{.PORT}}:3000 \
             -v clible-data:/home/clible/.clible-data \
-            -v clible-web-data:/app/web/data \
             --env-file .env \
             clible-web-ci
         else
           docker run --rm -p {{.PORT}}:3000 \
             -e GEMINI_API_KEY_FOR_BETA_TESTERS \
-            -e CLIBLE_POSTGRES_PASSWORD \
-            -e CLIBLE_POSTGRES_USER \
             -e SESSION_SECRET \
+            -e DATABASE_URL \
             -v clible-data:/home/clible/.clible-data \
-            -v clible-web-data:/app/web/data \
             clible-web-ci
         fi
 
@@ -100,19 +97,16 @@ tasks:
         if [ -f .env ]; then
           docker run --rm -p {{.PORT}}:3000 \
             -v clible-data:/home/clible/.clible-data \
-            -v clible-web-data:/app/web/data \
             --env-file .env \
             -e NODE_ENV=development \
             clible-web-ci
         else
           docker run --rm -p {{.PORT}}:3000 \
             -e GEMINI_API_KEY_FOR_BETA_TESTERS \
-            -e CLIBLE_POSTGRES_PASSWORD \
-            -e CLIBLE_POSTGRES_USER \
             -e SESSION_SECRET \
+            -e DATABASE_URL \
             -e NODE_ENV=development \
             -v clible-data:/home/clible/.clible-data \
-            -v clible-web-data:/app/web/data \
             clible-web-ci
         fi
 
@@ -224,13 +218,15 @@ tasks:
       - docker push {{.GCP_REGISTRY}}/clible-web:{{.GIT_SHA}}
 
   deploy-cloud-run:
-    desc: Deploy web app to Google Cloud Run
+    desc: Deploy web app to Google Cloud Run (DATABASE_URL points to external Postgres, e.g. Neon)
     deps: [web-push-to-gcp]
     preconditions:
       - sh: "command -v gcloud >/dev/null 2>&1"
         msg: "gcloud CLI is required."
       - sh: 'test -n "${GCP_PROJECT_ID}"'
         msg: "Set GCP_PROJECT_ID environment variable."
+      - sh: 'test -n "${DATABASE_URL}"'
+        msg: "Set DATABASE_URL (e.g. postgresql://user:pass@host/db from Neon or similar)."
     cmds:
       - |
         gcloud run deploy clible-web \
@@ -242,7 +238,7 @@ tasks:
           --cpu=1 \
           --min-instances=0 \
           --max-instances=10 \
-          --set-env-vars="GEMINI_API_KEY_FOR_BETA_TESTERS=${GEMINI_API_KEY_FOR_BETA_TESTERS},CLIBLE_POSTGRES_PASSWORD=${CLIBLE_POSTGRES_PASSWORD},CLIBLE_POSTGRES_USER=${CLIBLE_POSTGRES_USER},SESSION_SECRET=${SESSION_SECRET},NODE_ENV=production" \
+          --set-env-vars="NODE_ENV=production,DATABASE_URL=${DATABASE_URL},GEMINI_API_KEY_FOR_BETA_TESTERS=${GEMINI_API_KEY_FOR_BETA_TESTERS},SESSION_SECRET=${SESSION_SECRET}" \
           --project=${GCP_PROJECT_ID}
 
   gcp-web-deploy:
@@ -259,10 +255,8 @@ tasks:
         msg: "Set SESSION_SECRET."
       - sh: 'test -n "${GEMINI_API_KEY_FOR_BETA_TESTERS}"'
         msg: "Set GEMINI_API_KEY_FOR_BETA_TESTERS."
-      - sh: 'test -n "${CLIBLE_POSTGRES_PASSWORD}"'
-        msg: "Set CLIBLE_POSTGRES_PASSWORD."
-      - sh: 'test -n "${CLIBLE_POSTGRES_USER}"'
-        msg: "Set CLIBLE_POSTGRES_USER."
+      - sh: 'test -n "${DATABASE_URL}"'
+        msg: "Set DATABASE_URL (e.g. postgresql://user:pass@host/db from Neon or similar)."
     cmds:
       - |
         gcloud run deploy clible-web \
@@ -277,7 +271,7 @@ tasks:
           --max-instances=3 \
           --concurrency=80 \
           --timeout=60 \
-          --set-env-vars="NODE_ENV=production,MAX_REQUESTS_PER_HOUR=${MAX_REQUESTS_PER_HOUR},SESSION_SECRET=${SESSION_SECRET},GEMINI_API_KEY_FOR_BETA_TESTERS=${GEMINI_API_KEY_FOR_BETA_TESTERS}"
+          --set-env-vars="NODE_ENV=production,MAX_REQUESTS_PER_HOUR=${MAX_REQUESTS_PER_HOUR},SESSION_SECRET=${SESSION_SECRET},GEMINI_API_KEY_FOR_BETA_TESTERS=${GEMINI_API_KEY_FOR_BETA_TESTERS},DATABASE_URL=${DATABASE_URL}"
 
   gcp-web-update-env:
     desc: Update Cloud Run environment variables without rebuilding image
@@ -292,16 +286,14 @@ tasks:
         msg: "Set SESSION_SECRET."
       - sh: 'test -n "${GEMINI_API_KEY_FOR_BETA_TESTERS}"'
         msg: "Set GEMINI_API_KEY_FOR_BETA_TESTERS."
-      - sh: 'test -n "${CLIBLE_POSTGRES_PASSWORD}"'
-        msg: "Set CLIBLE_POSTGRES_PASSWORD."
-      - sh: 'test -n "${CLIBLE_POSTGRES_USER}"'
-        msg: "Set CLIBLE_POSTGRES_USER."
+      - sh: 'test -n "${DATABASE_URL}"'
+        msg: "Set DATABASE_URL."
     cmds:
       - |
         gcloud run services update clible-web \
           --region=${GCP_REGION} \
           --project=${GCP_PROJECT_ID} \
-          --update-env-vars="NODE_ENV=production,MAX_REQUESTS_PER_HOUR=${MAX_REQUESTS_PER_HOUR},SESSION_SECRET=${SESSION_SECRET},GEMINI_API_KEY_FOR_BETA_TESTERS=${GEMINI_API_KEY_FOR_BETA_TESTERS},CLIBLE_POSTGRES_PASSWORD=${CLIBLE_POSTGRES_PASSWORD},CLIBLE_POSTGRES_USER=${CLIBLE_POSTGRES_USER}"
+          --update-env-vars="NODE_ENV=production,MAX_REQUESTS_PER_HOUR=${MAX_REQUESTS_PER_HOUR},SESSION_SECRET=${SESSION_SECRET},GEMINI_API_KEY_FOR_BETA_TESTERS=${GEMINI_API_KEY_FOR_BETA_TESTERS},DATABASE_URL=${DATABASE_URL}"
 
   gcp-web-url:
     desc: Print Cloud Run service URL

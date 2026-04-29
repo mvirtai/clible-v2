@@ -70,6 +70,9 @@ src/clible/data/clible.db
 
 # Cursor internal state (local)
 .cursor/worktrees.json
+.agents/
+.claude/
+skills-lock.json
 
 # test outputs
 outputs/

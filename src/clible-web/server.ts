@@ -18,48 +18,16 @@ import {
 } from "./ai.config";
 
 import session from "express-session";
-import { usersDb } from "./auth/db";
+import connectPgSimple from "connect-pg-simple";
+import { pool } from "./db/pool";
+import { runMigrations } from "./db/migrate";
 import { authRouter } from "./auth/routes";
 import { requireAuth } from "./auth/middleware";
 import { settingsRouter } from "./user/settings_routes";
 import { createRateLimiter } from "./middleware/rateLimit";
 
 const execAsync = promisify(exec);
-
-// Own SQLite-based session store
-class SQLiteStore extends session.Store {
-  get(sid: string, cb: (err: any, session?: any) => void) {
-    const row = usersDb
-      .prepare("SELECT data, expires FROM sessions WHERE sid = ?")
-      .get(sid) as { data: string; expires: number } | undefined;
-
-    if (!row || row.expires < Date.now()) return cb(null, null);
-
-    try {
-      cb(null, JSON.parse(row.data));
-    } catch {
-      cb(null, null);
-    }
-  }
-
-  set(sid: string, sessionData: any, cb?: (err?: any) => void) {
-    const expires = sessionData.cookie?.expires
-      ? new Date(sessionData.cookie.expires).getTime()
-      : Date.now() + 24 * 60 * 60 * 1000;
-
-    const data = JSON.stringify(sessionData);
-    usersDb
-      .prepare("INSERT OR REPLACE INTO sessions (sid, data, expires) VALUES (?, ?, ?)")
-      .run(sid, data, expires);
-
-    cb?.();
-  }
-
-  destroy(sid: string, cb?: (err?: any) => void) {
-    usersDb.prepare("DELETE FROM sessions WHERE sid = ?").run(sid);
-    cb?.();
-  }
-}
+const PgSession = connectPgSimple(session);
 
 /** Normalize GEMINI_API_KEY from env / Docker --env-file (trim, strip wrapping quotes). */
 function normalizeGeminiApiKey(raw: string | undefined): string | undefined {
@@ -205,6 +173,9 @@ function getSessionSecret(): string {
 }
 
 async function startServer() {
+  // Run DB migrations before accepting requests.
+  await runMigrations();
+
   const app = express();
   const PORT = parseInt(process.env.PORT || "3000");
   const isProduction = process.env.NODE_ENV === "production";
@@ -223,7 +194,12 @@ async function startServer() {
 
   app.use(
     session({
-      store: new SQLiteStore(),
+      store: new PgSession({
+        pool,
+        tableName: "sessions",
+        // Expired sessions are pruned every hour.
+        pruneSessionInterval: 60 * 60,
+      }),
       secret: getSessionSecret(),
       resave: false,
       saveUninitialized: false,
