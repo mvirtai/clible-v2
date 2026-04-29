@@ -259,8 +259,13 @@ export default function App() {
       );
       setNativeStats(stats);
       setNativeFrequency(frequency);
-      const tone = await bibleService.getAiTone(result.text);
-      setToneAnalysis(tone);
+      try {
+        const tone = await bibleService.getAiTone(result.text);
+        setToneAnalysis(tone);
+      } catch (err) {
+        console.warn('AI tone unavailable:', err);
+        setToneAnalysis('');
+      }
     } catch (err) {
       console.error('Analytics error:', err);
       setNativeStats(bibleService.calculateStats(result.text));
