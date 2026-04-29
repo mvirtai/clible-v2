@@ -249,12 +249,12 @@ tasks:
         msg: "gcloud CLI is required."
       - sh: 'test -n "${GCP_PROJECT_ID}"'
         msg: "Set GCP_PROJECT_ID (for example via .env.production)."
-      - sh: 'test -n "${GCP_REGION}"'
-        msg: "Set GCP_REGION (for example europe-north1)."
+      - sh: 'test -n "${GCP_REGION}${REGION}"'
+        msg: "Set GCP_REGION (or REGION), for example europe-north1."
       - sh: 'test -n "${SESSION_SECRET}"'
         msg: "Set SESSION_SECRET."
-      - sh: 'test -n "${GEMINI_API_KEY_FOR_BETA_TESTERS}"'
-        msg: "Set GEMINI_API_KEY_FOR_BETA_TESTERS."
+      - sh: 'test -n "${GEMINI_API_KEY_FOR_BETA_TESTERS}${GEMINI_API_KEY_FOR_BETAS}"'
+        msg: "Set GEMINI_API_KEY_FOR_BETA_TESTERS (or GEMINI_API_KEY_FOR_BETAS)."
       - sh: 'test -n "${DATABASE_URL}"'
         msg: "Set DATABASE_URL (e.g. postgresql://user:pass@host/db from Neon or similar)."
     cmds:
@@ -262,7 +262,7 @@ tasks:
         gcloud run deploy clible-web \
           --image={{.GCP_REGISTRY}}/clible-web:{{.GIT_SHA}} \
           --platform=managed \
-          --region=${GCP_REGION} \
+          --region=${GCP_REGION:-${REGION}} \
           --project=${GCP_PROJECT_ID} \
           --allow-unauthenticated \
           --memory=512Mi \
@@ -271,7 +271,7 @@ tasks:
           --max-instances=3 \
           --concurrency=80 \
           --timeout=60 \
-          --set-env-vars="NODE_ENV=production,MAX_REQUESTS_PER_HOUR=${MAX_REQUESTS_PER_HOUR},SESSION_SECRET=${SESSION_SECRET},GEMINI_API_KEY_FOR_BETA_TESTERS=${GEMINI_API_KEY_FOR_BETA_TESTERS},DATABASE_URL=${DATABASE_URL}"
+          --set-env-vars="NODE_ENV=production,MAX_REQUESTS_PER_HOUR=${MAX_REQUESTS_PER_HOUR:-20},SESSION_SECRET=${SESSION_SECRET},GEMINI_API_KEY_FOR_BETA_TESTERS=${GEMINI_API_KEY_FOR_BETA_TESTERS:-${GEMINI_API_KEY_FOR_BETAS}},DATABASE_URL=${DATABASE_URL}"
 
   gcp-web-update-env:
     desc: Update Cloud Run environment variables without rebuilding image
@@ -280,20 +280,20 @@ tasks:
         msg: "gcloud CLI is required."
       - sh: 'test -n "${GCP_PROJECT_ID}"'
         msg: "Set GCP_PROJECT_ID (for example via .env.production)."
-      - sh: 'test -n "${GCP_REGION}"'
-        msg: "Set GCP_REGION."
+      - sh: 'test -n "${GCP_REGION}${REGION}"'
+        msg: "Set GCP_REGION (or REGION)."
       - sh: 'test -n "${SESSION_SECRET}"'
         msg: "Set SESSION_SECRET."
-      - sh: 'test -n "${GEMINI_API_KEY_FOR_BETA_TESTERS}"'
-        msg: "Set GEMINI_API_KEY_FOR_BETA_TESTERS."
+      - sh: 'test -n "${GEMINI_API_KEY_FOR_BETA_TESTERS}${GEMINI_API_KEY_FOR_BETAS}"'
+        msg: "Set GEMINI_API_KEY_FOR_BETA_TESTERS (or GEMINI_API_KEY_FOR_BETAS)."
       - sh: 'test -n "${DATABASE_URL}"'
         msg: "Set DATABASE_URL."
     cmds:
       - |
         gcloud run services update clible-web \
-          --region=${GCP_REGION} \
+          --region=${GCP_REGION:-${REGION}} \
           --project=${GCP_PROJECT_ID} \
-          --update-env-vars="NODE_ENV=production,MAX_REQUESTS_PER_HOUR=${MAX_REQUESTS_PER_HOUR},SESSION_SECRET=${SESSION_SECRET},GEMINI_API_KEY_FOR_BETA_TESTERS=${GEMINI_API_KEY_FOR_BETA_TESTERS},DATABASE_URL=${DATABASE_URL}"
+          --update-env-vars="NODE_ENV=production,MAX_REQUESTS_PER_HOUR=${MAX_REQUESTS_PER_HOUR:-20},SESSION_SECRET=${SESSION_SECRET},GEMINI_API_KEY_FOR_BETA_TESTERS=${GEMINI_API_KEY_FOR_BETA_TESTERS:-${GEMINI_API_KEY_FOR_BETAS}},DATABASE_URL=${DATABASE_URL}"
 
   gcp-web-url:
     desc: Print Cloud Run service URL
