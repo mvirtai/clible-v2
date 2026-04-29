@@ -241,6 +241,105 @@ tasks:
           --set-env-vars="GEMINI_API_KEY=${GEMINI_API_KEY},SESSION_SECRET=${SESSION_SECRET},NODE_ENV=production" \
           --project=${GCP_PROJECT_ID}
 
+  gcp-web-deploy:
+    desc: Build, push, and deploy clible-web to Cloud Run (uses .env.production values)
+    deps: [web-push-to-gcp]
+    preconditions:
+      - sh: "command -v gcloud >/dev/null 2>&1"
+        msg: "gcloud CLI is required."
+      - sh: 'test -n "${GCP_PROJECT_ID}"'
+        msg: "Set GCP_PROJECT_ID (for example via .env.production)."
+      - sh: 'test -n "${GCP_REGION}"'
+        msg: "Set GCP_REGION (for example europe-north1)."
+      - sh: 'test -n "${SESSION_SECRET}"'
+        msg: "Set SESSION_SECRET."
+      - sh: 'test -n "${GEMINI_API_KEY_FOR_BETA_TESTERS}"'
+        msg: "Set GEMINI_API_KEY_FOR_BETA_TESTERS."
+    cmds:
+      - |
+        gcloud run deploy clible-web \
+          --image={{.GCP_REGISTRY}}/clible-web:{{.GIT_SHA}} \
+          --platform=managed \
+          --region=${GCP_REGION} \
+          --project=${GCP_PROJECT_ID} \
+          --allow-unauthenticated \
+          --memory=512Mi \
+          --cpu=1 \
+          --min-instances=0 \
+          --max-instances=3 \
+          --concurrency=80 \
+          --timeout=60 \
+          --set-env-vars="NODE_ENV=production,MAX_REQUESTS_PER_HOUR=${MAX_REQUESTS_PER_HOUR},SESSION_SECRET=${SESSION_SECRET},GEMINI_API_KEY_FOR_BETA_TESTERS=${GEMINI_API_KEY_FOR_BETA_TESTERS}"
+
+  gcp-web-update-env:
+    desc: Update Cloud Run environment variables without rebuilding image
+    preconditions:
+      - sh: "command -v gcloud >/dev/null 2>&1"
+        msg: "gcloud CLI is required."
+      - sh: 'test -n "${GCP_PROJECT_ID}"'
+        msg: "Set GCP_PROJECT_ID (for example via .env.production)."
+      - sh: 'test -n "${GCP_REGION}"'
+        msg: "Set GCP_REGION."
+      - sh: 'test -n "${SESSION_SECRET}"'
+        msg: "Set SESSION_SECRET."
+      - sh: 'test -n "${GEMINI_API_KEY_FOR_BETA_TESTERS}"'
+        msg: "Set GEMINI_API_KEY_FOR_BETA_TESTERS."
+    cmds:
+      - |
+        gcloud run services update clible-web \
+          --region=${GCP_REGION} \
+          --project=${GCP_PROJECT_ID} \
+          --update-env-vars="NODE_ENV=production,MAX_REQUESTS_PER_HOUR=${MAX_REQUESTS_PER_HOUR},SESSION_SECRET=${SESSION_SECRET},GEMINI_API_KEY_FOR_BETA_TESTERS=${GEMINI_API_KEY_FOR_BETA_TESTERS}"
+
+  gcp-web-url:
+    desc: Print Cloud Run service URL
+    preconditions:
+      - sh: "command -v gcloud >/dev/null 2>&1"
+        msg: "gcloud CLI is required."
+      - sh: 'test -n "${GCP_PROJECT_ID}"'
+        msg: "Set GCP_PROJECT_ID."
+      - sh: 'test -n "${GCP_REGION}"'
+        msg: "Set GCP_REGION."
+    cmds:
+      - |
+        gcloud run services describe clible-web \
+          --region=${GCP_REGION} \
+          --project=${GCP_PROJECT_ID} \
+          --format='value(status.url)'
+
+  gcp-web-health:
+    desc: Run /health check against current Cloud Run URL
+    preconditions:
+      - sh: "command -v gcloud >/dev/null 2>&1"
+        msg: "gcloud CLI is required."
+      - sh: 'test -n "${GCP_PROJECT_ID}"'
+        msg: "Set GCP_PROJECT_ID."
+      - sh: 'test -n "${GCP_REGION}"'
+        msg: "Set GCP_REGION."
+    cmds:
+      - |
+        SERVICE_URL=$(gcloud run services describe clible-web \
+          --region=${GCP_REGION} \
+          --project=${GCP_PROJECT_ID} \
+          --format='value(status.url)') && \
+        curl -s "${SERVICE_URL}/health"
+
+  gcp-web-logs:
+    desc: Read recent Cloud Run logs for clible-web
+    preconditions:
+      - sh: "command -v gcloud >/dev/null 2>&1"
+        msg: "gcloud CLI is required."
+      - sh: 'test -n "${GCP_PROJECT_ID}"'
+        msg: "Set GCP_PROJECT_ID."
+      - sh: 'test -n "${GCP_REGION}"'
+        msg: "Set GCP_REGION."
+    cmds:
+      - |
+        gcloud run services logs read clible-web \
+          --region=${GCP_REGION} \
+          --project=${GCP_PROJECT_ID} \
+          --limit=200
+
   terraform-init:
     desc: Initialize Terraform
     dir: terraform
