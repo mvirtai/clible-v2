@@ -110,6 +110,23 @@ function clibleFailureMessage(
   return stripAnsi(err.message);
 }
 
+function conciseClibleError(message: string): string {
+  if (message.includes("database is locked")) {
+    return "Server database is busy. Please retry in a few seconds.";
+  }
+  const firstUsefulLine =
+    message
+      .split("\n")
+      .map((line) => line.trim())
+      .find(
+        (line) =>
+          line.length > 0 &&
+          !line.startsWith("Traceback") &&
+          !line.startsWith("File ")
+      ) ?? "";
+  return firstUsefulLine || "Unexpected CLI error.";
+}
+
 function buildSeedAvailableArgs(query?: string): string[] {
   const args = ["seed", "available", "--json", "--limit", "0"];
   if (query && query.trim()) {
@@ -309,12 +326,12 @@ async function startServer() {
       if (msg.includes("Invalid JSON")) {
         return res.status(500).json({
           error: "Failed to parse available translations.",
-          details: msg,
+          details: conciseClibleError(msg),
         });
       }
       return res.status(500).json({
         error: "Failed to fetch available translations.",
-        details: msg,
+        details: conciseClibleError(msg),
       });
     }
   });
@@ -341,7 +358,7 @@ async function startServer() {
       const status = msg.includes("already installed") || msg.includes("Unknown translation") ? 400 : 500;
       return res.status(status).json({
         error: `Failed to install translation '${translationId}'.`,
-        details: msg,
+        details: conciseClibleError(msg),
       });
     }
   });
