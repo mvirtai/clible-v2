@@ -80,12 +80,15 @@ clible is a command-line Bible study tool. The v2 rebuild aims for:
 | **Dependencies** | `pyproject.toml` | click, rich, requests, ruff, pytest, pytest-mock |
 | **Web UI** | `src/clible-web/` | React/Vite + Express bridge; verse lookup, FTS5 search, analytics, export, AI insights, JWT auth |
 | **Analytics scopes (web)** | `src/clible-web/services/bibleService.ts` | Reference/Chapter/Book scope arg-building with correct reference parsing |
+| **Web DB (PostgreSQL)** | `src/clible-web/db/` | `pg` Pool singleton (`pool.ts`), migration runner (`migrate.ts`), initial schema (`migrations/001_users_sessions_settings.sql`) |
+| **Web sessions** | `src/clible-web/server.ts` | `connect-pg-simple` session store backed by the PostgreSQL pool |
+| **PostgreSQL setup guide** | `docs/CLOUD_SQL_SETUP.md` | How to provision Neon (free tier) or Cloud SQL and wire `DATABASE_URL` |
 
 ### Planned (not yet implemented)
 
 | Area | Notes |
 | ---- | ----- |
-| **Sessions** | From original PLAN.md |
+| — | — |
 
 ---
 
@@ -94,14 +97,19 @@ clible is a command-line Bible study tool. The v2 rebuild aims for:
 ```text
 clible-v2/
 ├── src/clible-web/                 # Web UI (React/Vite + Express bridge)
-│   ├── server.ts                  # Express: API bridge, auth, AI proxy
+│   ├── server.ts                  # Express: API bridge, auth, AI proxy, session init
+│   ├── db/                        # PostgreSQL layer
+│   │   ├── pool.ts                # pg.Pool singleton (DATABASE_URL)
+│   │   ├── migrate.ts             # Migration runner (ordered .sql files)
+│   │   └── migrations/            # 001_users_sessions_settings.sql
+│   ├── auth/                      # Registration, login, logout routes
+│   ├── user/                      # Settings routes; SettingsContext (React)
 │   ├── App.tsx                    # Root component; state, routing, analytics
 │   ├── components/                # AnalyticsView, ReaderView, SearchView, …
 │   ├── services/bibleService.ts   # Analytics scope arg-building, AI calls
 │   ├── repositories/              # HTTP calls to /api/*
 │   ├── types/                     # Shared TS types (BibleResponse, TextStats, …)
 │   ├── views/                     # Full-page views (LoginView)
-│   ├── user/                      # SettingsContext, per-user prefs
 │   ├── INTEGRATION.md             # Web↔CLI bridge docs (Finnish)
 │   └── README.md                  # Setup, features, architecture
 ├── src/clible/
