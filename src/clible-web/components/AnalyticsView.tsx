@@ -81,7 +81,7 @@ export function AnalyticsView({
           <h3 className="text-sm font-semibold uppercase tracking-wider text-[#8E8E8E] flex items-center gap-2">
             <BarChart3 size={16} /> Word Frequency
           </h3>
-          <div className="h-64 w-full">
+          <div className="h-64 min-h-[16rem] min-w-0 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={nativeFrequency} layout="vertical" margin={{ left: 20 }}>
                 <XAxis type="number" hide />

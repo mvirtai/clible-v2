@@ -77,7 +77,9 @@ tasks:
             clible-web-ci
         else
           docker run --rm -p {{.PORT}}:3000 \
-            -e GEMINI_API_KEY \
+            -e GEMINI_API_KEY_FOR_BETA_TESTERS \
+            -e CLIBLE_POSTGRES_PASSWORD \
+            -e CLIBLE_POSTGRES_USER \
             -e SESSION_SECRET \
             -v clible-data:/home/clible/.clible-data \
             -v clible-web-data:/app/web/data \
@@ -104,7 +106,9 @@ tasks:
             clible-web-ci
         else
           docker run --rm -p {{.PORT}}:3000 \
-            -e GEMINI_API_KEY \
+            -e GEMINI_API_KEY_FOR_BETA_TESTERS \
+            -e CLIBLE_POSTGRES_PASSWORD \
+            -e CLIBLE_POSTGRES_USER \
             -e SESSION_SECRET \
             -e NODE_ENV=development \
             -v clible-data:/home/clible/.clible-data \
@@ -238,7 +242,7 @@ tasks:
           --cpu=1 \
           --min-instances=0 \
           --max-instances=10 \
-          --set-env-vars="GEMINI_API_KEY=${GEMINI_API_KEY},SESSION_SECRET=${SESSION_SECRET},NODE_ENV=production" \
+          --set-env-vars="GEMINI_API_KEY_FOR_BETA_TESTERS=${GEMINI_API_KEY_FOR_BETA_TESTERS},CLIBLE_POSTGRES_PASSWORD=${CLIBLE_POSTGRES_PASSWORD},CLIBLE_POSTGRES_USER=${CLIBLE_POSTGRES_USER},SESSION_SECRET=${SESSION_SECRET},NODE_ENV=production" \
           --project=${GCP_PROJECT_ID}
 
   gcp-web-deploy:
@@ -255,6 +259,10 @@ tasks:
         msg: "Set SESSION_SECRET."
       - sh: 'test -n "${GEMINI_API_KEY_FOR_BETA_TESTERS}"'
         msg: "Set GEMINI_API_KEY_FOR_BETA_TESTERS."
+      - sh: 'test -n "${CLIBLE_POSTGRES_PASSWORD}"'
+        msg: "Set CLIBLE_POSTGRES_PASSWORD."
+      - sh: 'test -n "${CLIBLE_POSTGRES_USER}"'
+        msg: "Set CLIBLE_POSTGRES_USER."
     cmds:
       - |
         gcloud run deploy clible-web \
@@ -284,12 +292,16 @@ tasks:
         msg: "Set SESSION_SECRET."
       - sh: 'test -n "${GEMINI_API_KEY_FOR_BETA_TESTERS}"'
         msg: "Set GEMINI_API_KEY_FOR_BETA_TESTERS."
+      - sh: 'test -n "${CLIBLE_POSTGRES_PASSWORD}"'
+        msg: "Set CLIBLE_POSTGRES_PASSWORD."
+      - sh: 'test -n "${CLIBLE_POSTGRES_USER}"'
+        msg: "Set CLIBLE_POSTGRES_USER."
     cmds:
       - |
         gcloud run services update clible-web \
           --region=${GCP_REGION} \
           --project=${GCP_PROJECT_ID} \
-          --update-env-vars="NODE_ENV=production,MAX_REQUESTS_PER_HOUR=${MAX_REQUESTS_PER_HOUR},SESSION_SECRET=${SESSION_SECRET},GEMINI_API_KEY_FOR_BETA_TESTERS=${GEMINI_API_KEY_FOR_BETA_TESTERS}"
+          --update-env-vars="NODE_ENV=production,MAX_REQUESTS_PER_HOUR=${MAX_REQUESTS_PER_HOUR},SESSION_SECRET=${SESSION_SECRET},GEMINI_API_KEY_FOR_BETA_TESTERS=${GEMINI_API_KEY_FOR_BETA_TESTERS},CLIBLE_POSTGRES_PASSWORD=${CLIBLE_POSTGRES_PASSWORD},CLIBLE_POSTGRES_USER=${CLIBLE_POSTGRES_USER}"
 
   gcp-web-url:
     desc: Print Cloud Run service URL
