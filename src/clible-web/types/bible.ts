@@ -25,6 +25,11 @@ export interface InstalledTranslation {
   format: string;
 }
 
+/** One row from `/api/translations/available`. */
+export interface AvailableTranslation extends InstalledTranslation {
+  size_mb?: number | null;
+}
+
 export interface TextStats {
   wordCount: number;
   charCount: number;

@@ -110,6 +110,34 @@ function clibleFailureMessage(
   return stripAnsi(err.message);
 }
 
+function buildSeedAvailableArgs(query?: string): string[] {
+  const args = ["seed", "available", "--json", "--limit", "0"];
+  if (query && query.trim()) {
+    args.push("--query", query.trim());
+  }
+  return args;
+}
+
+function isValidTranslationId(value: string): boolean {
+  return /^[a-z0-9][a-z0-9-]{0,63}$/i.test(value);
+}
+
+type AvailableTranslation = {
+  id: string;
+  name: string;
+  language: string;
+  format: string;
+  size_mb?: number | null;
+};
+
+function parseAvailableTranslations(stdout: string): AvailableTranslation[] {
+  const parsed = JSON.parse(stdout) as unknown;
+  if (!Array.isArray(parsed)) {
+    throw new Error("Invalid JSON output from seed available.");
+  }
+  return parsed as AvailableTranslation[];
+}
+
 function runClible(argv: string[]): Promise<{ stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
     const child = spawn("clible", argv, {
@@ -153,9 +181,22 @@ function getAiClientOrNull(): GoogleGenAI | null {
   return new GoogleGenAI({ apiKey });
 }
 
+function getSessionSecret(): string {
+  const raw = process.env.SESSION_SECRET;
+  const normalized = typeof raw === "string" ? raw.trim() : "";
+  return normalized || "dev-secret-change-in-production";
+}
+
 async function startServer() {
   const app = express();
   const PORT = parseInt(process.env.PORT || "3000");
+  const isProduction = process.env.NODE_ENV === "production";
+
+  // Cloud Run terminates TLS before forwarding traffic to Express.
+  // trust proxy is required so secure session cookies can be set.
+  if (isProduction) {
+    app.set("trust proxy", 1);
+  }
 
   app.use(express.json());
 
@@ -166,12 +207,13 @@ async function startServer() {
   app.use(
     session({
       store: new SQLiteStore(),
-      secret: process.env.SESSION_SECRET ?? "dev-secret-change-in-production",
+      secret: getSessionSecret(),
       resave: false,
       saveUninitialized: false,
       cookie: {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        secure: isProduction,
+        sameSite: "lax",
         maxAge: 24 * 60 * 60 * 1000,
       },
     })
@@ -252,6 +294,54 @@ async function startServer() {
       res.status(500).json({
         error: "Failed to analyze tone",
         details: error?.message ?? String(error),
+      });
+    }
+  });
+
+  app.get("/api/translations/available", requireAuth, async (req, res) => {
+    const query = typeof req.query?.query === "string" ? req.query.query : undefined;
+    try {
+      const { stdout } = await runClible(buildSeedAvailableArgs(query));
+      const items = parseAvailableTranslations(stdout);
+      res.json(items);
+    } catch (error: any) {
+      const msg = clibleFailureMessage(error);
+      if (msg.includes("Invalid JSON")) {
+        return res.status(500).json({
+          error: "Failed to parse available translations.",
+          details: msg,
+        });
+      }
+      return res.status(500).json({
+        error: "Failed to fetch available translations.",
+        details: msg,
+      });
+    }
+  });
+
+  app.post("/api/translations/install", requireAuth, async (req, res) => {
+    const translationId = typeof req.body?.translationId === "string" ? req.body.translationId.trim() : "";
+    if (!translationId) {
+      return res.status(400).json({ error: "Missing 'translationId'." });
+    }
+    if (!isValidTranslationId(translationId)) {
+      return res.status(400).json({ error: "Invalid translation ID format." });
+    }
+
+    try {
+      const { stdout, stderr } = await runClible(["seed", "install", translationId]);
+      const message = stripAnsi(`${stdout}\n${stderr}`).trim() || `Installed ${translationId}.`;
+      return res.json({
+        ok: true,
+        translationId,
+        message,
+      });
+    } catch (error: any) {
+      const msg = clibleFailureMessage(error);
+      const status = msg.includes("already installed") || msg.includes("Unknown translation") ? 400 : 500;
+      return res.status(status).json({
+        error: `Failed to install translation '${translationId}'.`,
+        details: msg,
       });
     }
   });
