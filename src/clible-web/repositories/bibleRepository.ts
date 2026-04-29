@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { BibleResponse, InstalledTranslation } from '../types/bible';
+import { AvailableTranslation, BibleResponse, InstalledTranslation } from '../types/bible';
 import {
   SearchResponse,
   SearchResultRow,
@@ -23,6 +23,49 @@ function logSearch(...args: unknown[]) {
 }
 
 export class BibleRepository {
+  async listAvailableTranslations(query?: string): Promise<AvailableTranslation[]> {
+    const search = query?.trim()
+      ? `?query=${encodeURIComponent(query.trim())}`
+      : "";
+    const response = await fetch(`/api/translations/available${search}`);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        (errorData as { details?: string; error?: string }).details ??
+          (errorData as { error?: string }).error ??
+          "Failed to list available translations."
+      );
+    }
+    const data: unknown = await response.json();
+    if (!Array.isArray(data)) {
+      throw new Error("Invalid response when listing available translations.");
+    }
+    return data as AvailableTranslation[];
+  }
+
+  async installTranslation(translationId: string): Promise<{ ok: true; translationId: string; message: string }> {
+    const response = await fetch("/api/translations/install", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ translationId }),
+    });
+    const payload = (await response.json().catch(() => ({}))) as {
+      ok?: boolean;
+      translationId?: string;
+      message?: string;
+      details?: string;
+      error?: string;
+    };
+    if (!response.ok) {
+      throw new Error(payload.details ?? payload.error ?? "Failed to install translation.");
+    }
+    return {
+      ok: true,
+      translationId: String(payload.translationId ?? translationId),
+      message: String(payload.message ?? `Installed ${translationId}.`),
+    };
+  }
+
   async listInstalledTranslations(): Promise<InstalledTranslation[]> {
     const response = await fetch(
       `/api/clible?cmd=seed&args=${encodeURIComponent("list")}`

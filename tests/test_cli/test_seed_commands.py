@@ -87,6 +87,41 @@ def test_seed_available_offset_past_matches_shows_no_rows(cli_uses_temp_db):
     assert "web" not in result.output
 
 
+def test_seed_available_json_returns_filtered_rows(cli_uses_temp_db):
+    """seed available --json returns filtered translations."""
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        [
+            "seed",
+            "available",
+            "--json",
+            "--query",
+            "World English Bible",
+            "--limit",
+            "1",
+        ],
+    )
+    assert result.exit_code == 0
+    data = json.loads(result.output.strip())
+    assert len(data) == 1
+    assert data[0]["id"] == "web"
+    assert data[0]["name"] == "World English Bible"
+    assert data[0]["language"] == "en"
+    assert data[0]["format"] == "USFX"
+    assert "size_mb" in data[0]
+
+
+def test_seed_available_json_limit_zero_returns_many(cli_uses_temp_db):
+    """seed available --json supports limit=0 for all matches."""
+    runner = CliRunner()
+    result = runner.invoke(main, ["seed", "available", "--json", "--query", "fi", "--limit", "0"])
+    assert result.exit_code == 0
+    data = json.loads(result.output.strip())
+    assert len(data) >= 1
+    assert all("id" in row for row in data)
+
+
 def test_seed_list_empty_shows_hint(cli_uses_temp_db):
     """seed list shows hint when no translations installed."""
     runner = CliRunner()

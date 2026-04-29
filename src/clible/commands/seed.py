@@ -131,6 +131,13 @@ def list_installed(show_help: bool, as_json: bool) -> None:
 @click.command("available", add_help_option=False, context_settings={"help_option_names": []})
 @click.option("--help", "show_help", is_flag=True, help="Show this message and exit.")
 @click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    default=False,
+    help="Output available translations as JSON to stdout (for web bridge).",
+)
+@click.option(
     "--format",
     "format_filters",
     multiple=True,
@@ -169,6 +176,7 @@ def list_installed(show_help: bool, as_json: bool) -> None:
 )
 def available(
     show_help: bool,
+    as_json: bool,
     format_filters: tuple[str, ...],
     language_filters: tuple[str, ...],
     query_text: str | None,
@@ -216,6 +224,20 @@ def available(
         items_to_show = items
     else:
         items_to_show = items[:limit]
+
+    if as_json:
+        payload = [
+            {
+                "id": t["id"],
+                "name": t["name"],
+                "language": t["language"],
+                "format": t["format"],
+                "size_mb": t.get("size_mb"),
+            }
+            for t in items_to_show
+        ]
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return
 
     table = Table(title="Available translations")
     table.add_column("ID", style="cyan")

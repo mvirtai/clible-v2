@@ -17,6 +17,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 
 import {
+  AvailableTranslation,
   BibleResponse,
   InstalledTranslation,
   TextStats,
@@ -65,7 +66,12 @@ export default function App() {
   const [analyticsMode, setAnalyticsMode] = useState<AnalyticsMode>('reference');
   const [toneAnalysis, setToneAnalysis] = useState<string | null>(null);
   const [installedTranslations, setInstalledTranslations] = useState<InstalledTranslation[]>([]);
+  const [availableTranslations, setAvailableTranslations] = useState<AvailableTranslation[]>([]);
+  const [loadingAvailableTranslations, setLoadingAvailableTranslations] = useState(false);
   const [translationsLoadError, setTranslationsLoadError] = useState<string | null>(null);
+  const [translationInstallError, setTranslationInstallError] = useState<string | null>(null);
+  const [translationInstallSuccess, setTranslationInstallSuccess] = useState<string | null>(null);
+  const [installingTranslationId, setInstallingTranslationId] = useState<string | null>(null);
   const [showTranslations, setShowTranslations] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [nativeStats, setNativeStats] = useState<TextStats | null>(null);
@@ -127,15 +133,24 @@ export default function App() {
     let cancelled = false;
     (async () => {
       try {
-        const list = await bibleRepository.listInstalledTranslations();
+        setLoadingAvailableTranslations(true);
+        const [installed, available] = await Promise.all([
+          bibleRepository.listInstalledTranslations(),
+          bibleRepository.listAvailableTranslations(),
+        ]);
         if (cancelled) return;
-        setInstalledTranslations(list);
+        setInstalledTranslations(installed);
+        setAvailableTranslations(available);
         setTranslationsLoadError(null);
       } catch (e: unknown) {
         if (!cancelled) {
           setTranslationsLoadError(
             e instanceof Error ? e.message : 'Failed to load translations.'
           );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingAvailableTranslations(false);
         }
       }
     })();
@@ -263,6 +278,27 @@ export default function App() {
     });
     setShowTranslations(false);
     setError(null);
+  };
+
+  const handleTranslationInstall = (id: string) => {
+    setTranslationInstallError(null);
+    setTranslationInstallSuccess(null);
+    setInstallingTranslationId(id);
+    void bibleRepository
+      .installTranslation(id)
+      .then(async (result) => {
+        setTranslationInstallSuccess(result.message);
+        const installed = await bibleRepository.listInstalledTranslations();
+        setInstalledTranslations(installed);
+      })
+      .catch((e: unknown) => {
+        setTranslationInstallError(
+          e instanceof Error ? e.message : "Failed to install translation."
+        );
+      })
+      .finally(() => {
+        setInstallingTranslationId(null);
+      });
   };
 
   const triggerExport = (
@@ -524,9 +560,15 @@ export default function App() {
         {showTranslations && (
           <TranslationModal
             installedTranslations={installedTranslations}
+            availableTranslations={availableTranslations}
+            loadingAvailableTranslations={loadingAvailableTranslations}
             translationsLoadError={translationsLoadError}
+            installError={translationInstallError}
+            installSuccess={translationInstallSuccess}
+            installingTranslationId={installingTranslationId}
             activeTranslation={settings?.translationId ?? null}
             onSelect={handleTranslationSelect}
+            onInstall={handleTranslationInstall}
             onClose={() => setShowTranslations(false)}
           />
         )}
