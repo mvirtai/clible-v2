@@ -10,6 +10,7 @@ dependencies = [
   "click>=8.1.0",
   "go-task-bin>=3.50.0",
   "google-cloud-storage>=2.14.0",
+  "pytest-cov>=7.1.0",
   "requests>=2.31.0",
   "rich>=13.0.0",
 ]
@@ -35,10 +36,34 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-# addopts = "--cov=clible"  # Re-enable when pytest-cov is added (e.g. Ticket 0.3)
 filterwarnings = ["ignore:cannot collect test class 'Testament':pytest.PytestCollectionWarning"]
 pythonpath = ["src"]
 testpaths = ["tests"]
+addopts = "--cov=clible --cov-report=term-missing --cov-report=html --ignore=tests/test_api --ignore=tests/test_scripts"
+
+[tool.coverage.run]
+omit = [
+  "tests/*",
+  "src/clible/commands/*",
+  "src/clible/api/*",
+  "src/clible/scripts/*",
+  "**/__init__.py",
+  "**/__main__.py",
+  "**/__version__.py",
+  "**/__about__.py",
+  "**/__config__.py",
+  "**/__logging__.py",
+  "**/__testing__.py",
+  "**/__utils__.py",
+  "**/__validators__.py",
+  ]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 80
+precision = 2
+skip_covered = true
+skip_empty = true
 
 # Dependencies will be added per PLAN.md tickets.
 # Runtime: click, rich, requests
