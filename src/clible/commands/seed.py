@@ -43,7 +43,10 @@ def _load_available_catalog() -> list[dict]:
     catalog_path = Path(__file__).resolve().parent.parent / "data" / "translations.json"
     with open(catalog_path, encoding="utf-8") as f:
         catalog = json.load(f)
-    return [{"id": tid, **{k: v for k, v in meta.items() if k != "filename"}} for tid, meta in catalog.items()]
+    return [
+        {"id": tid, **{k: v for k, v in meta.items() if k != "filename"}}
+        for tid, meta in catalog.items()
+    ]
 
 
 @click.command("install", add_help_option=False, context_settings={"help_option_names": []})
