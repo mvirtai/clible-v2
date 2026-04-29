@@ -232,8 +232,8 @@ export default function App() {
     try {
       const insight = await bibleService.getAiInsight(result);
       setAiInsight(insight);
-    } catch {
-      setAiInsight('Failed to generate insights.');
+    } catch (err) {
+      setAiInsight(err instanceof Error ? err.message : 'Failed to generate insights.');
     } finally {
       setAiLoading(false);
     }
@@ -264,7 +264,7 @@ export default function App() {
         setToneAnalysis(tone);
       } catch (err) {
         console.warn('AI tone unavailable:', err);
-        setToneAnalysis('');
+        setToneAnalysis(err instanceof Error ? err.message : 'AI tone analysis unavailable.');
       }
     } catch (err) {
       console.error('Analytics error:', err);
