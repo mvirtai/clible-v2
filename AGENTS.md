@@ -14,7 +14,7 @@ clible is a **command-line Bible study tool**. The v2 rebuild is **offline-first
 
 - **Data source:** Bible text comes from **seeded XML files**, not from any live API. Translations are listed in `src/clible/data/translations.json`; `clible seed install <id>` downloads XML from GitHub (e.g. [seven1m/open-bibles](https://github.com/seven1m/open-bibles), [Beblia/Holy-Bible-XML-Format](https://github.com/Beblia/Holy-Bible-XML-Format)) and parses them into SQLite.
 - **No bible-api.com** — The project does not use bible-api.com or any external verse API. Ignore any legacy `api_base_url` or API client references in config/plan docs.
-- **Focus:** Layered architecture, clear separation of concerns, thorough testing. See `docs/PROJECT_OVERVIEW.md` and `PLAN.md` for current status and plan.
+- **Focus:** Layered architecture, clear separation of concerns, thorough testing. See `docs/PROJECT_OVERVIEW.md` and `ROADMAP.md` for current status and direction.
 
 ---
 
@@ -159,7 +159,7 @@ Verb-noun CLI: `clible seed install web`, `clible verse "John 3:16"`, `clible se
 - **Package manager:** uv.
 - **DB:** SQLite at `src/clible/data/clible.db` by default; override with `CLIBLE_DB_PATH`.
 - **Seed:** XML is fetched from GitHub during `seed install`; normal use (verse, search, analytics) is offline.
-- **Backup:** Optional GCS backup; set `CLIBLE_GCS_BUCKET` (see `docs/GCP_SETUP.md` if present).
+- **Backup:** Optional GCS backup; set `CLIBLE_GCS_BUCKET` (see `docs/guides/deployment.md`).
 - **Git:** Use `git switch` for branches, `git restore` for files; `git checkout` is legacy (see `.cursor/rules/git-commits.mdc`). After squash and merge, delete the feature branch and use `git switch main` to return to main, `git fetch --all` to update local main and `git reset --hard origin/main` to sync with remote.
 
 ---
@@ -167,6 +167,10 @@ Verb-noun CLI: `clible seed install web`, `clible verse "John 3:16"`, `clible se
 ## Related Documents
 
 - **docs/PROJECT_OVERVIEW.md** — Current implementation status, file map, schema.
-- **PLAN.md** — Phase plan and tickets (some content may still reference an API; actual data path is seed + parsers).
+- **ROADMAP.md** — Current status and feature direction. Replaces the legacy `PLAN.md`.
+- **docs/architecture/overview.md** — Architecture layers, patterns, and decision index.
+- **docs/architecture/adr/** — Architecture Decision Records for key design choices.
+- **docs/api/openapi.yml** — OpenAPI 3.1 specification for the web API.
+- **docs/guides/** — Development guide, deployment guide, search flow.
 - **plans/** — Per-PR implementation plans (task breakdowns, step-by-step). Check when working on a feature that has a plan there. Not version-controlled (in .gitignore).
 - **.cursor/rules/** — Project rules by topic (`.mdc` with frontmatter). Always-on: `project-context.mdc`, `architecture.mdc`. File-scoped: `python-style.mdc`, `database.mdc`, `testing.mdc`. See `how-to-use-rules.mdc` for usage.

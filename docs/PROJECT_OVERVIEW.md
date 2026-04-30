@@ -215,19 +215,19 @@ Index: `idx_verses_lookup` (redundant `idx_verses_search` on `text` removed in m
 ## Related Documents
 
 - **README.md** — User-facing usage and installation
-- **PLAN.md** — Original phase plan (API-based; seed path supersedes for now)
+- **ROADMAP.md** — Current status and feature direction
+- **docs/architecture/overview.md** — Architecture layers, patterns, and ADR index
+- **docs/api/openapi.yml** — OpenAPI 3.1 spec for the web API
+- **docs/archive/PLAN.md** — Original phase plan (archived; superseded by ROADMAP.md)
 
 ---
 
 ## What’s Next (Backlog)
-
-Backlog is tracked in:
-- `notes/code-review-2026-03-26.md` (what is still change-worthy)
-- `plans/future-directions_2026-03-26.plan.md` (feature direction by theme)
-- `PLAN.md` (original ticket breakdown / learning order)
 
 High-impact remaining items (as of `2026-04-12`):
 - **Extended analytics scopes**: multi-book, Old/New Testament, whole-Bible analysis.
 - **Concordance view (web)**: expose the CLI concordance command in the web UI.
 - **CLI connection management refactor**: use Click context to keep a single DB connection per command invocation.
 - **Export deduplication**: consolidate shared export flow/helpers across verse/search/analytics.
+
+See `ROADMAP.md` for the full prioritised feature list.
