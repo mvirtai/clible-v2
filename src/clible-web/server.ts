@@ -173,9 +173,6 @@ function getSessionSecret(): string {
 }
 
 async function startServer() {
-  // Run DB migrations before accepting requests.
-  await runMigrations();
-
   const app = express();
   const PORT = parseInt(process.env.PORT || "3000");
   const isProduction = process.env.NODE_ENV === "production";
@@ -457,7 +454,17 @@ async function startServer() {
   app.listen(PORT, "0.0.0.0", async () => {
     console.log(`Server running on http://localhost:${PORT}`);
     console.log(`API Bridge active at /api/clible`);
-    
+
+    // Run DB migrations after the server is already listening so Cloud Run's
+    // health check can succeed even if migrations take a few seconds.
+    try {
+      await runMigrations();
+      console.log("[migrate] all migrations applied");
+    } catch (err) {
+      console.error("[migrate] failed:", (err as Error).message);
+      process.exit(1);
+    }
+
     // Check if clible is available
     try {
       const { stdout } = await execAsync("clible --help");
