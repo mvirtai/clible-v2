@@ -1,0 +1,599 @@
+openapi: "3.1.0"
+
+info:
+  title: clible Web API
+  version: "1.0.0"
+  description: |
+    REST API for the clible web application. The server is an Express/Node.js bridge
+    that proxies requests to the Python CLI for Bible data, and handles auth, user
+    settings, and AI features directly.
+
+    Authentication uses HTTP-only session cookies (`connect.sid`). Log in via
+    `POST /api/auth/login` to receive a session cookie, then include it in
+    subsequent requests.
+
+    Most endpoints require an authenticated session. Endpoints that do not are
+    marked with `public` in their description.
+
+servers:
+  - url: http://localhost:3000
+    description: Local development
+  - url: https://your-cloud-run-url.run.app
+    description: Cloud Run production
+
+tags:
+  - name: health
+    description: Service health
+  - name: auth
+    description: Registration, login, logout, and current user
+  - name: settings
+    description: Per-user settings (translation preference, theme)
+  - name: translations
+    description: Available and installed Bible translations
+  - name: bible
+    description: Verse lookup, full-text search, and analytics via the CLI bridge
+  - name: ai
+    description: AI-powered study insights and tone analysis (Gemini)
+
+paths:
+
+  # ─── Health ───────────────────────────────────────────────────────────────
+
+  /health:
+    get:
+      tags: [health]
+      summary: Health check
+      description: Public. Returns 200 when the server is running.
+      operationId: getHealth
+      responses:
+        "200":
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  # ─── Auth ──────────────────────────────────────────────────────────────────
+
+  /api/auth/register:
+    post:
+      tags: [auth]
+      summary: Register a new user
+      description: Public. Creates an account and starts a session.
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Credentials"
+      responses:
+        "201":
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: Username already taken
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: Username already taken.
+
+  /api/auth/login:
+    post:
+      tags: [auth]
+      summary: Log in
+      description: Public. Authenticates the user and sets a session cookie.
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Credentials"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: Invalid credentials.
+
+  /api/auth/logout:
+    post:
+      tags: [auth]
+      summary: Log out
+      description: Public. Destroys the current session.
+      operationId: logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+
+  /api/auth/me:
+    get:
+      tags: [auth]
+      summary: Get current user
+      description: Returns the authenticated user. 401 if no active session.
+      operationId: getMe
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Authenticated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ─── User settings ────────────────────────────────────────────────────────
+
+  /api/user/settings:
+    get:
+      tags: [settings]
+      summary: Get user settings
+      description: Returns the authenticated user's settings. Creates defaults on first call.
+      operationId: getSettings
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: User settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserSettings"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+    put:
+      tags: [settings]
+      summary: Update user settings
+      description: Partial update — only fields included in the body are changed.
+      operationId: updateSettings
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserSettingsPatch"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserSettings"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ─── Translations ─────────────────────────────────────────────────────────
+
+  /api/translations/available:
+    get:
+      tags: [translations]
+      summary: List available translations
+      description: Returns translations from the catalog that can be installed.
+      operationId: getAvailableTranslations
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: query
+          in: query
+          required: false
+          description: Filter by name or language (case-insensitive substring)
+          schema:
+            type: string
+            example: english
+      responses:
+        "200":
+          description: List of available translations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TranslationCatalogEntry"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/translations/install:
+    post:
+      tags: [translations]
+      summary: Install a translation
+      description: Downloads and seeds the given translation into the server's SQLite database. This may take several seconds.
+      operationId: installTranslation
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [translationId]
+              properties:
+                translationId:
+                  type: string
+                  example: web
+      responses:
+        "200":
+          description: Translation installed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  translationId:
+                    type: string
+                    example: web
+                  message:
+                    type: string
+                    example: "Installed web. 31102 verses saved."
+        "400":
+          description: Missing or invalid translation ID, or already installed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  # ─── Bible (CLI bridge) ────────────────────────────────────────────────────
+
+  /api/clible:
+    get:
+      tags: [bible]
+      summary: CLI bridge
+      description: |
+        Executes a `clible` command and returns its JSON output.
+
+        Allowed commands: `verse`, `search`, `analytics`, `seed` (list only).
+
+        The `args` string is passed directly to the CLI command after sanitisation.
+        Shell metacharacters (`;`, `&`, `|`, `` ` ``, `$`, `<`, `>`) are stripped.
+
+        **verse example:** `?cmd=verse&args="John 3:16" -t web`
+
+        **search example:** `?cmd=search&args="grace" -t web -n 20`
+
+        **analytics example:** `?cmd=analytics&args=reference "John 1:1" -t web`
+
+        **seed list:** `?cmd=seed&args=list`
+
+        Passing `--stdout-export <format>` in `args` returns raw file content
+        (HTML, JSON, CSV, XML, or Markdown) instead of JSON.
+      operationId: runClible
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: cmd
+          in: query
+          required: true
+          description: CLI sub-command
+          schema:
+            type: string
+            enum: [verse, search, analytics, seed]
+        - name: args
+          in: query
+          required: false
+          description: Arguments forwarded to the CLI command
+          schema:
+            type: string
+            example: '"John 3:16" -t web'
+      responses:
+        "200":
+          description: |
+            Parsed JSON from CLI stdout. Shape depends on the command:
+            - `verse`: `{ type, reference, verses, text, translation_id, translation_name }`
+            - `search`: `{ type, title, verses, query, scope, statistics, translation_id }`
+            - `analytics`: `{ type, title, ... analytics fields ... }`
+            - `seed list`: `[{ id, name, language, installed }]`
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Command-dependent JSON payload
+        "400":
+          description: Missing or disallowed command
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Command not in the allowed list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Verse or reference not found, or translation not installed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Error"
+                  - type: object
+                    properties:
+                      hint:
+                        type: string
+                        example: Install a translation in the container, e.g. clible seed install web
+        "500":
+          description: CLI error or non-JSON stdout
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Error"
+                  - type: object
+                    properties:
+                      rawOutput:
+                        type: string
+                        description: Raw stdout when JSON parsing fails
+
+  # ─── AI ───────────────────────────────────────────────────────────────────
+
+  /api/ai/insight:
+    post:
+      tags: [ai]
+      summary: Generate a study insight
+      description: |
+        Uses Gemini to generate a study note or reflection for the given Bible text.
+        Rate-limited to `MAX_REQUESTS_PER_HOUR` per user (default: 20).
+        Returns 503 if `GEMINI_API_KEY` is not configured.
+      operationId: getInsight
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiRequest"
+      responses:
+        "200":
+          description: AI-generated insight
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "503":
+          description: AI disabled (GEMINI_API_KEY not set)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/ai/tone:
+    post:
+      tags: [ai]
+      summary: Analyse tone and theme
+      description: |
+        Uses Gemini to analyse the tone, mood, and theme of the given Bible text.
+        Rate-limited to `MAX_REQUESTS_PER_HOUR` per user (default: 20).
+        Returns 503 if `GEMINI_API_KEY` is not configured.
+      operationId: getToneAnalysis
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiRequest"
+      responses:
+        "200":
+          description: AI-generated tone analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "503":
+          description: AI disabled (GEMINI_API_KEY not set)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+# ─── Components ─────────────────────────────────────────────────────────────
+
+components:
+
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: connect.sid
+      description: HTTP-only session cookie set by login/register. 24-hour lifetime.
+
+  schemas:
+
+    Credentials:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          example: alice
+        password:
+          type: string
+          minLength: 8
+          example: supersecret
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        username:
+          type: string
+          example: alice
+
+    UserSettings:
+      type: object
+      properties:
+        translationId:
+          type: string
+          nullable: true
+          example: web
+        theme:
+          type: string
+          enum: [light, dark, system]
+          example: system
+
+    UserSettingsPatch:
+      type: object
+      properties:
+        translationId:
+          type: string
+          nullable: true
+          example: kjv
+        theme:
+          type: string
+          enum: [light, dark, system]
+          example: dark
+
+    TranslationCatalogEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          example: web
+        name:
+          type: string
+          example: World English Bible
+        language:
+          type: string
+          example: eng
+        format:
+          type: string
+          enum: [usfx, osis, beblia, zefania]
+          example: usfx
+        size_mb:
+          type: number
+          example: 4.1
+        installed:
+          type: boolean
+          example: false
+
+    AiRequest:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
+          description: Bible passage or verse text to analyse
+          example: "For God so loved the world that he gave his only Son..."
+
+    AiResponse:
+      type: object
+      properties:
+        text:
+          type: string
+          description: AI-generated text
+          example: "This passage highlights the depth of God's love..."
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Something went wrong.
+        details:
+          type: string
+          description: Optional additional context
+        hint:
+          type: string
+          description: Optional remediation suggestion
+
+  responses:
+
+    BadRequest:
+      description: Bad request — missing or invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    Unauthorized:
+      description: Not authenticated — session cookie missing or expired
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error: Not authenticated.
+
+    RateLimited:
+      description: AI rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error: AI request limit reached. Please try again later.
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"

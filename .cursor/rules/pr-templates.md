@@ -79,7 +79,7 @@ One or two sentences: what this PR does and why.
 
 ## Related Documentation
 
-- Link to PLAN.md ticket
+- Link to relevant ROADMAP.md item or plans/ task
 - Link to other docs/PRs if relevant
 
 ---
