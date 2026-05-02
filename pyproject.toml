@@ -13,6 +13,8 @@ dependencies = [
   "pytest-cov>=7.1.0",
   "requests>=2.31.0",
   "rich>=13.0.0",
+  "structlog>=24.4.0",
+  "tenacity>=9.0.0"
 ]
 description = "Bible Study tool in CLI with users, sessions, text analytic experiments, export to different file types and basic read, diff, ref properties."
 name = "clible-v2"

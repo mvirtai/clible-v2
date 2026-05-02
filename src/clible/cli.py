@@ -1,5 +1,7 @@
 """CLI entry point for clible."""
 
+import os
+
 import click
 
 from clible.commands.analytics import book as analytics_book
@@ -18,13 +20,17 @@ from clible.commands.seed import (
     sync_catalog,
 )
 from clible.commands.verse import verse
+from clible.logging_config import configure_logging
 from clible.ui.help_texts import CLI_ROOT_HELP
 
 
 @click.group(help=CLI_ROOT_HELP)
 def main() -> None:
     """Entry point for the clible CLI (see CLI_ROOT_HELP for `clible --help` text)."""
-    pass
+    configure_logging(
+        level=os.environ.get("CLIBLE_LOG_LEVEL", "WARNING"),
+        fmt=os.environ.get("CLIBLE_LOG_FORMAT", "console"),
+    )
 
 
 @main.group("seed")

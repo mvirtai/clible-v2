@@ -6,6 +6,7 @@ the real schema without touching the filesystem or config db_path.
 """
 
 import pytest
+import structlog
 
 from clible.db.connection import get_connection
 from clible.db.repositories.book_repo import BookRepo
@@ -41,3 +42,18 @@ def book_repo(db_conn):
 def verse_repo(db_conn):
     """VerseRepo wired to a fresh in-memory database."""
     return VerseRepo(db_conn)
+
+
+@pytest.fixture(autouse=True)
+def _silent_structlog():
+    """Silence structlog during tests (drop all events; no stderr noise)."""
+
+    def _drop_all(_logger, _method_name, _event_dict):
+        raise structlog.DropEvent
+
+    structlog.configure(
+        processors=[_drop_all],
+        wrapper_class=structlog.BoundLogger,
+        logger_factory=structlog.PrintLoggerFactory(),
+        cache_logger_on_first_use=True,
+    )
