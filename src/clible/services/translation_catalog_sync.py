@@ -15,6 +15,15 @@ from pathlib import Path
 from typing import Any
 
 import requests
+import structlog
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
+
+log = structlog.get_logger(__name__)
 
 _OPEN_BIBLES_OWNER = "seven1m"
 _OPEN_BIBLES_REPO = "open-bibles"
@@ -51,6 +60,15 @@ def _bytes_to_mb(size_bytes: Any) -> float:
     if isinstance(size_bytes, (int, float)) and size_bytes > 0:
         return round(float(size_bytes) / _BYTES_PER_MB, 1)
     return 0.0
+
+
+def _log_catalog_retry(retry_state) -> None:
+    exc = retry_state.outcome.exception()
+    log.warning(
+        "catalog.sync.retry",
+        attempt=retry_state.attempt_number,
+        error=str(exc),
+    )
 
 
 def slugify_id(text: str) -> str:
@@ -192,6 +210,13 @@ def merge_translations_catalog(
     return out
 
 
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    reraise=True,
+    before_sleep=_log_catalog_retry,
+    retry=retry_if_exception_type(requests.exceptions.RequestException),
+)
 def _fetch_github_tree(
     *,
     owner: str,

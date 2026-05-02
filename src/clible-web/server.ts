@@ -4,7 +4,7 @@
  */
 
 import "./load-env";
-import express from "express";
+import express, { type Request, type Response, type NextFunction } from "express";
 import { exec, spawn } from "child_process";
 import { promisify } from "util";
 import path from "path";
@@ -441,6 +441,10 @@ async function startServer() {
     }
   });
 
+  app.use("/api", (_req: Request, res: Response) => {
+    res.status(404).json({ error: "Not found" });
+  });
+
   // Static assets in production only. In development, run Vite as a separate dev server
   // and proxy /api/* requests to this server.
   if (process.env.NODE_ENV === "production") {
@@ -450,6 +454,22 @@ async function startServer() {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
+
+  app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
+    console.error(
+      JSON.stringify({
+        event: "unhandled_error",
+        message: err.message,
+        path: req.path,
+        method: req.method,
+        timestamp: new Date().toISOString(),
+      })
+    );
+    if (res.headersSent) {
+      return;
+    }
+    res.status(500).json({ error: "Internal server error" });
+  });
 
   app.listen(PORT, "0.0.0.0", async () => {
     console.log(`Server running on http://localhost:${PORT}`);

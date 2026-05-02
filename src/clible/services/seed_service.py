@@ -8,8 +8,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import requests
+import structlog
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from clible.config import get_config
+from clible.db.repositories.translation_repo import TranslationRow
 from clible.parsers.protocol import XMLParserProtocol
 
 if TYPE_CHECKING:
@@ -20,6 +23,36 @@ if TYPE_CHECKING:
 
 # USFX book_id variants that map to canonical books table (ENG-WEB uses NAM for Nahum)
 _BOOK_ID_ALIASES = {"NAM": "NAH"}
+
+log = structlog.get_logger(__name__)
+
+
+def _log_retry(retry_state) -> None:
+    """Log a warning when tenacity is about to retry a failed HTTP request."""
+    exc = retry_state.outcome.exception()
+    log.warning(
+        "http.retry",
+        attempt=retry_state.attempt_number,
+        error=str(exc),
+        next_wait_seconds=(
+            round(retry_state.next_action.sleep, 1) if retry_state.next_action else None
+        ),
+    )
+
+
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    reraise=True,
+    before_sleep=_log_retry,
+    retry=retry_if_exception_type(requests.exceptions.RequestException),
+)
+def _download_xml(url: str, timeout: int) -> bytes:
+    """Download XML from url. Retried automatically on failure."""
+    response = requests.get(url, timeout=timeout)
+    response.raise_for_status()
+    return response.content
+
 
 _SUPPORTED_FORMATS = ("USFX", "OSIS", "BEBLIA", "ZEFANIA")
 
@@ -59,7 +92,7 @@ class SeedService:
             for tid, meta in catalog.items()
         ]
 
-    def list_installed(self) -> list[dict]:
+    def list_installed(self) -> list[TranslationRow]:
         """List installed translations from the database."""
         return self._translation_repo.get_all()
 
@@ -110,13 +143,14 @@ class SeedService:
         start = time.monotonic()
         report = progress_callback or (lambda m: None)
 
+        log.info("seed.download.start", url=url, translation_id=translation_id)
         report("Downloading...")
-        response = requests.get(url, timeout=cfg.request_timeout)
-        response.raise_for_status()
+        content = _download_xml(url, cfg.request_timeout)
+        log.info("seed.download.complete", translation_id=translation_id, bytes=len(content))
 
         report("Parsing XML...")
         with tempfile.NamedTemporaryFile(suffix=".xml", delete=True) as tmp:
-            tmp.write(response.content)
+            tmp.write(content)
             tmp.flush()
             verses = self._xml_parser.parse_file(Path(tmp.name))
 

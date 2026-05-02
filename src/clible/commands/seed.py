@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 
 import click
+import requests
+import structlog
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
@@ -25,6 +27,8 @@ from clible.ui.help_texts import (
     SEED_REMOVE_HELP,
     SEED_SYNC_CATALOG_HELP,
 )
+
+log = structlog.get_logger(__name__)
 
 
 def _get_seed_service() -> SeedService:
@@ -88,7 +92,31 @@ def install(translation_id: str | None, show_help: bool) -> None:
             f"{stats['verses_installed']} verses in {stats['duration_seconds']}s[/green]"
         )
     except ValueError as e:
-        console.print(f"[red]Error: {e}[/red]")
+        console.print(f"[red]Error:[/red] {e}")
+        raise SystemExit(1)
+    except requests.exceptions.ConnectionError:
+        console.print(
+            "[red]Error:[/red] Could not connect to download server. "
+            "Check your internet connection."
+        )
+        raise SystemExit(1)
+    except requests.exceptions.Timeout:
+        console.print("[red]Error:[/red] Request timed out after all retries. Try again later.")
+        raise SystemExit(1)
+    except requests.exceptions.RequestException as e:
+        log.warning(
+            "seed.install.http_error",
+            translation_id=translation_id,
+            error=str(e),
+        )
+        console.print(f"[red]Error:[/red] Download failed: {e}")
+        raise SystemExit(1)
+    except Exception:
+        log.exception("seed.install.unexpected", translation_id=translation_id)
+        console.print(
+            "[red]Error:[/red] An unexpected error occurred. "
+            "Set CLIBLE_LOG_LEVEL=DEBUG for details."
+        )
         raise SystemExit(1)
 
 
@@ -283,7 +311,26 @@ def sync_catalog(show_help: bool) -> None:
     try:
         stats = sync_translations_catalog()
     except TranslationCatalogSyncError as e:
-        console.print(f"[red]Error: {e}[/red]")
+        console.print(f"[red]Error:[/red] {e}")
+        raise SystemExit(1)
+    except requests.exceptions.ConnectionError:
+        console.print(
+            "[red]Error:[/red] Could not connect to GitHub. Check your internet connection."
+        )
+        raise SystemExit(1)
+    except requests.exceptions.Timeout:
+        console.print("[red]Error:[/red] Request timed out after all retries. Try again later.")
+        raise SystemExit(1)
+    except requests.exceptions.RequestException as e:
+        log.warning("seed.sync_catalog.http_error", error=str(e))
+        console.print(f"[red]Error:[/red] Catalog sync failed: {e}")
+        raise SystemExit(1)
+    except Exception:
+        log.exception("seed.sync_catalog.unexpected")
+        console.print(
+            "[red]Error:[/red] An unexpected error occurred. "
+            "Set CLIBLE_LOG_LEVEL=DEBUG for details."
+        )
         raise SystemExit(1)
 
     console.print(
@@ -315,5 +362,5 @@ def remove(translation_id: str | None, show_help: bool) -> None:
         service.remove_translation(translation_id)
         console.print(f"[green]Removed {translation_id}[/green]")
     except ValueError as e:
-        console.print(f"[red]Error: {e}[/red]")
+        console.print(f"[red]Error:[/red] {e}")
         raise SystemExit(1)
