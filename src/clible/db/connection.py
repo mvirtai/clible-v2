@@ -1,6 +1,6 @@
+import re as _re
 import sqlite3
 from pathlib import Path
-import re as _re
 
 from clible.config import get_config
 from clible.db.migrations import run_migrations

@@ -336,6 +336,104 @@ async function startServer() {
     }
   });
 
+  app.get("/api/search/history", requireAuth, async (_req, res) => {
+    try {
+      const { stdout } = await runClible(["search", "--history", "--json"]);
+      res.json(JSON.parse(stdout.trim()));
+    } catch (error: unknown) {
+      console.error("search history:", error);
+      res.status(500).json({ error: "Failed to fetch search history" });
+    }
+  });
+
+  app.delete("/api/search/history", requireAuth, async (_req, res) => {
+    try {
+      const { stdout } = await runClible(["search", "--clear-history", "--json"]);
+      res.json(JSON.parse(stdout.trim()));
+    } catch (error: unknown) {
+      console.error("clear search history:", error);
+      res.status(500).json({ error: "Failed to clear search history" });
+    }
+  });
+
+  app.get("/api/saved-searches", requireAuth, async (_req, res) => {
+    try {
+      const { stdout } = await runClible(["saved", "search", "list", "--json"]);
+      res.json(JSON.parse(stdout.trim()));
+    } catch (error: unknown) {
+      console.error("list saved searches:", error);
+      res.status(500).json({ error: "Failed to list saved searches" });
+    }
+  });
+
+  app.delete("/api/saved-searches/:id", requireAuth, async (req, res) => {
+    const id = typeof req.params.id === "string" ? req.params.id.trim() : "";
+    if (!id) {
+      return res.status(400).json({ error: "Missing id." });
+    }
+    try {
+      await runClible(["saved", "search", "delete", id]);
+      return res.json({ ok: true });
+    } catch (error: unknown) {
+      console.error("delete saved search:", error);
+      return res.status(500).json({ error: "Failed to delete saved search" });
+    }
+  });
+
+  app.post("/api/saved-searches", requireAuth, async (req, res) => {
+    const body = req.body as Record<string, unknown>;
+    const name = typeof body.name === "string" ? body.name.trim() : "";
+    if (!name) {
+      return res.status(400).json({ error: "Missing 'name'." });
+    }
+    const terms = Array.isArray(body.terms)
+      ? (body.terms as unknown[]).map((t) => String(t).trim()).filter((s) => s.length > 0)
+      : [];
+    if (terms.length === 0) {
+      return res.status(400).json({ error: "Missing 'terms'." });
+    }
+    const translationId = typeof body.translationId === "string" ? body.translationId.trim() : "";
+    if (!translationId || !isValidTranslationId(translationId)) {
+      return res.status(400).json({ error: "Invalid or missing 'translationId'." });
+    }
+    const modeRaw = typeof body.mode === "string" ? body.mode.toLowerCase() : "phrase";
+    if (!["phrase", "words", "wildcard"].includes(modeRaw)) {
+      return res.status(400).json({ error: "Invalid 'mode'." });
+    }
+    const operator = typeof body.operator === "string" ? body.operator.toLowerCase() : "and";
+    const scope = typeof body.scope === "string" ? body.scope : "bible";
+    const book = body.book == null || body.book === "" ? null : String(body.book);
+
+    const argv: string[] = ["search"];
+    if (modeRaw === "words") {
+      for (const t of terms) {
+        argv.push(t);
+      }
+    } else {
+      argv.push(terms.join(" "));
+    }
+    argv.push("-t", translationId, "--mode", modeRaw);
+    if (modeRaw === "words") {
+      argv.push("--operator", operator);
+    }
+    if (scope === "ot") {
+      argv.push("--ot");
+    } else if (scope === "nt") {
+      argv.push("--nt");
+    } else if (scope === "book" && book) {
+      argv.push("--book", book);
+    }
+    argv.push("--save", name);
+
+    try {
+      await runClible(argv);
+      return res.json({ ok: true, name });
+    } catch (error: unknown) {
+      console.error("save search:", error);
+      return res.status(500).json({ error: "Failed to save search" });
+    }
+  });
+
   /**
    * API Bridge to Clible CLI
    * This endpoint executes the local 'clible' command and returns its output.

@@ -9,6 +9,11 @@ import {
   SearchResultRow,
   SearchStatistics,
 } from '../types/search';
+import type {
+  SearchQueryOptions,
+  SearchHistoryEntry,
+  SavedSearchRow,
+} from '../types/searchQuery';
 
 /** Default `-n` for web search: keeps JSON payload small; stats still reflect the full match set. */
 export const DEFAULT_WEB_SEARCH_LIMIT = 50;
@@ -177,6 +182,10 @@ export class BibleRepository {
 
   private mapSearchJsonToResponse(data: Record<string, unknown>): SearchResponse {
     const rows = this.mapSearchJsonToRows(data);
+    const ht = data.highlight_terms;
+    const highlightTerms = Array.isArray(ht)
+      ? (ht as unknown[]).map((x) => String(x))
+      : undefined;
     return {
       rows,
       statistics: this.mapSearchStatistics(data.statistics),
@@ -188,7 +197,115 @@ export class BibleRepository {
           : String(data.translation_id),
       scope: data.scope == null ? null : String(data.scope),
       scopeRef: data.scope_ref == null ? null : String(data.scope_ref),
+      highlightTerms,
+      searchMode: data.search_mode == null ? undefined : String(data.search_mode),
+      searchOperator:
+        data.search_operator == null || data.search_operator === ''
+          ? null
+          : String(data.search_operator),
     };
+  }
+
+  private _quoteArgToken(t: string): string {
+    if (/[\s"]/g.test(t)) {
+      return `"${t.replace(/"/g, '\\"')}"`;
+    }
+    return t;
+  }
+
+  /**
+   * Advanced search: phrase, boolean (words), wildcard; scope via --book / --ot / --nt.
+   */
+  async searchAdvanced(
+    options: SearchQueryOptions,
+    limit: number = DEFAULT_WEB_SEARCH_LIMIT
+  ): Promise<SearchResponse> {
+    const { terms, mode, operator, scope, book, translationId } = options;
+    const parts: string[] = [];
+    if (mode === 'words') {
+      for (const t of terms) {
+        parts.push(this._quoteArgToken(t.trim()));
+      }
+    } else {
+      parts.push(this._quoteArgToken(terms.join(' ').trim()));
+    }
+    let args = `${parts.join(' ')} -t ${translationId} --mode ${mode}`;
+    if (mode === 'words') {
+      args += ` --operator ${operator}`;
+    }
+    if (scope === 'ot') {
+      args += ' --ot';
+    } else if (scope === 'nt') {
+      args += ' --nt';
+    } else if (scope === 'book' && book) {
+      args += ` --book ${this._quoteArgToken(book)}`;
+    }
+    if (limit > 0) {
+      args += ` -n ${limit}`;
+    }
+    const url = `/api/clible?cmd=search&args=${encodeURIComponent(args)}`;
+    logSearch('GET', url);
+    const response = await fetch(url);
+    if (!response.ok) {
+      const errorData = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
+      throw new Error(errorData.error ?? 'Search failed');
+    }
+    const data = (await response.json()) as Record<string, unknown>;
+    return this.mapSearchJsonToResponse(data);
+  }
+
+  async getSearchHistory(): Promise<SearchHistoryEntry[]> {
+    const response = await fetch('/api/search/history');
+    if (!response.ok) {
+      return [];
+    }
+    const data: unknown = await response.json();
+    return Array.isArray(data) ? (data as SearchHistoryEntry[]) : [];
+  }
+
+  async clearSearchHistory(): Promise<void> {
+    await fetch('/api/search/history', { method: 'DELETE' });
+  }
+
+  async getSavedSearches(): Promise<SavedSearchRow[]> {
+    const response = await fetch('/api/saved-searches');
+    if (!response.ok) {
+      return [];
+    }
+    const data: unknown = await response.json();
+    return Array.isArray(data) ? (data as SavedSearchRow[]) : [];
+  }
+
+  async deleteSavedSearch(id: string): Promise<void> {
+    const response = await fetch(`/api/saved-searches/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      const err = (await response.json().catch(() => ({}))) as { error?: string };
+      throw new Error(err.error ?? 'Failed to delete saved search.');
+    }
+  }
+
+  async saveNamedSearch(payload: { name: string } & SearchQueryOptions): Promise<void> {
+    const response = await fetch('/api/saved-searches', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: payload.name,
+        terms: payload.terms,
+        mode: payload.mode,
+        operator: payload.operator,
+        scope: payload.scope,
+        book: payload.book,
+        translationId: payload.translationId,
+      }),
+    });
+    if (!response.ok) {
+      const err = (await response.json().catch(() => ({}))) as { error?: string };
+      throw new Error(err.error ?? 'Failed to save search.');
+    }
   }
 
   async search(

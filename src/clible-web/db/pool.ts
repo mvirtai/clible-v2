@@ -13,12 +13,14 @@ function buildConfig(): PoolConfig {
     ? `/cloudsql/${process.env.CLOUD_SQL_CONNECTION_NAME}`
     : undefined;
 
+  const password = process.env.PGPASSWORD ?? process.env.CLIBLE_POSTGRES_PASSWORD ?? '';
+
   return {
     host: socketPath ?? process.env.PGHOST ?? 'localhost',
     port: socketPath ? undefined : parseInt(process.env.PGPORT ?? '5432'),
     database: process.env.PGDATABASE ?? 'clible',
     user: process.env.PGUSER ?? process.env.CLIBLE_POSTGRES_USER,
-    password: process.env.PGPASSWORD ?? process.env.CLIBLE_POSTGRES_PASSWORD,
+    password,
     // Only enforce SSL for plain TCP connections outside Cloud Run.
     ssl:
       !socketPath && process.env.NODE_ENV === 'production'
