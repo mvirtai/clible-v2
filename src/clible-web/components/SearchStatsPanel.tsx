@@ -1,5 +1,6 @@
 import { SearchStatistics } from '../types/search';
-import { bookName } from '../utils/bookNames';
+import { bookNameLocalized, bookAbbrevOrId, type UILanguage } from '../utils/bookNames';
+import { t } from '../utils/i18n';
 
 interface StatMetricProps {
   label: string;
@@ -21,27 +22,29 @@ interface SearchStatsPanelProps {
   statistics: SearchStatistics;
   /** Number of verse rows currently displayed (may be less than uniqueVerses when limited). */
   rowCount: number;
+  uiLanguage: UILanguage;
 }
 
-export function SearchStatsPanel({ statistics, rowCount }: SearchStatsPanelProps) {
+export function SearchStatsPanel({ statistics, rowCount, uiLanguage }: SearchStatsPanelProps) {
   const truncated = rowCount > 0 && rowCount < statistics.uniqueVerses;
+  const m = t(uiLanguage);
 
   return (
     <div className="space-y-2">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
         <div className="space-y-3">
-          <StatMetric label="Occurrences" value={statistics.totalOccurrences} />
-          <StatMetric label="Unique verses" value={statistics.uniqueVerses} />
-          <StatMetric label="Books" value={statistics.booksWithMatches} />
+          <StatMetric label={m.statsOccurrences} value={statistics.totalOccurrences} />
+          <StatMetric label={m.statsUniqueVerses} value={statistics.uniqueVerses} />
+          <StatMetric label={m.statsBooks} value={statistics.booksWithMatches} />
         </div>
 
         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
           <div className="flex items-center justify-between">
             <div className="text-[10px] uppercase tracking-wider text-[var(--muted)]">
-              Top books
+              {m.statsTopBooks}
             </div>
             <div className="text-[10px] uppercase tracking-wider text-[var(--muted)]">
-              Occurrences
+              {m.statsOccurrencesCol}
             </div>
           </div>
           {statistics.topBooks.length === 0 ? (
@@ -58,9 +61,9 @@ export function SearchStatsPanel({ statistics, rowCount }: SearchStatsPanelProps
                       {idx + 1}
                     </span>
                     <span className="truncate text-xs text-[var(--text)]">
-                      {bookName(bookId)}{' '}
+                      {bookNameLocalized(bookId, uiLanguage)}{' '}
                       <span className="font-mono font-semibold text-[var(--accent)]">
-                        {bookId}
+                        {bookAbbrevOrId(bookId, uiLanguage)}
                       </span>
                     </span>
                   </div>
@@ -76,8 +79,7 @@ export function SearchStatsPanel({ statistics, rowCount }: SearchStatsPanelProps
 
       {truncated && (
         <p className="text-sm text-[var(--muted)]">
-          Showing first {rowCount} of {statistics.uniqueVerses} matching verses
-          (limit).
+          {m.statsTruncated(rowCount, statistics.uniqueVerses)}
         </p>
       )}
     </div>

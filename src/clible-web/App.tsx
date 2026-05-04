@@ -39,6 +39,14 @@ import { LoginView } from './views/LoginView';
 import { useSettings } from './user/SettingsContext';
 import { ExportModal, ExportFormat } from './components/ExportModal';
 import { downloadFile } from './utils/download';
+import { t, type UILanguage } from './utils/i18n';
+
+function inferUILanguageFromTranslation(language: string | undefined): 'en' | 'fi' | null {
+  const lower = (language ?? '').toLowerCase().trim();
+  if (lower === 'fi' || lower.startsWith('fin')) return 'fi';
+  if (lower === 'en') return 'en';
+  return null;
+}
 
 type ViewMode = 'reader' | 'analytics' | 'search';
 type SearchType = 'verse' | 'search';
@@ -147,7 +155,9 @@ export default function App() {
       } catch (e: unknown) {
         if (!cancelled) {
           setTranslationsLoadError(
-            e instanceof Error ? e.message : 'Failed to load translations.'
+            e instanceof Error
+              ? e.message
+              : t((settings?.uiLanguage ?? 'en') as UILanguage).errFailedLoadTranslations
           );
         }
       } finally {
@@ -159,7 +169,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, settings?.uiLanguage]);
 
   useEffect(() => {
     if (!user) return;
@@ -171,7 +181,7 @@ export default function App() {
     // One-time migration from legacy localStorage key into server settings.
     const legacyId = localStorage.getItem("clible_translation_id");
     if (!legacyId) return;
-    if (!installedTranslations.some((t) => t.id === legacyId)) return;
+    if (!installedTranslations.some((tr) => tr.id === legacyId)) return;
 
     void updateSettings({ translationId: legacyId })
       .then(() => {
@@ -204,8 +214,14 @@ export default function App() {
     };
   }, [user]);
 
-  if (authLoading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  if (authLoading)
+    return (
+      <div className="min-h-screen flex items-center justify-center">{t('en').appBootLoading}</div>
+    );
   if (!user) return <LoginView onSuccess={login} />;
+
+  const uiLang: UILanguage = settings?.uiLanguage ?? 'en';
+  const shell = t(uiLang);
 
   const saveToHistory = (q: string) => {
     const newHistory = [q, ...history.filter((h) => h !== q)].slice(0, 10);
@@ -216,9 +232,7 @@ export default function App() {
   const handleAdvancedSearch = async (options: SearchQueryOptions) => {
     if (!options.terms[0]?.trim()) return;
     if (!settings?.translationId) {
-      setError(
-        'Select a translation first (globe menu). Install one with: clible seed install <id>'
-      );
+      setError(shell.errSelectTranslationFirst);
       return;
     }
     setLoading(true);
@@ -238,7 +252,7 @@ export default function App() {
       const hist = await bibleRepository.getSearchHistory();
       setSearchHistoryApi(hist);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Search failed.');
+      setError(err instanceof Error ? err.message : shell.errSearchFailed);
     } finally {
       setLoading(false);
     }
@@ -247,9 +261,7 @@ export default function App() {
   const handleSearch = async (q: string, overrideType?: SearchType) => {
     if (!q.trim()) return;
     if (!settings?.translationId) {
-      setError(
-        'Select a translation first (globe menu). Install one with: clible seed install <id>'
-      );
+      setError(shell.errSelectTranslationFirst);
       return;
     }
     setLoading(true);
@@ -283,7 +295,7 @@ export default function App() {
       }
       saveToHistory(q);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
+      setError(err instanceof Error ? err.message : shell.errUnexpected);
     } finally {
       setLoading(false);
     }
@@ -296,7 +308,7 @@ export default function App() {
       const insight = await bibleService.getAiInsight(result);
       setAiInsight(insight);
     } catch (err) {
-      setAiInsight(err instanceof Error ? err.message : 'Failed to generate insights.');
+      setAiInsight(err instanceof Error ? err.message : shell.errInsightsFailed);
     } finally {
       setAiLoading(false);
     }
@@ -305,9 +317,7 @@ export default function App() {
   const handleAnalytics = async (modeOverride?: AnalyticsMode) => {
     if (!result) return;
     if (!settings?.translationId) {
-      setError(
-        'Select a translation first (globe menu). Install one with: clible seed install <id>'
-      );
+      setError(shell.errSelectTranslationFirst);
       return;
     }
     const mode = modeOverride ?? analyticsMode;
@@ -327,7 +337,7 @@ export default function App() {
         setToneAnalysis(tone);
       } catch (err) {
         console.warn('AI tone unavailable:', err);
-        setToneAnalysis(err instanceof Error ? err.message : 'AI tone analysis unavailable.');
+        setToneAnalysis(err instanceof Error ? err.message : shell.errAiToneUnavailable);
       }
     } catch (err) {
       console.error('Analytics error:', err);
@@ -339,9 +349,16 @@ export default function App() {
   };
 
   const handleTranslationSelect = (id: string) => {
-    void updateSettings({ translationId: id }).catch((e: unknown) => {
+    const meta =
+      installedTranslations.find((t) => t.id === id) ??
+      availableTranslations.find((t) => t.id === id);
+    const inferred = inferUILanguageFromTranslation(meta?.language);
+    void updateSettings({
+      translationId: id,
+      ...(inferred !== null ? { uiLanguage: inferred } : {}),
+    }).catch((e: unknown) => {
       setTranslationsLoadError(
-        e instanceof Error ? e.message : "Failed to save settings."
+        e instanceof Error ? e.message : shell.errSaveSettings
       );
     });
     setShowTranslations(false);
@@ -361,7 +378,7 @@ export default function App() {
       })
       .catch((e: unknown) => {
         setTranslationInstallError(
-          e instanceof Error ? e.message : "Failed to install translation."
+          e instanceof Error ? e.message : shell.errInstallTranslation
         );
       })
       .finally(() => {
@@ -420,7 +437,7 @@ export default function App() {
       downloadFile(content, filename, contentType);
       setShowExport(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Export failed.');
+      setError(err instanceof Error ? err.message : shell.errExportFailed);
     } finally {
       setExporting(false);
     }
@@ -454,7 +471,7 @@ export default function App() {
                   settings?.translationId ? 'uppercase' : 'text-[#8E8E8E] normal-case'
                 }
               >
-                {settings?.translationId ?? 'Choose translation'}
+                {settings?.translationId ?? shell.chooseTranslation}
               </span>
             </button>
             <button
@@ -469,7 +486,7 @@ export default function App() {
             <button
               onClick={() => setShowSettings(true)}
               className="p-2 hover:bg-[#F5F5F5] rounded-full transition-colors"
-              title="Settings"
+              title={shell.settingsTitle}
             >
               <Settings size={20} />
             </button>
@@ -478,7 +495,7 @@ export default function App() {
               <button
                 onClick={() => void logout()}
                 className="p-2 hover:bg-[#F5F5F5] rounded-full transition-colors text-[#8E8E8E] hover:text-[#1A1A1A]"
-                title="Sign out"
+                title={shell.signOutTitle}
               >
                 <LogOut size={18} />
               </button>
@@ -497,6 +514,7 @@ export default function App() {
 
           <SearchPanel
             activeTranslation={settings?.translationId ?? null}
+            uiLanguage={settings?.uiLanguage ?? 'en'}
             onSearch={handleAdvancedSearch}
             onVerseSearch={(ref) => void handleSearch(ref, 'verse')}
             history={searchHistoryApi}
@@ -508,6 +526,7 @@ export default function App() {
           />
 
           <SavedSearchesList
+            uiLanguage={uiLang}
             searches={savedSearches}
             onRun={(s) => {
               if (!settings?.translationId) return;
@@ -534,7 +553,7 @@ export default function App() {
                 .then(() => bibleRepository.getSavedSearches())
                 .then(setSavedSearches)
                 .catch((e: unknown) =>
-                  setError(e instanceof Error ? e.message : 'Delete failed.')
+                  setError(e instanceof Error ? e.message : shell.errDeleteFailed)
                 );
             }}
           />
@@ -546,13 +565,13 @@ export default function App() {
               onClick={() => setViewMode('reader')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'reader' ? 'bg-white shadow-sm text-[#1A1A1A]' : 'text-[#8E8E8E] hover:text-[#1A1A1A]'}`}
             >
-              <div className="flex items-center gap-2"><Book size={16} /> Reader</div>
+              <div className="flex items-center gap-2"><Book size={16} /> {shell.tabReader}</div>
             </button>
             <button
               onClick={() => void handleAnalytics()}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'analytics' ? 'bg-white shadow-sm text-[#1A1A1A]' : 'text-[#8E8E8E] hover:text-[#1A1A1A]'}`}
             >
-              <div className="flex items-center gap-2"><Activity size={16} /> Analytics</div>
+              <div className="flex items-center gap-2"><Activity size={16} /> {shell.tabAnalytics}</div>
             </button>
           </div>
         )}
@@ -562,6 +581,7 @@ export default function App() {
             <motion.div key="reader" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
               <ReaderView
                 result={result}
+                uiLanguage={settings?.uiLanguage ?? 'en'}
                 aiInsight={aiInsight}
                 aiLoading={aiLoading}
                 onAiInsight={handleAiInsight}
@@ -583,6 +603,7 @@ export default function App() {
               <SearchView
                 searchResponse={searchResponse}
                 searchTerms={currentSearchTerms}
+                uiLanguage={settings?.uiLanguage ?? 'en'}
                 onResultClick={(ref) => void handleSearch(ref, 'verse')}
                 onExport={() => {
                   if (searchResponse && settings?.translationId) {
@@ -624,7 +645,8 @@ export default function App() {
                 nativeFrequency={nativeFrequency}
                 toneAnalysis={toneAnalysis}
                 aiLoading={aiLoading}
-                onModeChange={(m) => void handleAnalytics(m)}
+                uiLanguage={uiLang}
+                onModeChange={(nextMode) => void handleAnalytics(nextMode)}
                 onExport={() => {
                   if (result && settings?.translationId) {
                     let args = '';
@@ -661,6 +683,7 @@ export default function App() {
             installSuccess={translationInstallSuccess}
             installingTranslationId={installingTranslationId}
             activeTranslation={settings?.translationId ?? null}
+            uiLanguage={uiLang}
             onSelect={handleTranslationSelect}
             onInstall={handleTranslationInstall}
             onClose={() => setShowTranslations(false)}
@@ -672,6 +695,7 @@ export default function App() {
         {showExport && exportContext && (
           <ExportModal
             title={exportContext.title}
+            uiLanguage={uiLang}
             isExporting={exporting}
             onExport={handleExport}
             onClose={() => setShowExport(false)}
@@ -690,12 +714,16 @@ export default function App() {
             loading={settingsLoading}
             error={settingsError}
             installedTranslations={installedTranslations}
+            uiLanguage={uiLang}
             onPickTranslation={() => {
               setShowSettings(false);
               setShowTranslations(true);
             }}
             onSetTheme={(theme) => {
               void updateSettings({ theme }).catch(() => { });
+            }}
+            onSetUILanguage={(lang) => {
+              void updateSettings({ uiLanguage: lang }).catch(() => { });
             }}
           />
         )}
@@ -704,12 +732,12 @@ export default function App() {
       <footer className="max-w-5xl mx-auto px-6 py-12 border-t border-[#F5F5F5] mt-24">
         <div className="flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex items-center gap-2 text-[#8E8E8E] text-sm">
-            <Terminal size={14} /><span>Inspired by Clible CLI</span>
+            <Terminal size={14} /><span>{shell.footerInspired}</span>
           </div>
           <div className="flex gap-8 text-sm font-medium text-[#8E8E8E]">
-            <a href="#" className="hover:text-[#1A1A1A] transition-colors">Documentation</a>
-            <a href="#" className="hover:text-[#1A1A1A] transition-colors">API</a>
-            <a href="#" className="hover:text-[#1A1A1A] transition-colors">GitHub</a>
+            <a href="#" className="hover:text-[#1A1A1A] transition-colors">{shell.footerDocumentation}</a>
+            <a href="#" className="hover:text-[#1A1A1A] transition-colors">{shell.footerApi}</a>
+            <a href="#" className="hover:text-[#1A1A1A] transition-colors">{shell.footerGithub}</a>
           </div>
           <div className="text-[#8E8E8E] text-xs font-mono">v2.0.0-WEB</div>
         </div>

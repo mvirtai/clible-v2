@@ -1,6 +1,8 @@
 import { X } from 'lucide-react';
 import { motion } from 'motion/react';
 import { AvailableTranslation, InstalledTranslation } from '../types/bible';
+import type { UILanguage } from '../utils/bookNames';
+import { t } from '../utils/i18n';
 
 interface TranslationModalProps {
   installedTranslations: InstalledTranslation[];
@@ -11,6 +13,7 @@ interface TranslationModalProps {
   installSuccess: string | null;
   installingTranslationId: string | null;
   activeTranslation: string | null;
+  uiLanguage: UILanguage;
   onSelect: (id: string) => void;
   onInstall: (id: string) => void;
   onClose: () => void;
@@ -25,11 +28,13 @@ export function TranslationModal({
   installSuccess,
   installingTranslationId,
   activeTranslation,
+  uiLanguage,
   onSelect,
   onInstall,
   onClose,
 }: TranslationModalProps) {
-  const installedIds = new Set(installedTranslations.map((t) => t.id));
+  const m = t(uiLanguage);
+  const installedIds = new Set(installedTranslations.map((x) => x.id));
 
   return (
     <motion.div
@@ -44,8 +49,10 @@ export function TranslationModal({
         className="bg-[var(--surface)] text-[var(--text)] w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden border border-[var(--border)]"
       >
         <div className="p-6 border-b border-[var(--border-soft)] flex justify-between items-center">
-          <h3 className="text-lg font-semibold">Select Translation</h3>
-          <button onClick={onClose}><X size={20} /></button>
+          <h3 className="text-lg font-semibold">{m.translationModalTitle}</h3>
+          <button type="button" onClick={onClose} aria-label={m.settingsClose}>
+            <X size={20} />
+          </button>
         </div>
         <div className="p-6 max-h-[60vh] overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-3">
           {translationsLoadError && (
@@ -65,32 +72,32 @@ export function TranslationModal({
           )}
           {!translationsLoadError && installedTranslations.length === 0 && !loadingAvailableTranslations && (
             <p className="col-span-full text-sm text-[var(--muted)]">
-              No translations are installed on this server yet. Use Install to fetch one from the
-              catalog.
+              {m.translationNoneInstalled}
             </p>
           )}
 
           {loadingAvailableTranslations && (
-            <p className="col-span-full text-sm text-[var(--muted)]">Loading translation catalog...</p>
+            <p className="col-span-full text-sm text-[var(--muted)]">{m.translationCatalogLoading}</p>
           )}
 
-          {availableTranslations.map((t) => {
-            const isInstalled = installedIds.has(t.id);
-            const isInstalling = installingTranslationId === t.id;
+          {availableTranslations.map((tr) => {
+            const isInstalled = installedIds.has(tr.id);
+            const isInstalling = installingTranslationId === tr.id;
             return (
               <div
-                key={t.id}
+                key={tr.id}
                 className="px-4 py-3 rounded-xl text-left border-2 transition-all border-[var(--border)]"
               >
-                <span className="uppercase font-bold text-sm block">{t.id}</span>
-                <span className="text-xs text-[var(--muted)] block mt-1">{t.name}</span>
+                <span className="uppercase font-bold text-sm block">{tr.id}</span>
+                <span className="text-xs text-[var(--muted)] block mt-1">{tr.name}</span>
                 <span className="text-[10px] text-[var(--muted)] uppercase tracking-wide">
-                  {t.language} · {t.format}
-                  {typeof t.size_mb === "number" ? ` · ${t.size_mb} MB` : ""}
+                  {tr.language} · {tr.format}
+                  {typeof tr.size_mb === "number" ? ` · ${tr.size_mb} MB` : ""}
                 </span>
                 <div className="mt-3 flex gap-2">
                   <button
-                    onClick={() => onSelect(t.id)}
+                    type="button"
+                    onClick={() => onSelect(tr.id)}
                     disabled={!isInstalled}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${
                       isInstalled
@@ -98,10 +105,11 @@ export function TranslationModal({
                         : "border-[var(--border)] text-[var(--muted)] cursor-not-allowed"
                     }`}
                   >
-                    {activeTranslation === t.id ? "Selected" : "Use"}
+                    {activeTranslation === tr.id ? m.translationSelected : m.translationUse}
                   </button>
                   <button
-                    onClick={() => onInstall(t.id)}
+                    type="button"
+                    onClick={() => onInstall(tr.id)}
                     disabled={isInstalled || isInstalling}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${
                       isInstalled
@@ -109,7 +117,11 @@ export function TranslationModal({
                         : "border-[var(--text)] text-[var(--text)] hover:bg-[var(--surface-2)]"
                     }`}
                   >
-                    {isInstalled ? "Installed" : isInstalling ? "Installing..." : "Install"}
+                    {isInstalled
+                      ? m.translationInstalled
+                      : isInstalling
+                        ? m.translationInstalling
+                        : m.translationInstall}
                   </button>
                 </div>
               </div>
@@ -117,16 +129,11 @@ export function TranslationModal({
           })}
 
           {!loadingAvailableTranslations && availableTranslations.length === 0 && !translationsLoadError && (
-            <p className="col-span-full text-sm text-[var(--muted)]">
-              No translations found in the catalog.
-            </p>
+            <p className="col-span-full text-sm text-[var(--muted)]">{m.translationCatalogEmpty}</p>
           )}
         </div>
         <div className="p-6 bg-[var(--surface-2)] text-xs text-[var(--muted)] border-t border-[var(--border-soft)]">
-          <p>
-            Installable translations come from the shared catalog. Installed translations are
-            specific to this server environment.
-          </p>
+          <p>{m.translationFooter}</p>
         </div>
       </motion.div>
     </motion.div>

@@ -1,0 +1,682 @@
+{
+  "GEN": {
+    "en": "Genesis",
+    "fi": "1. Mooseksen kirja",
+    "aliases_fi": [
+      "Ensimmäinen mooseksen kirja",
+      "1 mooseksen kirja",
+      "1 moos"
+    ],
+    "abbr_fi": "1 moos"
+  },
+  "EXO": {
+    "en": "Exodus",
+    "fi": "2. Mooseksen kirja",
+    "aliases_fi": [
+      "Toinen mooseksen kirja",
+      "2 mooseksen kirja",
+      "2 moos"
+    ],
+    "abbr_fi": "2 moos"
+  },
+  "LEV": {
+    "en": "Leviticus",
+    "fi": "3. Mooseksen kirja",
+    "aliases_fi": [
+      "Kolmas mooseksen kirja",
+      "3 mooseksen kirja",
+      "3 moos"
+    ],
+    "abbr_fi": "3 moos"
+  },
+  "NUM": {
+    "en": "Numbers",
+    "fi": "4. Mooseksen kirja",
+    "aliases_fi": [
+      "Neljäs mooseksen kirja",
+      "4 mooseksen kirja",
+      "4 moos"
+    ],
+    "abbr_fi": "4 moos"
+  },
+  "DEU": {
+    "en": "Deuteronomy",
+    "fi": "5. Mooseksen kirja",
+    "aliases_fi": [
+      "Viides mooseksen kirja",
+      "5 mooseksen kirja",
+      "5 moos"
+    ],
+    "abbr_fi": "5 moos"
+  },
+  "JOS": {
+    "en": "Joshua",
+    "fi": "Joosua",
+    "aliases_fi": [
+      "joos",
+      "joos."
+    ],
+    "abbr_fi": "joos"
+  },
+  "JDG": {
+    "en": "Judges",
+    "fi": "Tuomarien kirja",
+    "aliases_fi": [
+      "Tuomarit",
+      "tuom",
+      "tuom."
+    ],
+    "abbr_fi": "tuom"
+  },
+  "RUT": {
+    "en": "Ruth",
+    "fi": "Ruut",
+    "aliases_fi": [
+      "Ruutin kirja",
+      "ruut",
+      "ruut."
+    ],
+    "abbr_fi": "ruut"
+  },
+  "1SA": {
+    "en": "1 Samuel",
+    "fi": "1. Samuelin kirja",
+    "aliases_fi": [
+      "Ensimmäinen samuelin kirja",
+      "1 sam"
+    ],
+    "abbr_fi": "1 sam"
+  },
+  "2SA": {
+    "en": "2 Samuel",
+    "fi": "2. Samuelin kirja",
+    "aliases_fi": [
+      "Toinen samuelin kirja",
+      "2 sam"
+    ],
+    "abbr_fi": "2 sam"
+  },
+  "1KI": {
+    "en": "1 Kings",
+    "fi": "1. Kuninkaiden kirja",
+    "aliases_fi": [
+      "Ensimmäinen kuninkaiden kirja",
+      "1 kun"
+    ],
+    "abbr_fi": "1 kun"
+  },
+  "2KI": {
+    "en": "2 Kings",
+    "fi": "2. Kuninkaiden kirja",
+    "aliases_fi": [
+      "Toinen kuninkaiden kirja",
+      "2 kun"
+    ],
+    "abbr_fi": "2 kun"
+  },
+  "1CH": {
+    "en": "1 Chronicles",
+    "fi": "1. Aikakirja",
+    "aliases_fi": [
+      "Ensimmäinen aikakirja",
+      "1 aik"
+    ],
+    "abbr_fi": "1 aik"
+  },
+  "2CH": {
+    "en": "2 Chronicles",
+    "fi": "2. Aikakirja",
+    "aliases_fi": [
+      "Toinen aikakirja",
+      "2 aik"
+    ],
+    "abbr_fi": "2 aik"
+  },
+  "EZR": {
+    "en": "Ezra",
+    "fi": "Esra",
+    "aliases_fi": [
+      "Esran kirja",
+      "esra",
+      "esra."
+    ],
+    "abbr_fi": "esra"
+  },
+  "NEH": {
+    "en": "Nehemiah",
+    "fi": "Nehemia",
+    "aliases_fi": [
+      "Nehemian kirja",
+      "neh",
+      "neh."
+    ],
+    "abbr_fi": "neh"
+  },
+  "EST": {
+    "en": "Esther",
+    "fi": "Ester",
+    "aliases_fi": [
+      "Esterin kirja",
+      "est",
+      "est."
+    ],
+    "abbr_fi": "est"
+  },
+  "JOB": {
+    "en": "Job",
+    "fi": "Job",
+    "aliases_fi": [
+      "Jobin kirja",
+      "job",
+      "job."
+    ],
+    "abbr_fi": "job"
+  },
+  "PSA": {
+    "en": "Psalms",
+    "fi": "Psalmit",
+    "aliases_fi": [
+      "Psalmien kirja",
+      "Psalm",
+      "ps",
+      "ps."
+    ],
+    "abbr_fi": "ps"
+  },
+  "PRO": {
+    "en": "Proverbs",
+    "fi": "Sananlaskut",
+    "aliases_fi": [
+      "Sananlaskujen kirja",
+      "sananl",
+      "sananl."
+    ],
+    "abbr_fi": "sananl"
+  },
+  "ECC": {
+    "en": "Ecclesiastes",
+    "fi": "Saarnaaja",
+    "aliases_fi": [
+      "Saarnaajan kirja",
+      "Saarnaajan",
+      "saarn",
+      "saarn."
+    ],
+    "abbr_fi": "saarn"
+  },
+  "SNG": {
+    "en": "Song of Solomon",
+    "fi": "Korkean veisuun laulu",
+    "aliases_fi": [
+      "Laulujen laulu",
+      "Veisu korkeasta",
+      "kor veis"
+    ],
+    "abbr_fi": "kor veis"
+  },
+  "ISA": {
+    "en": "Isaiah",
+    "fi": "Jesaja",
+    "aliases_fi": [
+      "Jesajan kirja",
+      "jes",
+      "jes."
+    ],
+    "abbr_fi": "jes"
+  },
+  "JER": {
+    "en": "Jeremiah",
+    "fi": "Jeremia",
+    "aliases_fi": [
+      "Jeremian kirja",
+      "jer",
+      "jer."
+    ],
+    "abbr_fi": "jer"
+  },
+  "LAM": {
+    "en": "Lamentations",
+    "fi": "Valitusvirret",
+    "aliases_fi": [
+      "Valitusvirsien kirja",
+      "val",
+      "val."
+    ],
+    "abbr_fi": "val"
+  },
+  "EZK": {
+    "en": "Ezekiel",
+    "fi": "Hesekiel",
+    "aliases_fi": [
+      "Hesekielin kirja",
+      "hes",
+      "hes."
+    ],
+    "abbr_fi": "hes"
+  },
+  "DAN": {
+    "en": "Daniel",
+    "fi": "Daniel",
+    "aliases_fi": [
+      "Danielin kirja",
+      "dan",
+      "dan."
+    ],
+    "abbr_fi": "dan"
+  },
+  "HOS": {
+    "en": "Hosea",
+    "fi": "Hoosea",
+    "aliases_fi": [
+      "Hoosean kirja",
+      "hosea",
+      "hosea."
+    ],
+    "abbr_fi": "hosea"
+  },
+  "JOL": {
+    "en": "Joel",
+    "fi": "Jooel",
+    "aliases_fi": [
+      "Joelin kirja",
+      "joel",
+      "joel."
+    ],
+    "abbr_fi": "joel"
+  },
+  "AMO": {
+    "en": "Amos",
+    "fi": "Aamos",
+    "aliases_fi": [
+      "Aamoksen kirja",
+      "aam",
+      "aam."
+    ],
+    "abbr_fi": "aam"
+  },
+  "OBA": {
+    "en": "Obadiah",
+    "fi": "Obadja",
+    "aliases_fi": [
+      "Obadjan kirja",
+      "ob",
+      "ob."
+    ],
+    "abbr_fi": "ob"
+  },
+  "JON": {
+    "en": "Jonah",
+    "fi": "Joona",
+    "aliases_fi": [
+      "Joonan kirja",
+      "joona",
+      "joona."
+    ],
+    "abbr_fi": "joona"
+  },
+  "MIC": {
+    "en": "Micah",
+    "fi": "Miika",
+    "aliases_fi": [
+      "Miikan kirja",
+      "miika",
+      "miika."
+    ],
+    "abbr_fi": "miika"
+  },
+  "NAH": {
+    "en": "Nahum",
+    "fi": "Nahum",
+    "aliases_fi": [
+      "Nahumin kirja",
+      "nah",
+      "nah."
+    ],
+    "abbr_fi": "nah"
+  },
+  "HAB": {
+    "en": "Habakkuk",
+    "fi": "Habakuk",
+    "aliases_fi": [
+      "Habakukin kirja",
+      "hab",
+      "hab."
+    ],
+    "abbr_fi": "hab"
+  },
+  "ZEP": {
+    "en": "Zephaniah",
+    "fi": "Sefanja",
+    "aliases_fi": [
+      "Sefanjan kirja",
+      "sef",
+      "sef."
+    ],
+    "abbr_fi": "sef"
+  },
+  "HAG": {
+    "en": "Haggai",
+    "fi": "Haggai",
+    "aliases_fi": [
+      "Haggain kirja",
+      "hagg",
+      "hagg."
+    ],
+    "abbr_fi": "hagg"
+  },
+  "ZEC": {
+    "en": "Zechariah",
+    "fi": "Sakarja",
+    "aliases_fi": [
+      "Sakarjan kirja",
+      "sak",
+      "sak."
+    ],
+    "abbr_fi": "sak"
+  },
+  "MAL": {
+    "en": "Malachi",
+    "fi": "Malakia",
+    "aliases_fi": [
+      "Malakian kirja",
+      "mal",
+      "mal."
+    ],
+    "abbr_fi": "mal"
+  },
+  "MAT": {
+    "en": "Matthew",
+    "fi": "Evankeliumi Matteuksen mukaan",
+    "aliases_fi": [
+      "Matteus",
+      "Matteuksen evankeliumi",
+      "Matt.",
+      "Matt",
+      "matt.",
+      "matt",
+      "Mt",
+      "Mt."
+    ],
+    "abbr_fi": "matt"
+  },
+  "MRK": {
+    "en": "Mark",
+    "fi": "Evankeliumi Markuksen mukaan",
+    "aliases_fi": [
+      "Markus",
+      "Markuksen evankeliumi",
+      "Mark.",
+      "Mark",
+      "mark.",
+      "mark",
+      "Mk",
+      "Mk."
+    ],
+    "abbr_fi": "mark"
+  },
+  "LUK": {
+    "en": "Luke",
+    "fi": "Evankeliumi Luukkaan mukaan",
+    "aliases_fi": [
+      "Luukas",
+      "Luukkaan evankeliumi",
+      "Luuk.",
+      "luuk",
+      "luuk.",
+      "Lk",
+      "Lk."
+    ],
+    "abbr_fi": "luuk"
+  },
+  "JHN": {
+    "en": "John",
+    "fi": "Evankeliumi Johanneksen mukaan",
+    "aliases_fi": [
+      "Johannes",
+      "Johanneksen evankeliumi",
+      "Joh.",
+      "joh",
+      "joh.",
+      "Jh",
+      "Jh."
+    ],
+    "abbr_fi": "joh"
+  },
+  "ACT": {
+    "en": "Acts",
+    "fi": "Apostolien teot",
+    "aliases_fi": [
+      "Teot",
+      "teot.",
+      "Apost."
+    ],
+    "abbr_fi": "ap"
+  },
+  "ROM": {
+    "en": "Romans",
+    "fi": "Kirje roomalaisille",
+    "aliases_fi": [
+      "Roomalaiskirje",
+      "Roomalaisten kirje",
+      "Room",
+      "room.",
+      "Room."
+    ],
+    "abbr_fi": "room"
+  },
+  "1CO": {
+    "en": "1 Corinthians",
+    "fi": "1. kirje korinttilaisille",
+    "aliases_fi": [
+      "1. Korinttolaiskirje",
+      "Korinttolaiskirje",
+      "Ensimmäinen korinttolaiskirje",
+      "1 kor",
+      "1. Kor.",
+      "1. kor."
+    ],
+    "abbr_fi": "1 kor"
+  },
+  "2CO": {
+    "en": "2 Corinthians",
+    "fi": "2. kirje korinttilaisille",
+    "aliases_fi": [
+      "2. Korinttolaiskirje",
+      "Toinen korinttolaiskirje",
+      "2 kor",
+      "2. Kor."
+    ],
+    "abbr_fi": "2 kor"
+  },
+  "GAL": {
+    "en": "Galatians",
+    "fi": "Kirje galatalaisille",
+    "aliases_fi": [
+      "Galatalaiskirje",
+      "Galatalaisten kirje",
+      "gal",
+      "gal."
+    ],
+    "abbr_fi": "gal"
+  },
+  "EPH": {
+    "en": "Ephesians",
+    "fi": "Kirje efesolaisille",
+    "aliases_fi": [
+      "Efesolaiskirje",
+      "Efesolaisten kirje",
+      "ef",
+      "ef."
+    ],
+    "abbr_fi": "ef"
+  },
+  "PHP": {
+    "en": "Philippians",
+    "fi": "Kirje filippiläisille",
+    "aliases_fi": [
+      "Filippiläiskirje",
+      "Filippiläisten kirje",
+      "fil",
+      "fil."
+    ],
+    "abbr_fi": "fil"
+  },
+  "COL": {
+    "en": "Colossians",
+    "fi": "Kirje kolossalaisille",
+    "aliases_fi": [
+      "Kolossalaiskirje",
+      "Kolossalaisten kirje",
+      "kol",
+      "kol."
+    ],
+    "abbr_fi": "kol"
+  },
+  "1TH": {
+    "en": "1 Thessalonians",
+    "fi": "1. kirje tessalonikalaisille",
+    "aliases_fi": [
+      "1. Tessalonikalaiskirje",
+      "Ensimmäinen tessalonikalaiskirje",
+      "1 tess"
+    ],
+    "abbr_fi": "1 tess"
+  },
+  "2TH": {
+    "en": "2 Thessalonians",
+    "fi": "2. kirje tessalonikalaisille",
+    "aliases_fi": [
+      "2. Tessalonikalaiskirje",
+      "Toinen tessalonikalaiskirje",
+      "2 tess"
+    ],
+    "abbr_fi": "2 tess"
+  },
+  "1TI": {
+    "en": "1 Timothy",
+    "fi": "1. kirje Timoteukselle",
+    "aliases_fi": [
+      "1. Timoteuskirje",
+      "Ensimmäinen timoteuskirje",
+      "1 tim"
+    ],
+    "abbr_fi": "1 tim"
+  },
+  "2TI": {
+    "en": "2 Timothy",
+    "fi": "2. kirje Timoteukselle",
+    "aliases_fi": [
+      "2. Timoteuskirje",
+      "Toinen timoteuskirje",
+      "2 tim"
+    ],
+    "abbr_fi": "2 tim"
+  },
+  "TIT": {
+    "en": "Titus",
+    "fi": "Kirje Titukselle",
+    "aliases_fi": [
+      "Tituksen kirje",
+      "tit",
+      "tit."
+    ],
+    "abbr_fi": "tit"
+  },
+  "PHM": {
+    "en": "Philemon",
+    "fi": "Kirje Filemonille",
+    "aliases_fi": [
+      "Filemonin kirje",
+      "filem",
+      "filem."
+    ],
+    "abbr_fi": "filem"
+  },
+  "HEB": {
+    "en": "Hebrews",
+    "fi": "Kirje heprealaisille",
+    "aliases_fi": [
+      "Heprealaiskirje",
+      "Heprealaisten kirje",
+      "hepr",
+      "hepr."
+    ],
+    "abbr_fi": "hepr"
+  },
+  "JAS": {
+    "en": "James",
+    "fi": "Jaakobin kirje",
+    "aliases_fi": [
+      "Jaakob",
+      "jaak",
+      "jaak."
+    ],
+    "abbr_fi": "jaak"
+  },
+  "1PE": {
+    "en": "1 Peter",
+    "fi": "1. Pietarin kirje",
+    "aliases_fi": [
+      "Ensimmäinen pietarin kirje",
+      "1 piet"
+    ],
+    "abbr_fi": "1 piet"
+  },
+  "2PE": {
+    "en": "2 Peter",
+    "fi": "2. Pietarin kirje",
+    "aliases_fi": [
+      "Toinen pietarin kirje",
+      "2 piet"
+    ],
+    "abbr_fi": "2 piet"
+  },
+  "1JN": {
+    "en": "1 John",
+    "fi": "1. Johanneksen kirje",
+    "aliases_fi": [
+      "Ensimmäinen johanneksen kirje",
+      "1 joh"
+    ],
+    "abbr_fi": "1 joh"
+  },
+  "2JN": {
+    "en": "2 John",
+    "fi": "2. Johanneksen kirje",
+    "aliases_fi": [
+      "Toinen johanneksen kirje",
+      "2 joh"
+    ],
+    "abbr_fi": "2 joh"
+  },
+  "3JN": {
+    "en": "3 John",
+    "fi": "3. Johanneksen kirje",
+    "aliases_fi": [
+      "Kolmas johanneksen kirje",
+      "3 joh"
+    ],
+    "abbr_fi": "3 joh"
+  },
+  "JUD": {
+    "en": "Jude",
+    "fi": "Juudaksen kirje",
+    "aliases_fi": [
+      "Juudas",
+      "juud",
+      "juud."
+    ],
+    "abbr_fi": "juud"
+  },
+  "REV": {
+    "en": "Revelation",
+    "fi": "Johanneksen ilmestys",
+    "aliases_fi": [
+      "Ilmestyskirja",
+      "Ilmestys",
+      "ilm",
+      "ilm."
+    ],
+    "abbr_fi": "ilm"
+  }
+}

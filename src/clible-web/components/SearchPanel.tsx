@@ -6,6 +6,8 @@
 import { useState, useRef, type KeyboardEvent } from 'react';
 import { Search, Book, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 import { BookPickerModal } from './BookPickerModal';
+import { bookNameLocalized, type UILanguage } from '../utils/bookNames';
+import { t } from '../utils/i18n';
 import type {
   SearchMode,
   SearchOperator,
@@ -14,8 +16,26 @@ import type {
   SearchHistoryEntry,
 } from '../types/searchQuery';
 
+function historyScopeLabel(entry: SearchHistoryEntry, lang: UILanguage): string {
+  const m = t(lang);
+  if (entry.search_scope === 'testament' && entry.scope_value === 'NT') {
+    return m.historyScopeNT;
+  }
+  if (entry.search_scope === 'testament' && entry.scope_value === 'OT') {
+    return m.historyScopeOT;
+  }
+  if (entry.search_scope === 'book' && entry.scope_value) {
+    return bookNameLocalized(entry.scope_value, lang);
+  }
+  if (entry.search_scope === 'bible') {
+    return m.historyScopeWholeBible;
+  }
+  return entry.scope_value ?? entry.search_scope ?? '';
+}
+
 interface SearchPanelProps {
   activeTranslation: string | null;
+  uiLanguage: UILanguage;
   onSearch: (options: SearchQueryOptions) => void;
   onVerseSearch: (reference: string) => void;
   history: SearchHistoryEntry[];
@@ -26,6 +46,7 @@ interface SearchPanelProps {
 
 export function SearchPanel({
   activeTranslation,
+  uiLanguage,
   onSearch,
   onVerseSearch,
   history,
@@ -44,6 +65,8 @@ export function SearchPanel({
   const [showHistory, setShowHistory] = useState(false);
   const [isVerseMode, setIsVerseMode] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const m = t(uiLanguage);
 
   const handleSubmit = () => {
     if (!query.trim()) return;
@@ -95,9 +118,14 @@ export function SearchPanel({
   };
 
   const wildcardHint =
-    mode === 'wildcard'
-      ? 'Use * for any ending (lov* finds love, loves, loving). Use ? for one letter (wom?n).'
-      : null;
+    mode === 'wildcard' ? m.searchWildcardHint : null;
+
+  const operatorConnector =
+    operator === 'and'
+      ? m.searchOperatorAnd
+      : operator === 'or'
+        ? m.searchOperatorOr
+        : m.searchOperatorNot;
 
   return (
     <div className="space-y-3">
@@ -109,7 +137,7 @@ export function SearchPanel({
             !isVerseMode ? 'bg-[#1A1A1A] text-white' : 'bg-[#F5F5F5] text-[#8E8E8E]'
           }`}
         >
-          Find in Scripture
+          {m.searchFindInScripture}
         </button>
         <button
           type="button"
@@ -118,7 +146,7 @@ export function SearchPanel({
             isVerseMode ? 'bg-[#1A1A1A] text-white' : 'bg-[#F5F5F5] text-[#8E8E8E]'
           }`}
         >
-          Verse Lookup
+          {m.searchVerseLookup}
         </button>
       </div>
 
@@ -145,26 +173,26 @@ export function SearchPanel({
           disabled={loading}
           placeholder={
             isVerseMode
-              ? 'Enter verse (e.g. John 3:16, Psalms 23)...'
+              ? m.searchPlaceholderVerse
               : mode === 'wildcard'
-                ? 'Enter a pattern (e.g. lov*, faith?)...'
-                : 'Find a word, theme, or phrase...'
+                ? m.searchPlaceholderWildcard
+                : m.searchPlaceholderGeneral
           }
           className="w-full bg-white border-2 border-gray-500 text-gray-700 focus:border-[#1A1A1A] rounded-2xl py-4 pl-12 pr-4 text-lg outline-none transition-all shadow-sm hover:shadow-md"
-          aria-label={isVerseMode ? 'Enter Bible reference' : 'Search Bible text'}
+          aria-label={isVerseMode ? m.searchAriaVerse : m.searchAriaSearch}
         />
         {showHistory && history.length > 0 && (
           <div className="absolute top-full left-0 right-0 mt-1 bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-lg z-20 overflow-hidden">
             <div className="flex justify-between items-center px-4 py-2 border-b border-[var(--border-soft)]">
               <span className="text-xs font-semibold text-[var(--muted)] flex items-center gap-1.5">
-                <Clock size={12} /> Recent searches
+                <Clock size={12} /> {m.searchRecentHeader}
               </span>
               <button
                 type="button"
                 onClick={onHistoryClear}
                 className="text-xs text-[var(--muted)] hover:text-red-500 transition-colors"
               >
-                Clear
+                {m.searchClear}
               </button>
             </div>
             {history.slice(0, 5).map((entry) => (
@@ -176,7 +204,10 @@ export function SearchPanel({
               >
                 <span className="text-sm font-medium">{entry.query_text}</span>
                 <span className="text-xs text-[var(--muted)]">
-                  {entry.scope_value ?? entry.search_scope} · {entry.result_count} verses
+                  {m.searchHistoryMeta({
+                    count: entry.result_count,
+                    scopeLabel: historyScopeLabel(entry, uiLanguage),
+                  })}
                 </span>
               </button>
             ))}
@@ -187,17 +218,13 @@ export function SearchPanel({
       {!isVerseMode && mode === 'words' && (
         <div className="flex items-center gap-2">
           <span className="text-sm text-[var(--muted)] whitespace-nowrap">
-            {operator === 'and'
-              ? 'and also contains'
-              : operator === 'or'
-                ? 'or contains'
-                : 'but not'}
+            {operatorConnector}
           </span>
           <input
             type="text"
             value={secondTerm}
             onChange={(e) => setSecondTerm(e.target.value)}
-            placeholder="second word..."
+            placeholder={m.searchSecondWordPlaceholder}
             disabled={loading}
             className="flex-1 border border-[var(--border)] rounded-xl py-2.5 px-3 text-sm outline-none focus:border-[#1A1A1A]"
           />
@@ -212,7 +239,7 @@ export function SearchPanel({
 
       {!isVerseMode && (
         <div className="flex flex-wrap gap-2 items-center">
-          <span className="text-xs text-[var(--muted)]">Search in:</span>
+          <span className="text-xs text-[var(--muted)]">{m.searchScopePrefix}</span>
           {(['bible', 'ot', 'nt', 'book'] as SearchScope[]).map((s) => (
             <button
               key={s}
@@ -228,14 +255,14 @@ export function SearchPanel({
               }`}
             >
               {s === 'bible'
-                ? 'All Bible'
+                ? m.searchAllBible
                 : s === 'ot'
-                  ? 'Old Testament'
+                  ? m.searchOldTestament
                   : s === 'nt'
-                    ? 'New Testament'
+                    ? m.searchNewTestament
                     : scope === 'book' && selectedBook
-                      ? selectedBook
-                      : 'A specific book...'}
+                      ? bookNameLocalized(selectedBook, uiLanguage)
+                      : m.searchPickBook}
             </button>
           ))}
         </div>
@@ -250,32 +277,32 @@ export function SearchPanel({
             aria-expanded={showAdvanced}
           >
             {showAdvanced ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-            {showAdvanced ? 'Hide options' : 'Refine your search'}
+            {showAdvanced ? m.searchHideOptions : m.searchRefine}
           </button>
 
           {showAdvanced && (
             <div className="mt-3 p-4 border border-[var(--border-soft)] rounded-xl space-y-4 bg-[var(--surface-2)]">
               <div>
                 <p className="text-xs font-semibold text-[var(--muted)] mb-2 uppercase tracking-wide">
-                  Search type
+                  {m.searchTypeHeading}
                 </p>
                 <div className="space-y-1.5">
                   {(
                     [
                       {
                         value: 'phrase' as const,
-                        label: 'Any word in verse',
-                        desc: 'Finds verses containing the word or phrase',
+                        label: m.searchModePhrase,
+                        desc: m.searchModePhraseDesc,
                       },
                       {
                         value: 'words' as const,
-                        label: 'Combine words',
-                        desc: 'Find verses with multiple words (AND / OR / NOT)',
+                        label: m.searchModeWords,
+                        desc: m.searchModeWordsDesc,
                       },
                       {
                         value: 'wildcard' as const,
-                        label: 'Word pattern',
-                        desc: 'lov* finds love, loves, loving',
+                        label: m.searchModeWildcard,
+                        desc: m.searchModeWildcardDesc,
                       },
                     ] as const
                   ).map(({ value, label, desc }) => (
@@ -302,14 +329,14 @@ export function SearchPanel({
               {mode === 'words' && (
                 <div>
                   <p className="text-xs font-semibold text-[var(--muted)] mb-2 uppercase tracking-wide">
-                    Match
+                    {m.searchMatchHeading}
                   </p>
                   <div className="flex gap-2">
                     {(
                       [
-                        { value: 'and' as const, label: 'All words' },
-                        { value: 'or' as const, label: 'Any word' },
-                        { value: 'not' as const, label: 'Exclude second' },
+                        { value: 'and' as const, label: m.searchMatchAll },
+                        { value: 'or' as const, label: m.searchMatchAny },
+                        { value: 'not' as const, label: m.searchMatchExclude },
                       ] as const
                     ).map(({ value, label }) => (
                       <button
@@ -335,8 +362,9 @@ export function SearchPanel({
 
       {showBookPicker && (
         <BookPickerModal
-          onSelect={(book) => {
-            setSelectedBook(book);
+          uiLanguage={uiLanguage}
+          onSelect={(bookId) => {
+            setSelectedBook(bookId);
             setScope('book');
           }}
           onClose={() => {
