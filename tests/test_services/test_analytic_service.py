@@ -459,3 +459,16 @@ def test_analytics_language_defaults_to_en_stopwords(verse_service_mock):
     assert "the" not in filtered_words
     assert "in" not in filtered_words
     assert "god" in filtered_words
+
+
+def test_stopwords_loaded_for_fi_language(verse_service_mock):
+    """AnalyticService with language='fi' applies Finnish stopword list."""
+    service = AnalyticService(
+        verse_service=verse_service_mock, filter_stopwords=True, language="fi"
+    )
+    verse_service_mock.get_verses.return_value = [{"text": "ja jumala loi"}]
+    top = service.top_words("Luukas 1:1", n=10)
+    filtered_words = [w for w, _ in top]
+    assert "ja" not in filtered_words
+    assert "jumala" in filtered_words
+    assert "loi" in filtered_words

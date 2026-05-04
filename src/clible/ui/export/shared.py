@@ -7,6 +7,9 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
+from clible.config import get_config
+from clible.utils.book_names import get_display_name
+
 _BOOK_NAMES_CACHE: dict[str, str] | None = None
 
 
@@ -34,7 +37,8 @@ def load_book_names() -> dict[str, str]:
 
 def format_title_with_acronym(book_id: str, chapter: int, verse: int) -> tuple[str, str]:
     """Build full title and acronym reference for a single verse."""
-    book_name = load_book_names().get(book_id, book_id)
+    ui_lang = (get_config().ui_language or "en").lower()
+    book_name = get_display_name(book_id, ui_lang)
     full_title = f"{book_name} {chapter}:{verse}"
     acronym = f"({book_id} {chapter}:{verse})"
     return full_title, acronym

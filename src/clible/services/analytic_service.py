@@ -22,7 +22,7 @@ class AnalyticService:
         Args:
             verse_service: VerseService instance for fetching verses.
             filter_stopwords: If True, filters stopwords for the given language.
-            language: Language code to select stopword list (e.g. "en", "fin").
+            language: Language code to select stopword list (e.g. "en", "fi").
                 Defaults to "en". Ignored when filter_stopwords is False.
         """
         self._verse_service = verse_service
@@ -33,7 +33,7 @@ class AnalyticService:
         """Load stopwords for the given language from the shared stopwords file.
 
         Args:
-            language: Language code matching a key in stopwords.json (e.g. "en", "fin").
+            language: Language code matching a key in stopwords.json (e.g. "en", "fi").
 
         Returns:
             Set of lowercase stopwords. Empty set if language not found or file missing.
