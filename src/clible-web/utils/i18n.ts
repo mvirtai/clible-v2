@@ -1,0 +1,356 @@
+import type { UILanguage } from './bookNames';
+
+export type { UILanguage };
+
+export const strings = {
+  en: {
+    // App / shell
+    chooseTranslation: 'Choose translation',
+    settingsTitle: 'Settings',
+    signOutTitle: 'Sign out',
+    tabReader: 'Reader',
+    tabAnalytics: 'Analytics',
+    footerInspired: 'Inspired by Clible CLI',
+    footerDocumentation: 'Documentation',
+    footerApi: 'API',
+    footerGithub: 'GitHub',
+    errFailedLoadTranslations: 'Failed to load translations.',
+    errSelectTranslationFirst:
+      'Select a translation first (globe menu). Install one with: clible seed install <id>',
+    errSearchFailed: 'Search failed.',
+    errUnexpected: 'An unexpected error occurred.',
+    errInsightsFailed: 'Failed to generate insights.',
+    errAiToneUnavailable: 'AI tone analysis unavailable.',
+    errExportFailed: 'Export failed.',
+    errDeleteFailed: 'Delete failed.',
+    appBootLoading: 'Loading...',
+    errSaveSettings: 'Failed to save settings.',
+    errInstallTranslation: 'Failed to install translation.',
+
+    // ReaderView
+    readerEmptyTitle: 'Ready for study',
+    readerEmptyHint: 'Enter a verse to begin.',
+    readerShare: 'Share',
+    readerExport: 'Export',
+    readerAiInsights: 'AI Insights',
+    readerGenerateInsights: 'Generate Insights',
+    readerAiLoading: 'Consulting the archives...',
+    readerAiPlaceholder: 'Click above for AI-powered context and study notes.',
+
+    // SearchPanel (scope / search area)
+    searchFindInScripture: 'Find in Scripture',
+    searchVerseLookup: 'Verse Lookup',
+    searchPlaceholderVerse: 'Enter verse (e.g. John 3:16, Psalms 23)...',
+    searchPlaceholderWildcard: 'Enter a pattern (e.g. lov*, faith?)...',
+    searchPlaceholderGeneral: 'Find a word, theme, or phrase...',
+    searchAriaVerse: 'Enter Bible reference',
+    searchAriaSearch: 'Search Bible text',
+    searchRecentHeader: 'Recent searches',
+    searchClear: 'Clear',
+    searchHistoryMeta: ({ count, scopeLabel }: { count: number; scopeLabel: string }) =>
+      `${scopeLabel} · ${count} verses`,
+    searchOperatorAnd: 'and also contains',
+    searchOperatorOr: 'or contains',
+    searchOperatorNot: 'but not',
+    searchSecondWordPlaceholder: 'second word...',
+    searchWildcardHint:
+      'Use * for any ending (lov* finds love, loves, loving). Use ? for one letter (wom?n).',
+    searchHideOptions: 'Hide options',
+    searchRefine: 'Refine your search',
+    searchTypeHeading: 'Search type',
+    searchModePhrase: 'Any word in verse',
+    searchModePhraseDesc: 'Finds verses containing the word or phrase',
+    searchModeWords: 'Combine words',
+    searchModeWordsDesc: 'Find verses with multiple words (AND / OR / NOT)',
+    searchModeWildcard: 'Word pattern',
+    searchModeWildcardDesc: 'lov* finds love, loves, loving',
+    searchMatchHeading: 'Match',
+    searchMatchAll: 'All words',
+    searchMatchAny: 'Any word',
+    searchMatchExclude: 'Exclude second',
+    searchScopePrefix: 'Search in:',
+    searchAllBible: 'All Bible',
+    searchOldTestament: 'Old Testament',
+    searchNewTestament: 'New Testament',
+    searchPickBook: 'A specific book...',
+
+    // SearchView
+    searchResultsTitle: 'Search Results',
+    searchUniqueVerses: (n: number) =>
+      `${n} unique verse${n === 1 ? '' : 's'}`,
+    searchExportTitle: 'Export results',
+    searchNoResults: 'No verses found for this search.',
+
+    // SearchStatsPanel
+    statsOccurrences: 'Occurrences',
+    statsUniqueVerses: 'Unique verses',
+    statsBooks: 'Books',
+    statsTopBooks: 'Top books',
+    statsOccurrencesCol: 'Occurrences',
+    statsTruncated: (shown: number, total: number) =>
+      `Showing first ${shown} of ${total} matching verses (limit).`,
+
+    // AnalyticsView
+    analyticsModeReference: 'Reference',
+    analyticsModeChapter: 'Chapter',
+    analyticsModeBook: 'Book',
+    analyticsExport: 'Export Analytics',
+    statsWords: 'Words',
+    statsUnique: 'Unique',
+    statsAvgLength: 'Avg Length',
+    statsChars: 'Chars',
+    analyticsWordFrequency: 'Word Frequency',
+    analyticsAiTone: 'AI Tone Analysis',
+    analyticsAiLoading: 'Analyzing linguistic patterns...',
+    analyticsTonePlaceholder: 'Select a passage to analyze its tone.',
+
+    // SettingsPanel
+    settingsCloseBackdrop: 'Close settings',
+    settingsClose: 'Close',
+    settingsDialogLabel: 'Settings',
+    settingsHeading: 'Settings',
+    settingsSubtitle: 'User preferences are saved to your account.',
+    settingsProfile: 'Profile',
+    settingsUsername: 'Username',
+    settingsUserId: 'User id',
+    settingsTheme: 'Theme',
+    themeLight: 'Light',
+    themeDark: 'Dark',
+    themeSystem: 'System',
+    settingsLoading: 'Loading settings…',
+    settingsInterfaceLang: 'Interface language',
+    settingsInterfaceLangHint:
+      'Book names and picker labels. Does not change Bible text (use Translation).',
+    langEnglish: 'English',
+    langFinnish: 'Suomi',
+    settingsTranslation: 'Translation',
+    settingsDefaultTranslation: 'Default translation',
+    settingsNotSelected: 'Not selected',
+    settingsChoose: 'Choose…',
+    settingsTranslationFootnote:
+      'Installed translations are environment-wide. Your selection is saved per user.',
+
+    // TranslationModal
+    translationModalTitle: 'Select Translation',
+    translationNoneInstalled:
+      'No translations are installed on this server yet. Use Install to fetch one from the catalog.',
+    translationCatalogLoading: 'Loading translation catalog...',
+    translationCatalogEmpty: 'No translations found in the catalog.',
+    translationFooter:
+      'Installable translations come from the shared catalog. Installed translations are specific to this server environment.',
+    translationSelected: 'Selected',
+    translationUse: 'Use',
+    translationInstalled: 'Installed',
+    translationInstalling: 'Installing...',
+    translationInstall: 'Install',
+
+    // ExportModal
+    exportModalTitle: 'Export Study',
+    exportPreparing: 'Preparing your archives...',
+    formatMdName: 'Markdown',
+    formatMdDesc: 'Best for study notes and Obsidian.',
+    formatHtmlName: 'HTML',
+    formatHtmlDesc: 'Rich formatting, printable.',
+    formatJsonName: 'JSON',
+    formatJsonDesc: 'Structured data for developers.',
+    formatTxtName: 'Plain Text',
+    formatTxtDesc: 'Simple, universal format.',
+    formatCsvName: 'CSV',
+    formatCsvDesc: 'Spreadsheet compatible.',
+    formatXmlName: 'XML',
+    formatXmlDesc: 'Tag-based structure.',
+
+    // Saved search
+    saveSearchSaved: 'Saved',
+    saveSearchPlaceholder: 'Name this search...',
+    saveSearchSave: 'Save',
+    saveSearchCancel: 'Cancel',
+    saveSearchPrompt: 'Save this search',
+    savedSearchesLabel: 'Saved searches',
+    savedSearchRemove: 'Remove',
+    savedSearchScopeTitle: (scope: string) => `Scope: ${scope}`,
+
+    // Scope label in history (raw codes from API — optional localization later)
+    historyScopeOT: 'OT',
+    historyScopeNT: 'NT',
+    historyScopeWholeBible: 'Whole Bible',
+
+    // BookPickerModal
+    bookPickerTitle: 'Choose a Book',
+    bookPickerClose: 'Close',
+  },
+  fi: {
+    chooseTranslation: 'Valitse käännös',
+    settingsTitle: 'Asetukset',
+    signOutTitle: 'Kirjaudu ulos',
+    tabReader: 'Lukija',
+    tabAnalytics: 'Analyysi',
+    footerInspired: 'Clible CLI:n innoittama',
+    footerDocumentation: 'Dokumentaatio',
+    footerApi: 'API',
+    footerGithub: 'GitHub',
+    errFailedLoadTranslations: 'Käännösten lataus epäonnistui.',
+    errSelectTranslationFirst:
+      'Valitse ensin käännös (maapallo-valikko). Asenna: clible seed install <id>',
+    errSearchFailed: 'Haku epäonnistui.',
+    errUnexpected: 'Odottamaton virhe.',
+    errInsightsFailed: 'Oivallusten luonti epäonnistui.',
+    errAiToneUnavailable: 'Sävyanalyysi ei ole käytettävissä.',
+    errExportFailed: 'Vienti epäonnistui.',
+    errDeleteFailed: 'Poisto epäonnistui.',
+    appBootLoading: 'Ladataan…',
+    errSaveSettings: 'Asetusten tallennus epäonnistui.',
+    errInstallTranslation: 'Käännöksen asennus epäonnistui.',
+
+    readerEmptyTitle: 'Aloita lukeminen',
+    readerEmptyHint: 'Syötä jae tai viite aloittaaksesi.',
+    readerShare: 'Jaa',
+    readerExport: 'Vie',
+    readerAiInsights: 'Tekoäly-oivallukset',
+    readerGenerateInsights: 'Luo oivalluksia',
+    readerAiLoading: 'Haetaan tietoja…',
+    readerAiPlaceholder: 'Valitse yllä oivalluksia ja opastusta lukemiseen.',
+
+    searchFindInScripture: 'Etsi tekstistä',
+    searchVerseLookup: 'Jaehaku',
+    searchPlaceholderVerse: 'Syötä jae (esim. Joh. 3:16 tai Psalmit 23)...',
+    searchPlaceholderWildcard: 'Syötä hahmo (esim. rak*, usko?)...',
+    searchPlaceholderGeneral: 'Etsi sanaa, aihetta tai ilmausta...',
+    searchAriaVerse: 'Syötä raamatun viite',
+    searchAriaSearch: 'Hae raamatun tekstistä',
+    searchRecentHeader: 'Viimeisimmät haut',
+    searchClear: 'Tyhjennä',
+    searchHistoryMeta: ({ count, scopeLabel }: { count: number; scopeLabel: string }) =>
+      `${scopeLabel} · ${count} jaetta`,
+    searchOperatorAnd: 'ja sisältää myös',
+    searchOperatorOr: 'tai sisältää',
+    searchOperatorNot: 'mutta ei',
+    searchSecondWordPlaceholder: 'toinen sana...',
+    searchWildcardHint:
+      '* = mikä tahansa loppu (rak* → rakastaa, rakkaus). ? = yksi merkki (nainen).',
+    searchHideOptions: 'Piilota valinnat',
+    searchRefine: 'Tarkenna hakua',
+    searchTypeHeading: 'Haun tyyppi',
+    searchModePhrase: 'Sana tai lause jaeessa',
+    searchModePhraseDesc: 'Etsii jakeet, joissa esiintyy annettu sana tai lause',
+    searchModeWords: 'Useampi sana',
+    searchModeWordsDesc: 'Jakeet, joissa on useampi sana (JA / TAI / EI)',
+    searchModeWildcard: 'Sanan hahmo',
+    searchModeWildcardDesc: 'esim. rak* löytää rakastaa, rakkauden',
+    searchMatchHeading: 'Yhdistäminen',
+    searchMatchAll: 'Kaikki sanat',
+    searchMatchAny: 'Mikä tahansa sana',
+    searchMatchExclude: 'Jätä toinen pois',
+    searchScopePrefix: 'Rajaa:',
+    searchAllBible: 'Koko Raamattu',
+    searchOldTestament: 'Vanha testamentti',
+    searchNewTestament: 'Uusi testamentti',
+    searchPickBook: 'Valitse kirja…',
+
+    searchResultsTitle: 'Hakutulokset',
+    searchUniqueVerses: (n: number) =>
+      n === 1 ? `${n} ainutlaatuinen jae` : `${n} ainutlaatuista jaetta`,
+    searchExportTitle: 'Vie tulokset',
+    searchNoResults: 'Tällä haulla ei löytynyt jakeita.',
+
+    statsOccurrences: 'Osumat',
+    statsUniqueVerses: 'Eri jakeita',
+    statsBooks: 'Kirjoja',
+    statsTopBooks: 'Kärkikirjat',
+    statsOccurrencesCol: 'Osumat',
+    statsTruncated: (shown: number, total: number) =>
+      `Näytetään ensimmäiset ${shown} / ${total} osumasta (rajoitus).`,
+
+    analyticsModeReference: 'Viite',
+    analyticsModeChapter: 'Luku',
+    analyticsModeBook: 'Kirja',
+    analyticsExport: 'Vie analyysi',
+    statsWords: 'Sanat',
+    statsUnique: 'Eri sanoja',
+    statsAvgLength: 'Kesk. pituus',
+    statsChars: 'Merkkejä',
+    analyticsWordFrequency: 'Sanojen frekvenssi',
+    analyticsAiTone: 'Tekoälyn sävyanalyysi',
+    analyticsAiLoading: 'Analysoidaan kielenpiirteitä…',
+    analyticsTonePlaceholder: 'Valitse jakeisto, jonka sävyä analysoidaan.',
+
+    settingsCloseBackdrop: 'Sulje asetukset',
+    settingsClose: 'Sulje',
+    settingsDialogLabel: 'Asetukset',
+    settingsHeading: 'Asetukset',
+    settingsSubtitle: 'Käyttäjäasetukset tallennetaan tilillesi.',
+    settingsProfile: 'Profiili',
+    settingsUsername: 'Käyttäjänimi',
+    settingsUserId: 'Käyttäjätunnus',
+    settingsTheme: 'Teema',
+    themeLight: 'Vaalea',
+    themeDark: 'Tumma',
+    themeSystem: 'Järjestelmä',
+    settingsLoading: 'Ladataan asetuksia…',
+    settingsInterfaceLang: 'Käyttöliittymän kieli',
+    settingsInterfaceLangHint:
+      'Kirjojen nimet ja valikot. Ei vaihda raamatun tekstiä (käännös erikseen).',
+    langEnglish: 'English',
+    langFinnish: 'Suomi',
+    settingsTranslation: 'Käännös',
+    settingsDefaultTranslation: 'Oletuskäännös',
+    settingsNotSelected: 'Ei valittu',
+    settingsChoose: 'Valitse…',
+    settingsTranslationFootnote:
+      'Asennetut käännökset ovat palvelimen laajuisia. Valintasi tallennetaan käyttäjää kohti.',
+
+    translationModalTitle: 'Valitse käännös',
+    translationNoneInstalled:
+      'Tällä palvelimella ei ole vielä asennettuja käännöksiä. Asenna jokin luettelosta.',
+    translationCatalogLoading: 'Ladataan käännösluetteloa...',
+    translationCatalogEmpty: 'Luettelosta ei löytynyt käännöksiä.',
+    translationFooter:
+      'Asennettavat käännökset tulevat jaetusta luettelosta. Asennetut käännökset ovat tämän palvelimen kohtaisia.',
+    translationSelected: 'Valittu',
+    translationUse: 'Käytä',
+    translationInstalled: 'Asennettu',
+    translationInstalling: 'Asennetaan...',
+    translationInstall: 'Asenna',
+
+    exportModalTitle: 'Vie materiaali',
+    exportPreparing: 'Valmistellaan vientiä…',
+    formatMdName: 'Markdown',
+    formatMdDesc: 'Muistikirjat ja Obsidian.',
+    formatHtmlName: 'HTML',
+    formatHtmlDesc: 'Muotoiltu, tulostettava.',
+    formatJsonName: 'JSON',
+    formatJsonDesc: 'Rakennettu data kehittäjille.',
+    formatTxtName: 'Pelkkä teksti',
+    formatTxtDesc: 'Yksinkertainen, yleinen.',
+    formatCsvName: 'CSV',
+    formatCsvDesc: 'Taulukko-ohjelmiin.',
+    formatXmlName: 'XML',
+    formatXmlDesc: 'Tagipohjainen rakenne.',
+
+    saveSearchSaved: 'Tallennettu',
+    saveSearchPlaceholder: 'Anna haulle nimi…',
+    saveSearchSave: 'Tallenna',
+    saveSearchCancel: 'Peruuta',
+    saveSearchPrompt: 'Tallenna tämä haku',
+    savedSearchesLabel: 'Tallennetut haut',
+    savedSearchRemove: 'Poista',
+    savedSearchScopeTitle: (scope: string) => `Rajaus: ${scope}`,
+
+    historyScopeOT: 'VT',
+    historyScopeNT: 'UT',
+    historyScopeWholeBible: 'Koko Raamattu',
+
+    bookPickerTitle: 'Valitse kirja',
+    bookPickerClose: 'Sulje',
+  },
+} as const;
+
+export type Messages = typeof strings.en;
+
+export function t(lang: UILanguage): Messages {
+  return strings[lang] as unknown as Messages;
+}
+
+export function verseAriaLabel(verse: number, lang: UILanguage): string {
+  return lang === 'fi' ? `Jae ${verse}` : `Verse ${verse}`;
+}

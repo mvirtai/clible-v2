@@ -9,10 +9,12 @@ import {
 import { useAuth } from "../AuthContext";
 
 export type Theme = "light" | "dark" | "system";
+export type UILanguage = "en" | "fi";
 
 export type UserSettings = {
   translationId: string | null;
   theme: Theme;
+  uiLanguage: UILanguage;
 };
 
 export type SettingsPatch = Partial<UserSettings>;
@@ -99,6 +101,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     const optimistic: UserSettings = {
       translationId: patch.translationId ?? previous?.translationId ?? null,
       theme: patch.theme ?? previous?.theme ?? "system",
+      uiLanguage: patch.uiLanguage ?? previous?.uiLanguage ?? "en",
     };
 
     setSettings(optimistic);

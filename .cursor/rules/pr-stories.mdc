@@ -5,37 +5,76 @@ alwaysApply: false
 
 # PR stories (PR description format)
 
-**Templates:** Short and Long formats are in `.cursor/rules/pr-templates.md`.
-
-**Tracked storage:** For each PR, add a file under **`pr_stories/`** (version controlled). Follow naming in `pr_stories/README.md`. Paste the same content into the GitHub PR description. Short Format for routine PRs; Long Format for releases or complex changes.
+**Tracked storage:** For each PR, add a file under **`pr_stories/`** (version controlled, added with `git add -f` since the folder is gitignored but tracked files are allowed). Naming: `pr-TBD-<slug>.md` where slug describes the feature (e.g. `fi-language-support`, `advanced-search`). Paste the same content into the GitHub PR description.
 
 **Local draft:** `PR_STORY.md` at the repo root remains gitignored for scratch work; prefer committing the final text under `pr_stories/`.
 
-When drafting a PR description or updating **PR_STORY.md**, you may use the structure below. Copy the content into the PR body (e.g. on GitHub).
+**Reference examples:** `pr_stories/pr-TBD-h4-error-handling-logging.md` and `pr_stories/pr-TBD-fi-language-support.md` are the canonical examples of the preferred style.
+
+---
 
 ## Structure
 
-1. **Title (first line)**  
-   Conventional commit + short summary, e.g.:  
-   `# feat: support verse ranges in verse command (multi-verse lookup)`
+Use this section order. Do not add sections that have nothing to say.
 
-2. **Intro paragraph**  
-   One or two sentences: what the PR does and what it builds on (e.g. previous PR or ticket).
+### 1. Title
 
-3. **## Summary**  
-   Bullet list of main changes (parsing, repos, services, CLI). One line per area; technical but concise.
+```
+# PR: feat: short description of what this PR does (milestone tag if applicable)
+```
 
-4. **## Files added**  
-   New files only, with a one-line note per file (e.g. tests for X).
+### 2. Summary (prose paragraph)
 
-5. **## Files modified**  
-   Changed files with a short note on what changed in each.
+One or two sentences of prose — not a bullet list. State what the PR delivers and what it builds on. A reader should understand the scope and context without opening a single file.
 
-6. **## Tests**  
-   How to run the relevant tests and the full suite. Include test count and that they pass, e.g.:  
-   `uv run pytest -v` — **N tests**, all passing.
+### 3. Purpose
 
-7. **## Usage** (optional)  
-   Example commands or steps for the new/updated behavior (code block with `bash` or similar).
+A short bullet list answering "why does this exist?" Focus on user-visible or operator-visible pain points that motivated the change. Omit this section only for truly trivial fixes.
 
-Keep the whole document short and scannable. Use it to review the PR yourself and to give reviewers a clear picture without reading every diff.
+### 4. Changes in This PR
+
+Numbered subsections (`### 1. Topic (files involved)`). Each subsection is a short prose paragraph — two to five sentences — describing what changed and why. Use a bullet list inside a subsection only when listing genuinely enumerable items (e.g. three independent retry policies). Avoid opening every subsection with a dash.
+
+Typical subsection topics: data model changes, new utility modules, wiring into existing services, UI/component changes, test additions.
+
+### 5. Files added
+
+Simple bullet list: `path/to/file.py` — one sentence.
+
+### 6. Files modified
+
+Simple bullet list: `path/to/file.py` — one sentence on what changed.
+
+### 7. Tests
+
+Code block with the full test commands:
+
+```bash
+uv run pytest -v
+uv run ruff check .
+uv run ruff format --check .
+cd src/clible-web && npm run lint
+```
+
+State the test count and coverage gate result on one line below the block.
+
+### 8. Usage (optional)
+
+A `bash` code block with concrete example commands demonstrating the new behavior. Follow each command with a one-line comment explaining what it shows.
+
+### 9. Notes (optional)
+
+Scope boundaries ("X was out of scope"), architectural observations, or decisions worth recording for reviewers. Prefer prose over bullets.
+
+### 10. Related documentation (optional)
+
+Links to ROADMAP.md, plans/, ADRs, or other docs that give more context.
+
+---
+
+## Style guidelines
+
+- **Prose over bullets by default.** Use a bullet list only when the content is genuinely list-like (enumerated items, file paths, commands). A paragraph of connected thought reads better than five disconnected dashes.
+- **Be specific.** Name the actual functions, fields, env vars, and files involved. "Updated the service" tells a reviewer nothing; "VerseService._resolve_book gains a Finnish alias fallback via resolve_book_id" does.
+- **No filler.** Do not pad with phrases like "This PR introduces improvements to…" or end sections with "as expected". Every sentence should carry information.
+- **Keep it scannable.** The numbered subsections in "Changes" let a reviewer jump to the area they care about. Do not collapse all changes into one wall of text.

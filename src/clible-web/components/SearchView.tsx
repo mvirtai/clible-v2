@@ -6,6 +6,8 @@
 import type { ReactNode } from 'react';
 import { ChevronRight, Download } from 'lucide-react';
 import type { SearchResponse } from '../types/search';
+import { formatReferenceForDisplay } from '../utils/bookNames';
+import { t } from '../utils/i18n';
 import { SearchStatsPanel } from './SearchStatsPanel';
 import { SaveSearchButton } from './SaveSearchButton';
 
@@ -58,6 +60,7 @@ function highlightTerms(text: string, terms: string[], mode?: string): ReactNode
 interface SearchViewProps {
   searchResponse: SearchResponse | null;
   searchTerms: string[];
+  uiLanguage: 'en' | 'fi';
   onResultClick: (reference: string) => void;
   onExport: () => void;
   onSaveSearch?: (name: string) => Promise<void>;
@@ -66,6 +69,7 @@ interface SearchViewProps {
 export function SearchView({
   searchResponse,
   searchTerms,
+  uiLanguage,
   onResultClick,
   onExport,
   onSaveSearch,
@@ -75,24 +79,26 @@ export function SearchView({
       ? searchResponse.highlightTerms
       : searchTerms;
   const mode = searchResponse?.searchMode;
+  const msg = t(uiLanguage);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2 border-b border-[var(--border-soft)] pb-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-serif italic">Search Results</h2>
+          <h2 className="text-2xl font-serif italic">{msg.searchResultsTitle}</h2>
           {searchResponse && (
             <div className="flex items-center gap-3">
               <span className="text-sm text-[var(--muted)]">
-                {searchResponse.statistics.uniqueVerses} unique verse
-                {searchResponse.statistics.uniqueVerses === 1 ? '' : 's'}
+                {msg.searchUniqueVerses(searchResponse.statistics.uniqueVerses)}
               </span>
-              {onSaveSearch && <SaveSearchButton onSave={onSaveSearch} />}
+              {onSaveSearch && (
+                <SaveSearchButton uiLanguage={uiLanguage} onSave={onSaveSearch} />
+              )}
               <button
                 type="button"
                 onClick={onExport}
                 className="p-2 hover:bg-[var(--surface-2)] rounded-full transition-colors text-[var(--accent)]"
-                title="Export results"
+                title={msg.searchExportTitle}
               >
                 <Download size={18} />
               </button>
@@ -103,11 +109,12 @@ export function SearchView({
           <SearchStatsPanel
             statistics={searchResponse.statistics}
             rowCount={searchResponse.rows.length}
+            uiLanguage={uiLanguage}
           />
         )}
       </div>
       {searchResponse && searchResponse.rows.length === 0 && (
-        <p className="text-center text-[var(--muted)] py-8">No verses found for this search.</p>
+        <p className="text-center text-[var(--muted)] py-8">{msg.searchNoResults}</p>
       )}
       <div className="space-y-4">
         {searchResponse?.rows.map((res, i) => (
@@ -118,7 +125,9 @@ export function SearchView({
             className="w-full text-left p-6 bg-[var(--surface)] border border-[var(--border)] rounded-2xl hover:border-[var(--text)] transition-all group"
           >
             <div className="flex justify-between items-center mb-2">
-              <span className="font-bold text-[var(--accent)]">{res.reference}</span>
+              <span className="font-bold text-[var(--accent)]">
+                {formatReferenceForDisplay(res.reference, uiLanguage)}
+              </span>
               <ChevronRight
                 size={16}
                 className="text-[var(--border)] group-hover:text-[var(--text)] transition-colors"

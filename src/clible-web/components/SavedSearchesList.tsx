@@ -5,20 +5,25 @@
 
 import { Trash2 } from 'lucide-react';
 import type { SavedSearchRow } from '../types/searchQuery';
+import type { UILanguage } from '../utils/bookNames';
+import { t } from '../utils/i18n';
 
 interface SavedSearchesListProps {
+  uiLanguage: UILanguage;
   searches: SavedSearchRow[];
   onRun: (search: SavedSearchRow) => void;
   onDelete: (id: string) => void;
 }
 
-export function SavedSearchesList({ searches, onRun, onDelete }: SavedSearchesListProps) {
+export function SavedSearchesList({ uiLanguage, searches, onRun, onDelete }: SavedSearchesListProps) {
   if (searches.length === 0) return null;
+
+  const m = t(uiLanguage);
 
   return (
     <div className="mb-6">
       <p className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
-        Saved searches
+        {m.savedSearchesLabel}
       </p>
       <div className="flex flex-wrap gap-2">
         {searches.map((s) => (
@@ -30,7 +35,7 @@ export function SavedSearchesList({ searches, onRun, onDelete }: SavedSearchesLi
               type="button"
               onClick={() => onRun(s)}
               className="font-medium hover:text-[var(--accent)] transition-colors"
-              title={`Scope: ${s.scope_value ?? s.search_scope}`}
+              title={m.savedSearchScopeTitle(String(s.scope_value ?? s.search_scope))}
             >
               {s.name}
             </button>
@@ -38,7 +43,7 @@ export function SavedSearchesList({ searches, onRun, onDelete }: SavedSearchesLi
               type="button"
               onClick={() => onDelete(s.id)}
               className="ml-1 text-[var(--muted)] hover:text-red-500 transition-colors"
-              title="Remove"
+              title={m.savedSearchRemove}
             >
               <Trash2 size={13} />
             </button>

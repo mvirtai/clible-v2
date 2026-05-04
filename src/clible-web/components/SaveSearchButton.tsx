@@ -5,16 +5,20 @@
 
 import { Bookmark, BookmarkCheck } from 'lucide-react';
 import { useState } from 'react';
+import type { UILanguage } from '../utils/bookNames';
+import { t } from '../utils/i18n';
 
 interface SaveSearchButtonProps {
+  uiLanguage: UILanguage;
   onSave: (name: string) => Promise<void>;
 }
 
-export function SaveSearchButton({ onSave }: SaveSearchButtonProps) {
+export function SaveSearchButton({ uiLanguage, onSave }: SaveSearchButtonProps) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [showInput, setShowInput] = useState(false);
   const [name, setName] = useState('');
+  const m = t(uiLanguage);
 
   const handleSave = async () => {
     if (!name.trim()) return;
@@ -33,7 +37,7 @@ export function SaveSearchButton({ onSave }: SaveSearchButtonProps) {
   if (saved) {
     return (
       <span className="flex items-center gap-1.5 text-sm text-[var(--accent)]">
-        <BookmarkCheck size={16} /> Saved
+        <BookmarkCheck size={16} /> {m.saveSearchSaved}
       </span>
     );
   }
@@ -50,7 +54,7 @@ export function SaveSearchButton({ onSave }: SaveSearchButtonProps) {
               if (e.key === 'Enter') void handleSave();
               if (e.key === 'Escape') setShowInput(false);
             }}
-            placeholder="Name this search..."
+            placeholder={m.saveSearchPlaceholder}
             className="border border-[var(--border)] rounded-lg px-3 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
           />
           <button
@@ -59,14 +63,14 @@ export function SaveSearchButton({ onSave }: SaveSearchButtonProps) {
             disabled={saving || !name.trim()}
             className="px-3 py-1.5 text-sm bg-[var(--accent)] text-white rounded-lg disabled:opacity-50"
           >
-            Save
+            {m.saveSearchSave}
           </button>
           <button
             type="button"
             onClick={() => setShowInput(false)}
             className="text-sm text-[var(--muted)]"
           >
-            Cancel
+            {m.saveSearchCancel}
           </button>
         </>
       ) : (
@@ -75,7 +79,7 @@ export function SaveSearchButton({ onSave }: SaveSearchButtonProps) {
           onClick={() => setShowInput(true)}
           className="flex items-center gap-1.5 text-sm text-[var(--muted)] hover:text-[var(--text)] transition-colors"
         >
-          <Bookmark size={16} /> Save this search
+          <Bookmark size={16} /> {m.saveSearchPrompt}
         </button>
       )}
     </div>

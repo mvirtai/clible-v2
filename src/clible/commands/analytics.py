@@ -1,6 +1,7 @@
 """Analytics commands: text analysis for verses, chapters, books, and comparison."""
 
 import difflib
+import os
 
 import click
 from rich.console import Console
@@ -9,7 +10,6 @@ from rich.panel import Panel
 from rich.table import Table
 
 from clible.commands import get_saved_analysis_service
-from clible.config import get_config
 from clible.db.connection import get_connection
 from clible.db.repositories.book_repo import BookRepo
 from clible.db.repositories.translation_repo import TranslationRepo
@@ -26,14 +26,37 @@ from clible.ui.help_texts import (
     ANALYTICS_REFERENCE_HELP,
 )
 
+_STOPWORD_KEYS = frozenset({"en", "fi", "grc", "el"})
 
-def _get_analytic_service(_translation_id: str | None) -> AnalyticService:
+
+def _infer_stopword_language(
+    translation_repo: TranslationRepo,
+    translation_id: str | None,
+) -> str:
+    """Pick stopword list language from the active translation when env is unset."""
+    tid = translation_id
+    if not tid:
+        default = translation_repo.get_default()
+        tid = default["id"] if default else None
+    if not tid:
+        return "en"
+    row = translation_repo.get_by_id(tid)
+    if not row:
+        return "en"
+    lang = (row["language"] or "en").lower().strip()
+    if lang.startswith("fin"):
+        lang = "fi"
+    if lang in _STOPWORD_KEYS:
+        return lang
+    return "en"
+
+
+def _get_analytic_service(translation_id: str | None) -> AnalyticService:
     """Build AnalyticService with real dependencies.
 
-    Stopword filtering uses ``config.analytics_language`` (default ``en``), which
-    is independent of the selected translation's language.  A user studying Greek
-    text therefore still gets English stopword filtering unless they explicitly set
-    ``CLIBLE_ANALYTICS_LANGUAGE=grc``.
+    When ``CLIBLE_ANALYTICS_LANGUAGE`` is set in the environment, that value selects
+    stopwords. Otherwise the language is inferred from the active translation
+    (``fi`` → Finnish list, ``grc``/``el`` → Greek lists, else English).
     """
     conn = get_connection()
     translation_repo = TranslationRepo(conn)
@@ -43,7 +66,11 @@ def _get_analytic_service(_translation_id: str | None) -> AnalyticService:
         book_repo=BookRepo(conn),
         translation_repo=translation_repo,
     )
-    language = get_config().analytics_language
+    if "CLIBLE_ANALYTICS_LANGUAGE" in os.environ:
+        raw = os.environ["CLIBLE_ANALYTICS_LANGUAGE"].strip()
+        language = raw if raw else "en"
+    else:
+        language = _infer_stopword_language(translation_repo, translation_id)
     return AnalyticService(verse_service=verse_service, language=language)
 
 

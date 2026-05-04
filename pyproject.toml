@@ -20,7 +20,7 @@ description = "Bible Study tool in CLI with users, sessions, text analytic exper
 name = "clible-v2"
 readme = "README.md"
 requires-python = ">=3.12"
-version = "2.0.0"
+version = "2.1.0"
 
 [project.scripts]
 clible = "clible.cli:main"

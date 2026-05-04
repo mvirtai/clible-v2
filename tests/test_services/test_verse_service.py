@@ -39,6 +39,25 @@ def test_get_verse_returns_verse_when_exists(verse_service, verse_repo, translat
     assert result["text"] == "For God so loved..."
 
 
+def test_get_verse_accepts_finnish_book_name(verse_service, verse_repo, translation_repo):
+    """get_verse resolves standard Finnish book names (e.g. Luukas)."""
+    translation_repo.create(
+        {
+            "id": "web",
+            "name": "World English Bible",
+            "language": "en",
+            "format": "USFX",
+        }
+    )
+    verse_repo.save_verses(
+        [{"book_id": "LUK", "chapter": 1, "verse": 1, "text": "Alussa..."}],
+        "web",
+    )
+    result = verse_service.get_verse("Luukas 1:1")
+    assert result is not None
+    assert result["book_id"] == "LUK"
+
+
 def test_get_verse_accepts_translation_override(verse_service, verse_repo, translation_repo):
     """get_verse uses --translation when provided."""
     translation_repo.create(

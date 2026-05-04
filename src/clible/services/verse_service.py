@@ -9,6 +9,7 @@ from clible.db.repositories.translation_repo import TranslationRepo
 from clible.db.repositories.verse_repo import VerseRepo, VerseRow
 from clible.services.reference_parser import ReferenceScope, parse_reference
 from clible.services.search_query import SearchQuery
+from clible.utils.book_names import resolve_book_id
 
 
 class VerseService:
@@ -26,11 +27,15 @@ class VerseService:
         self._translation_repo = translation_repo
 
     def _resolve_book(self, name: str) -> BookRow | None:
-        """Look up a book by exact name, falling back to fuzzy search."""
+        """Look up a book by exact name, partial DB search, or EN/FI aliases."""
         book = self._book_repo.get_by_name(name)
         if not book:
             matches = self._book_repo.search(name)
             book = matches[0] if matches else None
+        if not book:
+            bid = resolve_book_id(name)
+            if bid:
+                book = self._book_repo.get_by_id(bid)
         return book
 
     def _resolve_translation_id(self, translation_id: str | None) -> str | None:

@@ -23,9 +23,25 @@ def test_default_config_loads_correctly():
         assert cfg.gcs_upload_timeout == 300
         assert cfg.seed_base_url is None
         assert cfg.analytics_language == "en"
+        assert cfg.ui_language == "en"
     finally:
         for k, v in saved.items():
             os.environ[k] = v
+        importlib.reload(config_module)
+
+
+def test_ui_language_env_var_overrides_default():
+    """CLIBLE_UI_LANGUAGE selects export / display book name language."""
+    saved = {k: os.environ.pop(k) for k in list(os.environ) if k.startswith("CLIBLE_")}
+    try:
+        os.environ["CLIBLE_UI_LANGUAGE"] = "fi"
+        importlib.reload(config_module)
+        cfg = config_module.get_config()
+        assert cfg.ui_language == "fi"
+    finally:
+        for k, v in saved.items():
+            os.environ[k] = v
+        os.environ.pop("CLIBLE_UI_LANGUAGE", None)
         importlib.reload(config_module)
 
 
