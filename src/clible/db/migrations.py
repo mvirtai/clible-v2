@@ -42,7 +42,7 @@ def run_migrations(conn: sqlite3.Connection, migrations_dir: Path | None = None)
         if sql:
             cursor.executescript(sql)
         cursor.execute(
-            "INSERT INTO _migrations (name) VALUES (?)",
+            "INSERT OR IGNORE INTO _migrations (name) VALUES (?)",
             (path.name,),
         )
         applied.add(path.name)
