@@ -3,9 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect, useRef, KeyboardEvent } from 'react';
+import { useState, useEffect } from 'react';
 import {
-  Search,
   Book,
   Terminal,
   History,
@@ -24,10 +23,13 @@ import {
   WordFrequency,
 } from './types/bible';
 import type { SearchResponse } from './types/search';
+import type { SearchQueryOptions, SearchHistoryEntry, SavedSearchRow } from './types/searchQuery';
 import { bibleRepository } from './repositories/bibleRepository';
 import { bibleService } from './services/bibleService';
 import { ReaderView } from './components/ReaderView';
 import { SearchView } from './components/SearchView';
+import { SearchPanel } from './components/SearchPanel';
+import { SavedSearchesList } from './components/SavedSearchesList';
 import { AnalyticsView } from './components/AnalyticsView';
 import type { AnalyticsMode } from './components/AnalyticsView';
 import { TranslationModal } from './components/TranslationModal';
@@ -52,7 +54,6 @@ export default function App() {
 
   const [effectiveTheme, setEffectiveTheme] = useState<'light' | 'dark'>('light');
 
-  const [query, setQuery] = useState('');
   const [result, setResult] = useState<BibleResponse | null>(null);
   const [searchResponse, setSearchResponse] = useState<SearchResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -77,6 +78,10 @@ export default function App() {
   const [nativeStats, setNativeStats] = useState<TextStats | null>(null);
   const [nativeFrequency, setNativeFrequency] = useState<WordFrequency[]>([]);
   const [showExport, setShowExport] = useState(false);
+  const [searchHistoryApi, setSearchHistoryApi] = useState<SearchHistoryEntry[]>([]);
+  const [savedSearches, setSavedSearches] = useState<SavedSearchRow[]>([]);
+  const [currentSearchTerms, setCurrentSearchTerms] = useState<string[]>([]);
+  const [lastSearchOptions, setLastSearchOptions] = useState<SearchQueryOptions | null>(null);
   const [exporting, setExporting] = useState(false);
   const [exportContext, setExportContext] = useState<{
     cmd: "verse" | "search" | "analytics";
@@ -84,8 +89,6 @@ export default function App() {
     title: string;
     aiInsight?: string | null;
   } | null>(null);
-
-  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (settingsError) {
@@ -123,7 +126,6 @@ export default function App() {
 
   useEffect(() => {
     if (!user) return;
-    inputRef.current?.focus();
     const savedHistory = localStorage.getItem('clible_history');
     if (savedHistory) setHistory(JSON.parse(savedHistory));
   }, [user]);
@@ -180,6 +182,28 @@ export default function App() {
       });
   }, [user, settingsLoading, settings, installedTranslations, updateSettings]);
 
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const [hist, saved] = await Promise.all([
+          bibleRepository.getSearchHistory(),
+          bibleRepository.getSavedSearches(),
+        ]);
+        if (!cancelled) {
+          setSearchHistoryApi(hist);
+          setSavedSearches(saved);
+        }
+      } catch {
+        /* offline bridge errors ignored */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
   if (authLoading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   if (!user) return <LoginView onSuccess={login} />;
 
@@ -187,6 +211,37 @@ export default function App() {
     const newHistory = [q, ...history.filter((h) => h !== q)].slice(0, 10);
     setHistory(newHistory);
     localStorage.setItem('clible_history', JSON.stringify(newHistory));
+  };
+
+  const handleAdvancedSearch = async (options: SearchQueryOptions) => {
+    if (!options.terms[0]?.trim()) return;
+    if (!settings?.translationId) {
+      setError(
+        'Select a translation first (globe menu). Install one with: clible seed install <id>'
+      );
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setAiInsight(null);
+    setToneAnalysis(null);
+    setCurrentSearchTerms(options.terms);
+    setLastSearchOptions({ ...options, translationId: settings.translationId });
+    try {
+      const response = await bibleRepository.searchAdvanced({
+        ...options,
+        translationId: settings.translationId,
+      });
+      setSearchResponse(response);
+      setViewMode('search');
+      setSearchType('search');
+      const hist = await bibleRepository.getSearchHistory();
+      setSearchHistoryApi(hist);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Search failed.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSearch = async (q: string, overrideType?: SearchType) => {
@@ -214,11 +269,19 @@ export default function App() {
       } else {
         const response = await bibleRepository.search(q, settings.translationId);
         setSearchResponse(response);
+        setCurrentSearchTerms([q.trim()]);
+        setLastSearchOptions({
+          terms: [q.trim()],
+          mode: 'phrase',
+          operator: 'and',
+          scope: 'bible',
+          book: null,
+          translationId: settings.translationId,
+        });
         setViewMode('search');
         setSearchType('search');
       }
       saveToHistory(q);
-      setQuery('');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
     } finally {
@@ -363,10 +426,6 @@ export default function App() {
     }
   };
 
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.key === 'Enter') handleSearch(query);
-  };
-
   return (
     <div
       className="min-h-screen font-sans selection:bg-[#E6D5B8] selection:text-[#1A1A1A] bg-[var(--bg)] text-[var(--text)]"
@@ -430,45 +489,55 @@ export default function App() {
 
       <main className="max-w-4xl mx-auto px-6 py-12">
         <div className="space-y-4 mb-8">
-          <div className="flex gap-2">
-            <button
-              onClick={() => setSearchType('verse')}
-              className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${searchType === 'verse' ? 'bg-[#1A1A1A] text-white' : 'bg-[#F5F5F5] text-[#8E8E8E]'}`}
-            >
-              Verse Lookup
-            </button>
-            <button
-              onClick={() => setSearchType('search')}
-              className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${searchType === 'search' ? 'bg-[#1A1A1A] text-white' : 'bg-[#F5F5F5] text-[#8E8E8E]'}`}
-            >
-              FTS5 Search
-            </button>
-          </div>
-
           {error && (
             <p className="text-sm text-red-600 mb-2" role="alert">
               {error}
             </p>
           )}
 
-          <div className="relative group">
-            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-[#8E8E8E] group-focus-within:text-[#1A1A1A] transition-colors">
-              {searchType === 'verse' ? <Book size={20} /> : <Search size={20} />}
-            </div>
-            <input
-              ref={inputRef}
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={
-                searchType === 'verse'
-                  ? "Enter verse (e.g., John 3:16)..."
-                  : "Search text (e.g., 'mountain', 'grace')..."
-              }
-              className="w-full bg-white border-2 border-gray-500 text-gray-700 focus:border-[#1A1A1A] rounded-2xl py-4 pl-12 pr-4 text-lg outline-none transition-all shadow-sm hover:shadow-md "
-            />
-          </div>
+          <SearchPanel
+            activeTranslation={settings?.translationId ?? null}
+            onSearch={handleAdvancedSearch}
+            onVerseSearch={(ref) => void handleSearch(ref, 'verse')}
+            history={searchHistoryApi}
+            onHistoryClear={() => {
+              void bibleRepository.clearSearchHistory().then(() => setSearchHistoryApi([]));
+            }}
+            loading={loading}
+            error={null}
+          />
+
+          <SavedSearchesList
+            searches={savedSearches}
+            onRun={(s) => {
+              if (!settings?.translationId) return;
+              const scope: SearchQueryOptions['scope'] =
+                s.search_scope === 'testament' && s.scope_value === 'NT'
+                  ? 'nt'
+                  : s.search_scope === 'testament' && s.scope_value === 'OT'
+                    ? 'ot'
+                    : s.search_scope === 'book'
+                      ? 'book'
+                      : 'bible';
+              void handleAdvancedSearch({
+                terms: [s.query_text.trim()],
+                mode: 'phrase',
+                operator: 'and',
+                scope,
+                book: s.search_scope === 'book' ? s.scope_value : null,
+                translationId: s.translation_id ?? settings.translationId,
+              });
+            }}
+            onDelete={(id) => {
+              void bibleRepository
+                .deleteSavedSearch(id)
+                .then(() => bibleRepository.getSavedSearches())
+                .then(setSavedSearches)
+                .catch((e: unknown) =>
+                  setError(e instanceof Error ? e.message : 'Delete failed.')
+                );
+            }}
+          />
         </div>
 
         {result && (
@@ -513,17 +582,37 @@ export default function App() {
             <motion.div key="search" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
               <SearchView
                 searchResponse={searchResponse}
+                searchTerms={currentSearchTerms}
                 onResultClick={(ref) => void handleSearch(ref, 'verse')}
                 onExport={() => {
                   if (searchResponse && settings?.translationId) {
                     let args = `"${searchResponse.query}" -t ${settings.translationId}`;
                     if (searchResponse.scope) args += ` --scope ${searchResponse.scope}`;
                     if (searchResponse.scopeRef) args += ` -r "${searchResponse.scopeRef}"`;
-                    // For export we might want a higher limit or no limit, 
-                    // but for now let's use what's shown.
+                    if (searchResponse.searchMode) {
+                      const m =
+                        searchResponse.searchMode === 'boolean' ? 'words' : searchResponse.searchMode;
+                      args += ` --mode ${m}`;
+                    }
+                    if (searchResponse.searchOperator) {
+                      args += ` --operator ${searchResponse.searchOperator.toLowerCase()}`;
+                    }
                     triggerExport('search', args, `Search: ${searchResponse.query}`);
                   }
                 }}
+                onSaveSearch={
+                  lastSearchOptions
+                    ? async (name) => {
+                        await bibleRepository.saveNamedSearch({
+                          name,
+                          ...lastSearchOptions,
+                          translationId: settings?.translationId ?? lastSearchOptions.translationId,
+                        });
+                        const s = await bibleRepository.getSavedSearches();
+                        setSavedSearches(s);
+                      }
+                    : undefined
+                }
               />
             </motion.div>
           )}

@@ -7,6 +7,7 @@ import html
 import io
 import json
 import xml.etree.ElementTree as ET
+from collections.abc import Mapping, Sequence
 from typing import Any, Literal
 
 from clible.ui.export import render_html_document, validate_export_format
@@ -15,7 +16,7 @@ from clible.ui.export.shared import format_title_with_acronym, full_verse_ref
 ExportKind = Literal["verse", "search"]
 
 
-def _verse_ref(v: dict[str, Any]) -> str:
+def _verse_ref(v: Mapping[str, Any]) -> str:
     return f"{v.get('book_id', '')} {v.get('chapter', '')}:{v.get('verse', '')}"
 
 
@@ -25,9 +26,9 @@ def _format_number(value: Any) -> str:
     return str(value)
 
 
-def _full_verse_ref(v: dict[str, Any]) -> tuple[str, str]:
+def _full_verse_ref(v: Mapping[str, Any]) -> tuple[str, str]:
     """Return (full_ref, acronym_ref) for a verse dict."""
-    return full_verse_ref(v)
+    return full_verse_ref(dict(v))
 
 
 def _xml_doc(root: ET.Element) -> str:
@@ -40,12 +41,15 @@ def _payload_dict(
     *,
     kind: ExportKind,
     title: str,
-    verses: list[dict[str, Any]],
+    verses: Sequence[Mapping[str, Any]],
     translation_id: str | None,
     search_word: str | None,
     scope: str | None,
     scope_ref: str | None,
     stats: dict[str, Any] | None,
+    highlight_terms: list[str] | None,
+    search_mode: str | None,
+    search_operator: str | None,
 ) -> dict[str, Any]:
     rows = [
         {
@@ -67,11 +71,17 @@ def _payload_dict(
         out["scope"] = scope
         out["scope_ref"] = scope_ref
         out["statistics"] = stats or {}
+        if highlight_terms is not None:
+            out["highlight_terms"] = highlight_terms
+        if search_mode is not None:
+            out["search_mode"] = search_mode
+        if search_operator is not None:
+            out["search_operator"] = search_operator
     return out
 
 
 def export_verses_bundle(
-    verses: list[dict[str, Any]],
+    verses: Sequence[Mapping[str, Any]],
     *,
     kind: ExportKind,
     title: str,
@@ -81,6 +91,9 @@ def export_verses_bundle(
     scope: str | None = None,
     scope_ref: str | None = None,
     stats: dict[str, Any] | None = None,
+    highlight_terms: list[str] | None = None,
+    search_mode: str | None = None,
+    search_operator: str | None = None,
 ) -> str:
     """Serialize verses (and optional search metadata) to a string.
 
@@ -110,6 +123,9 @@ def export_verses_bundle(
                 scope=scope,
                 scope_ref=scope_ref,
                 stats=stats,
+                highlight_terms=highlight_terms,
+                search_mode=search_mode,
+                search_operator=search_operator,
             ),
             ensure_ascii=False,
             indent=2,
@@ -161,7 +177,7 @@ def export_verses_bundle(
     )
 
 
-def _to_csv(verses: list[dict[str, Any]]) -> str:
+def _to_csv(verses: Sequence[Mapping[str, Any]]) -> str:
     header = ["book_id", "chapter", "verse", "text"]
     out = io.StringIO()
     writer = csv.writer(out)
@@ -182,7 +198,7 @@ def _to_txt(
     *,
     kind: ExportKind,
     title: str,
-    verses: list[dict[str, Any]],
+    verses: Sequence[Mapping[str, Any]],
     translation_id: str | None,
     search_word: str | None,
     scope: str | None,
@@ -216,7 +232,7 @@ def _to_md(
     *,
     kind: ExportKind,
     title: str,
-    verses: list[dict[str, Any]],
+    verses: Sequence[Mapping[str, Any]],
     translation_id: str | None,
     search_word: str | None,
     scope: str | None,
@@ -260,7 +276,7 @@ def _to_html(
     *,
     kind: ExportKind,
     title: str,
-    verses: list[dict[str, Any]],
+    verses: Sequence[Mapping[str, Any]],
     translation_id: str | None,
     search_word: str | None,
     scope: str | None,
@@ -335,7 +351,7 @@ def _to_html(
             "</section>"
         )
 
-    def _verse_card(v: dict[str, Any]) -> str:
+    def _verse_card(v: Mapping[str, Any]) -> str:
         full_ref, acronym_ref = _full_verse_ref(v)
         text = html.escape(v.get("text", ""))
         return (
@@ -362,7 +378,7 @@ def _to_xml(
     *,
     kind: ExportKind,
     title: str,
-    verses: list[dict[str, Any]],
+    verses: Sequence[Mapping[str, Any]],
     translation_id: str | None,
     search_word: str | None,
     scope: str | None,

@@ -222,3 +222,59 @@ class VerseRepo:
                 except sqlite3.OperationalError:
                     return []
             raise
+
+    def search_wildcard(
+        self,
+        pattern: str,
+        translation_id: str | None = None,
+        *,
+        book_ids: tuple[str, ...] | None = None,
+        book_id: str | None = None,
+        chapter: int | None = None,
+        verse_min: int | None = None,
+        verse_max: int | None = None,
+    ) -> list[VerseRow]:
+        """Search verses by regex pattern using REGEXP UDF.
+
+        Used for wildcard-style searches where * and ? are translated
+        to regex by the service layer before reaching this method.
+
+        Args:
+            pattern: A Python regex pattern (not a wildcard string).
+            translation_id: If set, restrict to this translation.
+            book_ids: If set, restrict to these book ids.
+            book_id: Single-book scope.
+            chapter: Restrict to this chapter (with book_id).
+            verse_min, verse_max: Inclusive verse range.
+
+        Returns:
+            Verse rows ordered by book, chapter, verse.
+        """
+        if book_ids is not None and len(book_ids) == 0:
+            return []
+
+        query = "SELECT * FROM verses WHERE text REGEXP ?"
+        params: list = [pattern]
+
+        if translation_id:
+            query += " AND translation_id = ?"
+            params.append(translation_id)
+
+        if book_ids is not None:
+            placeholders = ",".join("?" * len(book_ids))
+            query += f" AND book_id IN ({placeholders})"
+            params.extend(book_ids)
+        elif book_id is not None:
+            query += " AND book_id = ?"
+            params.append(book_id)
+            if chapter is not None:
+                query += " AND chapter = ?"
+                params.append(chapter)
+                if verse_min is not None and verse_max is not None:
+                    query += " AND verse >= ? AND verse <= ?"
+                    params.extend([verse_min, verse_max])
+
+        query += " ORDER BY book_id, chapter, verse"
+
+        cursor = self.conn.execute(query, params)
+        return [_row_to_verse(row) for row in cursor.fetchall()]

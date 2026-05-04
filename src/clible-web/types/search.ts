@@ -21,4 +21,8 @@ export interface SearchResponse {
   translationId: string | null;
   scope: string | null;
   scopeRef: string | null;
+  /** When present (CLI JSON export), used to highlight matches in the UI. */
+  highlightTerms?: string[];
+  searchMode?: string;
+  searchOperator?: string | null;
 }

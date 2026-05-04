@@ -39,10 +39,15 @@ def analysis_group():
 
 
 @search_group.command("list")
-def list_searches():
+@click.option("--json", "json_output", is_flag=True, help="Print saved searches as JSON.")
+def list_searches(json_output: bool):
     """List all saved searches in the current scope."""
     service = get_saved_search_service()
     items = service.list_saved_searches()
+
+    if json_output:
+        print(json.dumps(items))
+        return
 
     if not items:
         console.print("[dim]No saved searches in current scope.[/dim]")

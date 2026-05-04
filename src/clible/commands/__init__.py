@@ -6,12 +6,14 @@ from clible.db.repositories.book_repo import BookRepo
 from clible.db.repositories.saved_analysis_repo import SavedAnalysisRepo
 from clible.db.repositories.saved_search_repo import SavedSearchRepo
 from clible.db.repositories.scope_repo import ScopeRepo
+from clible.db.repositories.search_history_repo import SearchHistoryRepo
 from clible.db.repositories.translation_repo import TranslationRepo
 from clible.db.repositories.verse_repo import VerseRepo
 from clible.services.analytic_service import AnalyticService
 from clible.services.saved_analysis_service import SavedAnalysisService
 from clible.services.saved_search_service import SavedSearchService
 from clible.services.scope_service import ScopeService
+from clible.services.search_history_service import SearchHistoryService
 from clible.services.verse_service import VerseService
 
 
@@ -32,6 +34,12 @@ def get_scope_service() -> ScopeService:
         scope_repo=ScopeRepo(conn),
         config=get_config(),
     )
+
+
+def get_search_history_service() -> SearchHistoryService:
+    """Build SearchHistoryService with a fresh DB connection."""
+    conn = get_connection()
+    return SearchHistoryService(SearchHistoryRepo(conn))
 
 
 def get_saved_search_service() -> SavedSearchService:
