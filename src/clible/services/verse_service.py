@@ -8,6 +8,7 @@ from clible.db.repositories.book_repo import BookRepo, BookRow
 from clible.db.repositories.translation_repo import TranslationRepo
 from clible.db.repositories.verse_repo import VerseRepo, VerseRow
 from clible.services.reference_parser import ReferenceScope, parse_reference
+from clible.services.search_query import SearchQuery
 
 
 class VerseService:
@@ -188,6 +189,23 @@ class VerseService:
         if kwargs is None:
             return []
         return self._verse_repo.search_text(word, translation_id, **kwargs)
+
+    def search_advanced(self, query: SearchQuery) -> list[VerseRow]:
+        """Run a structured search (FTS5 or REGEXP). Does not record history."""
+        kwargs = self._search_scope_repo_kwargs(query.scope, query.scope_ref)
+        if kwargs is None:
+            return []
+
+        if query.mode == "wildcard":
+            pattern = query.to_regex_pattern()
+            return self._verse_repo.search_wildcard(
+                pattern,
+                query.translation_id,
+                **kwargs,
+            )
+
+        fts5_string = query.to_fts5_match()
+        return self._verse_repo.search_text(fts5_string, query.translation_id, **kwargs)
 
     def _search_scope_repo_kwargs(self, scope: str, scope_ref: str | None) -> dict | None:
         """Build keyword args for ``VerseRepo.search_text``. None means invalid scope."""
