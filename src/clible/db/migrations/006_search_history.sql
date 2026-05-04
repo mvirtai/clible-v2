@@ -1,7 +1,7 @@
 -- Migration 006: Search history
 -- Automatically records every search query for quick re-execution
 
-CREATE TABLE search_history (
+CREATE TABLE IF NOT EXISTS search_history (
     id TEXT PRIMARY KEY,
     query_text TEXT NOT NULL,
     search_scope TEXT NOT NULL DEFAULT 'bible',
@@ -13,4 +13,4 @@ CREATE TABLE search_history (
     FOREIGN KEY (translation_id) REFERENCES translations(id) ON DELETE SET NULL
 );
 
-CREATE INDEX idx_search_history_time ON search_history(searched_at DESC);
+CREATE INDEX IF NOT EXISTS idx_search_history_time ON search_history(searched_at DESC);

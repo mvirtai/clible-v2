@@ -16,7 +16,10 @@ def seed_books_if_empty(conn: sqlite3.Connection):
 
     for book in data["books"]:
         conn.execute(
-            "INSERT INTO books (id, name, testament, position, chapters) VALUES (?, ?, ?, ?, ?)",
+            """
+            INSERT OR IGNORE INTO books (id, name, testament, position, chapters)
+            VALUES (?, ?, ?, ?, ?)
+            """,
             (
                 book["id"],
                 book["name"],

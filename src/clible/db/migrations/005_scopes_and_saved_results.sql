@@ -1,13 +1,13 @@
 -- Migration 005: Scopes and Saved Results
 -- Adds support for grouping saved work into contexts (scopes)
 
-CREATE TABLE scopes (
+CREATE TABLE IF NOT EXISTS scopes (
     id TEXT PRIMARY KEY,           -- UUID
     name TEXT NOT NULL UNIQUE,      -- Name of the scope (e.g. 'default', 'study-paul')
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE saved_searches (
+CREATE TABLE IF NOT EXISTS saved_searches (
     id TEXT PRIMARY KEY,           -- UUID
     scope_id TEXT NOT NULL,        -- FK to scopes
     name TEXT NOT NULL,            -- User-defined name
@@ -20,7 +20,7 @@ CREATE TABLE saved_searches (
     FOREIGN KEY (translation_id) REFERENCES translations(id) ON DELETE SET NULL
 );
 
-CREATE TABLE saved_analyses (
+CREATE TABLE IF NOT EXISTS saved_analyses (
     id TEXT PRIMARY KEY,           -- UUID
     scope_id TEXT NOT NULL,        -- FK to scopes
     name TEXT NOT NULL,            -- User-defined name
@@ -34,5 +34,5 @@ CREATE TABLE saved_analyses (
 );
 
 -- Indices for fast listing per scope
-CREATE INDEX idx_saved_searches_scope ON saved_searches(scope_id);
-CREATE INDEX idx_saved_analyses_scope ON saved_analyses(scope_id);
+CREATE INDEX IF NOT EXISTS idx_saved_searches_scope ON saved_searches(scope_id);
+CREATE INDEX IF NOT EXISTS idx_saved_analyses_scope ON saved_analyses(scope_id);

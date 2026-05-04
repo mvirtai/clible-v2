@@ -2,7 +2,7 @@
 -- Creates tables for offline Bible data (books, translations, verses)
 
 -- Books table (static reference data for 66 Bible books)
-CREATE TABLE books (
+CREATE TABLE IF NOT EXISTS books (
     id TEXT PRIMARY KEY,           -- Book abbreviation (GEN, JHN, REV, etc.)
     name TEXT NOT NULL,            -- Full book name (Genesis, John, Revelation)
     testament TEXT NOT NULL,       -- OT or NT
@@ -11,7 +11,7 @@ CREATE TABLE books (
 );
 
 -- Translations table (installed Bible translations)
-CREATE TABLE translations (
+CREATE TABLE IF NOT EXISTS translations (
     id TEXT PRIMARY KEY,           -- Translation abbreviation (web, kjv, fin-biblia)
     name TEXT NOT NULL,            -- Full translation name (World English Bible)
     language TEXT NOT NULL,        -- Language code (en, fi, etc.)
@@ -21,7 +21,7 @@ CREATE TABLE translations (
 );
 
 -- Verses table (actual Bible text)
-CREATE TABLE verses (
+CREATE TABLE IF NOT EXISTS verses (
     id TEXT PRIMARY KEY,           -- UUID for each verse
     translation_id TEXT NOT NULL,  -- Which translation (web, kjv, etc.)
     book_id TEXT NOT NULL,         -- Which book (GEN, JHN, etc.)
@@ -34,9 +34,9 @@ CREATE TABLE verses (
 );
 
 -- Indexes for fast verse lookups
-CREATE INDEX idx_verses_lookup 
+CREATE INDEX IF NOT EXISTS idx_verses_lookup 
     ON verses(translation_id, book_id, chapter, verse);
 
 -- Index for full-text search on verse content
-CREATE INDEX idx_verses_search 
+CREATE INDEX IF NOT EXISTS idx_verses_search 
     ON verses(text);
