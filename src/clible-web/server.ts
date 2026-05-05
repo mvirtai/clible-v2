@@ -11,10 +11,12 @@ import path from "path";
 import { GoogleGenAI } from "@google/genai";
 import {
   buildInsightUserPrompt,
+  buildOriginalStudyPrompt,
   buildStudyUserPrompt,
   buildToneUserPrompt,
   geminiModels,
   insightSystemInstruction,
+  originalStudySystemInstruction,
   studySystemInstruction,
   toneSystemInstruction,
 } from "./ai.config";
@@ -483,6 +485,35 @@ async function startServer() {
     } catch (error: unknown) {
       console.error("save search:", error);
       return res.status(500).json({ error: "Failed to save search" });
+    }
+  });
+
+  // Original-language study: multi-translation comparison with phonetic transliteration.
+  app.post("/api/ai/original-study", requireAuth, aiRateLimit, async (req, res) => {
+    const ai = getAiClientOrNull();
+    if (!ai) return res.status(503).json({ error: "AI disabled", hint: "Set GEMINI_API_KEY." });
+  
+    const { reference, sourceText, sourceLanguage, translations } = req.body as {
+      reference?: string;
+      sourceText?: string;
+      sourceLanguage?: string;
+      translations?: Array<{ id: string; name: string; text: string }>;
+    };
+  
+    if (!reference?.trim() || !sourceText?.trim() || !Array.isArray(translations) || translations.length === 0) {
+      return res.status(400).json({ error: "Missing required fields." });
+    }
+    const lang = sourceLanguage === "he" ? "he" : "grc";
+  
+    try {
+      const response = await ai.models.generateContent({
+        model: geminiModels.originalStudy,
+        contents: buildOriginalStudyPrompt({ reference, sourceText, sourceLanguage: lang, translations }),
+        config: { systemInstruction: originalStudySystemInstruction },
+      });
+      res.json({ text: response.text ?? "" });
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to generate original study", details: error?.message });
     }
   });
 
