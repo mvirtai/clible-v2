@@ -22,16 +22,18 @@ import {
   TextStats,
   WordFrequency,
 } from './types/bible';
+import type { CompareResult } from './types/compare';
 import type { SearchResponse } from './types/search';
 import type { SearchQueryOptions, SearchHistoryEntry, SavedSearchRow } from './types/searchQuery';
 import { bibleRepository } from './repositories/bibleRepository';
 import { bibleService } from './services/bibleService';
 import { ReaderView } from './components/ReaderView';
 import { SearchView } from './components/SearchView';
-import { SearchPanel } from './components/SearchPanel';
+import { SearchPanel, type StudyEntryTab } from './components/SearchPanel';
 import { SavedSearchesList } from './components/SavedSearchesList';
 import { AnalyticsView } from './components/AnalyticsView';
 import type { AnalyticsMode } from './components/AnalyticsView';
+import { CompareView } from './components/CompareView';
 import { TranslationModal } from './components/TranslationModal';
 import { SettingsPanel } from './components/SettingsPanel';
 import { useAuth } from './AuthContext';
@@ -48,7 +50,7 @@ function inferUILanguageFromTranslation(language: string | undefined): 'en' | 'f
   return null;
 }
 
-type ViewMode = 'reader' | 'analytics' | 'search';
+type ViewMode = 'reader' | 'analytics' | 'search' | 'compare';
 type SearchType = 'verse' | 'search';
 
 export default function App() {
@@ -91,12 +93,18 @@ export default function App() {
   const [currentSearchTerms, setCurrentSearchTerms] = useState<string[]>([]);
   const [lastSearchOptions, setLastSearchOptions] = useState<SearchQueryOptions | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [compareResult, setCompareResult] = useState<CompareResult | null>(null);
+  const [compareLeft, setCompareLeft] = useState<string | null>(null);
+  const [compareRight, setCompareRight] = useState<string | null>(null);
+  const [compareLoading, setCompareLoading] = useState(false);
+  const [compareError, setCompareError] = useState<string | null>(null);
   const [exportContext, setExportContext] = useState<{
     cmd: "verse" | "search" | "analytics";
     args: string;
     title: string;
     aiInsight?: string | null;
   } | null>(null);
+  const [studyEntryTab, setStudyEntryTab] = useState<StudyEntryTab>('scripture');
 
   useEffect(() => {
     if (settingsError) {
@@ -193,6 +201,24 @@ export default function App() {
   }, [user, settingsLoading, settings, installedTranslations, updateSettings]);
 
   useEffect(() => {
+    if (installedTranslations.length < 2) {
+      setCompareLeft(null);
+      setCompareRight(null);
+      return;
+    }
+    const preferred = settings?.translationId;
+    const left =
+      preferred != null &&
+      preferred !== '' &&
+      installedTranslations.some((t) => t.id === preferred)
+        ? preferred
+        : installedTranslations[0].id;
+    const right = installedTranslations.find((t) => t.id !== left)?.id ?? null;
+    setCompareLeft(left);
+    setCompareRight(right);
+  }, [installedTranslations, settings?.translationId]);
+
+  useEffect(() => {
     if (!user) return;
     let cancelled = false;
     void (async () => {
@@ -223,6 +249,16 @@ export default function App() {
   const uiLang: UILanguage = settings?.uiLanguage ?? 'en';
   const shell = t(uiLang);
 
+  const compareLeftResolved =
+    compareLeft ??
+    settings?.translationId ??
+    installedTranslations[0]?.id ??
+    '';
+  const compareRightResolved =
+    compareRight ??
+    installedTranslations.find((t) => t.id !== compareLeftResolved)?.id ??
+    '';
+
   const saveToHistory = (q: string) => {
     const newHistory = [q, ...history.filter((h) => h !== q)].slice(0, 10);
     setHistory(newHistory);
@@ -235,6 +271,7 @@ export default function App() {
       setError(shell.errSelectTranslationFirst);
       return;
     }
+    setStudyEntryTab('scripture');
     setLoading(true);
     setError(null);
     setAiInsight(null);
@@ -274,11 +311,13 @@ export default function App() {
     try {
       const typeToUse = overrideType ?? searchType;
       if (typeToUse === 'verse') {
+        setStudyEntryTab('verse');
         const data = await bibleRepository.getVerse(q, settings.translationId);
         setResult(data);
         setViewMode('reader');
         setSearchType('verse');
       } else {
+        setStudyEntryTab('scripture');
         const response = await bibleRepository.search(q, settings.translationId);
         setSearchResponse(response);
         setCurrentSearchTerms([q.trim()]);
@@ -315,19 +354,25 @@ export default function App() {
   };
 
   const handleAnalytics = async (modeOverride?: AnalyticsMode) => {
-    if (!result) return;
+    const mode = modeOverride ?? analyticsMode;
+    if (!result?.reference) {
+      setError(shell.errAnalyticsNeedVerse);
+      return;
+    }
+    setError(null);
+    setStudyEntryTab('scripture');
+    setAnalyticsMode(mode);
+    setViewMode('analytics');
+
     if (!settings?.translationId) {
       setError(shell.errSelectTranslationFirst);
       return;
     }
-    const mode = modeOverride ?? analyticsMode;
-    setAnalyticsMode(mode);
-    setViewMode('analytics');
     setAiLoading(true);
     try {
       const { stats, frequency } = await bibleService.getNativeAnalytics(
         mode,
-        result.reference,
+        result!.reference,
         settings.translationId
       );
       setNativeStats(stats);
@@ -345,6 +390,33 @@ export default function App() {
       setNativeFrequency(bibleService.calculateWordFrequency(result.text));
     } finally {
       setAiLoading(false);
+    }
+  };
+
+  const handleEntryTabChange = (tab: StudyEntryTab) => {
+    setStudyEntryTab(tab);
+    setError(null);
+    setCompareError(null);
+    if (tab === 'compare') {
+      setViewMode('compare');
+      return;
+    }
+    setViewMode((vm) => (vm === 'compare' ? 'reader' : vm));
+  };
+
+  const handleCompare = async (ref: string, leftId: string, rightId: string) => {
+    setCompareLoading(true);
+    setCompareError(null);
+    try {
+      const data = await bibleService.getCompareResult(ref, leftId, rightId);
+      setCompareResult(data);
+      setCompareLeft(leftId);
+      setCompareRight(rightId);
+    } catch (err: unknown) {
+      setCompareResult(null);
+      setCompareError(err instanceof Error ? err.message : shell.errUnexpected);
+    } finally {
+      setCompareLoading(false);
     }
   };
 
@@ -422,8 +494,12 @@ export default function App() {
         }
       }
 
-      // Append Tone Analysis if this is an analytics export and we have one
-      if (exportContext.cmd === 'analytics' && toneAnalysis) {
+      // Append Tone Analysis if this is an analytics export (not translation compare) and we have one
+      if (
+        exportContext.cmd === 'analytics' &&
+        toneAnalysis &&
+        !exportContext.args.trimStart().startsWith('compare ')
+      ) {
         let separator = '';
         if (format === 'md') separator = '\n\n---\n\n## AI Tone & Style Analysis\n\n';
         else if (format === 'txt') separator = '\n\n---\n\nAI TONE & STYLE ANALYSIS:\n\n';
@@ -504,7 +580,11 @@ export default function App() {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-6 py-12">
+      <main
+        className={`mx-auto px-6 py-12 ${
+          viewMode === 'compare' ? 'max-w-5xl' : 'max-w-4xl'
+        }`}
+      >
         <div className="space-y-4 mb-8">
           {error && (
             <p className="text-sm text-red-600 mb-2" role="alert">
@@ -515,6 +595,8 @@ export default function App() {
           <SearchPanel
             activeTranslation={settings?.translationId ?? null}
             uiLanguage={settings?.uiLanguage ?? 'en'}
+            entryTab={studyEntryTab}
+            onEntryTabChange={handleEntryTabChange}
             onSearch={handleAdvancedSearch}
             onVerseSearch={(ref) => void handleSearch(ref, 'verse')}
             history={searchHistoryApi}
@@ -525,6 +607,7 @@ export default function App() {
             error={null}
           />
 
+          {viewMode !== 'compare' && (
           <SavedSearchesList
             uiLanguage={uiLang}
             searches={savedSearches}
@@ -557,23 +640,29 @@ export default function App() {
                 );
             }}
           />
+          )}
         </div>
 
-        {result && (
-          <div className="flex gap-1 bg-[#F5F5F5] p-1 rounded-xl w-fit mb-8">
-            <button
-              onClick={() => setViewMode('reader')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'reader' ? 'bg-white shadow-sm text-[#1A1A1A]' : 'text-[#8E8E8E] hover:text-[#1A1A1A]'}`}
-            >
-              <div className="flex items-center gap-2"><Book size={16} /> {shell.tabReader}</div>
-            </button>
-            <button
-              onClick={() => void handleAnalytics()}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'analytics' ? 'bg-white shadow-sm text-[#1A1A1A]' : 'text-[#8E8E8E] hover:text-[#1A1A1A]'}`}
-            >
-              <div className="flex items-center gap-2"><Activity size={16} /> {shell.tabAnalytics}</div>
-            </button>
-          </div>
+        {viewMode !== 'compare' && (
+        <div className="flex gap-1 bg-[#F5F5F5] p-1 rounded-xl w-fit mb-8">
+          <button
+            type="button"
+            onClick={() => {
+              setViewMode('reader');
+              setStudyEntryTab((t) => (t === 'compare' ? 'verse' : t));
+            }}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'reader' ? 'bg-white shadow-sm text-[#1A1A1A]' : 'text-[#8E8E8E] hover:text-[#1A1A1A]'}`}
+          >
+            <div className="flex items-center gap-2"><Book size={16} /> {shell.tabReader}</div>
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleAnalytics()}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'analytics' ? 'bg-white shadow-sm text-[#1A1A1A]' : 'text-[#8E8E8E] hover:text-[#1A1A1A]'}`}
+          >
+            <div className="flex items-center gap-2"><Activity size={16} /> {shell.tabAnalytics}</div>
+          </button>
+        </div>
         )}
 
         <AnimatePresence mode="wait">
@@ -648,24 +737,76 @@ export default function App() {
                 uiLanguage={uiLang}
                 onModeChange={(nextMode) => void handleAnalytics(nextMode)}
                 onExport={() => {
-                  if (result && settings?.translationId) {
-                    let args = '';
-                    if (analyticsMode === 'reference') {
-                      args = `reference "${result.reference}" -t ${settings.translationId}`;
-                    } else if (analyticsMode === 'chapter') {
-                      const parts = result.reference.split(' ');
-                      const book = parts.slice(0, -1).join(' ');
-                      const chapter = parts[parts.length - 1].split(':')[0];
-                      args = `chapter "${book}" ${chapter} -t ${settings.translationId}`;
-                    } else if (analyticsMode === 'book') {
-                      const book = result.reference.split(' ')[0];
-                      args = `book "${book}" -t ${settings.translationId}`;
-                    }
-                    if (args) {
-                      triggerExport('analytics', args, `Analytics: ${result.reference}`);
-                    }
+                  if (!settings?.translationId) return;
+                  if (!result?.reference) return;
+                  let args = '';
+                  if (analyticsMode === 'reference') {
+                    args = `reference "${result.reference}" -t ${settings.translationId}`;
+                  } else if (analyticsMode === 'chapter') {
+                    const parts = result.reference.split(' ');
+                    const book = parts.slice(0, -1).join(' ');
+                    const chapter = parts[parts.length - 1].split(':')[0];
+                    args = `chapter "${book}" ${chapter} -t ${settings.translationId}`;
+                  } else if (analyticsMode === 'book') {
+                    const book = result.reference.split(' ')[0];
+                    args = `book "${book}" -t ${settings.translationId}`;
+                  }
+                  if (args) {
+                    triggerExport('analytics', args, `Analytics: ${result.reference}`);
                   }
                 }}
+              />
+            </motion.div>
+          )}
+          {viewMode === 'compare' && (
+            <motion.div
+              key="compare"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+            >
+              <CompareView
+                standalone
+                installedTranslations={installedTranslations}
+                uiLanguage={uiLang}
+                defaultReference={result?.reference ?? null}
+                leftTranslationId={compareLeftResolved}
+                rightTranslationId={compareRightResolved}
+                onLeftTranslationChange={(id) => {
+                  setCompareLeft(id);
+                  setCompareRight((r) => {
+                    if (r && r !== id) return r;
+                    return (
+                      installedTranslations.find((tr) => tr.id !== id)?.id ?? r ?? ''
+                    );
+                  });
+                }}
+                onRightTranslationChange={(id) => {
+                  setCompareRight(id);
+                  setCompareLeft((l) => {
+                    if (l && l !== id) return l;
+                    return (
+                      installedTranslations.find((tr) => tr.id !== id)?.id ?? l ?? ''
+                    );
+                  });
+                }}
+                onCompare={(ref, leftId, rightId) => void handleCompare(ref, leftId, rightId)}
+                onExport={() => {
+                  if (!compareResult) return;
+                  const ref = compareResult.reference.trim();
+                  const left = compareLeftResolved;
+                  const right = compareRightResolved;
+                  if (!ref || !left || !right) return;
+                  const args = `compare ${JSON.stringify(ref)} --left ${left} --right ${right}`;
+                  triggerExport(
+                    'analytics',
+                    args,
+                    `Compare: ${ref} (${left} vs ${right})`
+                  );
+                }}
+                result={compareResult}
+                loading={compareLoading}
+                error={compareError}
               />
             </motion.div>
           )}

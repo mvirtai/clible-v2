@@ -11,9 +11,11 @@ import path from "path";
 import { GoogleGenAI } from "@google/genai";
 import {
   buildInsightUserPrompt,
+  buildStudyUserPrompt,
   buildToneUserPrompt,
   geminiModels,
   insightSystemInstruction,
+  studySystemInstruction,
   toneSystemInstruction,
 } from "./ai.config";
 
@@ -283,6 +285,56 @@ async function startServer() {
       console.error("AI tone error:", error);
       res.status(500).json({
         error: "Failed to analyze tone",
+        details: error?.message ?? String(error),
+      });
+    }
+  });
+
+  app.post("/api/ai/study", requireAuth, aiRateLimit, async (req, res) => {
+    const ai = getAiClientOrNull();
+    if (!ai) {
+      return res.status(503).json({
+        error: "AI disabled",
+        hint: "Set GEMINI_API_KEY to enable AI features.",
+      });
+    }
+
+    const reference = typeof req.body?.reference === "string" ? req.body.reference.trim() : "";
+    const sourceText =
+      typeof req.body?.sourceText === "string" ? req.body.sourceText.trim() : "";
+    const translationText =
+      typeof req.body?.translationText === "string" ? req.body.translationText.trim() : "";
+    const rawLang =
+      typeof req.body?.sourceLanguage === "string" ? req.body.sourceLanguage.trim().toLowerCase() : "";
+    const sourceLanguage = rawLang === "he" || rawLang.startsWith("hbo") || rawLang.startsWith("heb")
+      ? "he"
+      : "grc";
+
+    if (!reference || !sourceText || !translationText) {
+      return res.status(400).json({
+        error: "Missing or invalid payload. Provide 'reference', 'sourceText', and 'translationText'.",
+      });
+    }
+
+    try {
+      const response = await ai.models.generateContent({
+        model: geminiModels.study,
+        contents: buildStudyUserPrompt({
+          reference,
+          sourceLanguage,
+          sourceText,
+          translationText,
+        }),
+        config: {
+          systemInstruction: studySystemInstruction,
+        },
+      });
+
+      res.json({ text: response.text ?? "" });
+    } catch (error: any) {
+      console.error("AI study error:", error);
+      res.status(500).json({
+        error: "Failed to generate study analysis",
         details: error?.message ?? String(error),
       });
     }
