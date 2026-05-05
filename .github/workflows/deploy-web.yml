@@ -80,6 +80,7 @@ jobs:
             --image="${CLIBLE_GCP_ARTIFACT_REGISTRY}/clible-web:${{ github.sha }}" \
             --platform=managed \
             --region=${{ env.GCP_REGION }} \
+            --ingress=all \
             --allow-unauthenticated \
             --memory=512Mi \
             --cpu=1 \

@@ -161,6 +161,25 @@ function runClible(argv: string[]): Promise<{ stdout: string; stderr: string }> 
   });
 }
 
+let seedClibleQueue: Promise<void> = Promise.resolve();
+
+/**
+ * Serialize seed commands to avoid SQLite lock races (startup auto-seed vs UI install/list).
+ */
+function runClibleWithSeedLock(argv: string[]): Promise<{ stdout: string; stderr: string }> {
+  if (argv[0] !== "seed") {
+    return runClible(argv);
+  }
+
+  const run = async () => runClible(argv);
+  const next = seedClibleQueue.then(run, run);
+  seedClibleQueue = next.then(
+    () => undefined,
+    () => undefined,
+  );
+  return next;
+}
+
 async function seedTranslationsOnStartup(): Promise<void> {
   const raw = process.env.CLIBLE_AUTO_SEED?.trim();
   if (!raw) return;
@@ -176,7 +195,7 @@ async function seedTranslationsOnStartup(): Promise<void> {
 
   for (const id of ids) {
     try {
-      const { stdout, stderr } = await runClible(["seed", "install", id]);
+      const { stdout, stderr } = await runClibleWithSeedLock(["seed", "install", id]);
       const msg = stripAnsi(`${stdout}\n${stderr}`).trim();
       console.log(`[seed] installed ${id}: ${msg.split("\n")[0]}`);
     } catch (err: any) {
@@ -376,7 +395,7 @@ async function startServer() {
   app.get("/api/translations/available", requireAuth, async (req, res) => {
     const query = typeof req.query?.query === "string" ? req.query.query : undefined;
     try {
-      const { stdout } = await runClible(buildSeedAvailableArgs(query));
+      const { stdout } = await runClibleWithSeedLock(buildSeedAvailableArgs(query));
       const items = parseAvailableTranslations(stdout);
       res.json(items);
     } catch (error: any) {
@@ -404,7 +423,7 @@ async function startServer() {
     }
 
     try {
-      const { stdout, stderr } = await runClible(["seed", "install", translationId]);
+      const { stdout, stderr } = await runClibleWithSeedLock(["seed", "install", translationId]);
       const message = stripAnsi(`${stdout}\n${stderr}`).trim() || `Installed ${translationId}.`;
       return res.json({
         ok: true,
@@ -576,7 +595,7 @@ async function startServer() {
         console.log("[clible-web] bridge: argv", ["clible", ...argv].join(" "));
       }
 
-      const { stdout, stderr } = await runClible(argv);
+      const { stdout, stderr } = await runClibleWithSeedLock(argv);
 
       if (debugBridge) {
         console.log(
@@ -647,7 +666,7 @@ async function startServer() {
       console.error("CLI Error:", error);
       res.status(500).json({
         error: "Failed to execute Clible CLI",
-        details: msg,
+        details: conciseClibleError(msg),
         hint: "Make sure 'clible' is installed and in your PATH.",
       });
     }

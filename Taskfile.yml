@@ -241,6 +241,7 @@ tasks:
           --image={{.GCP_REGISTRY}}/clible-web:{{.GIT_SHA}} \
           --platform=managed \
           --region=europe-north1 \
+          --ingress=all \
           --allow-unauthenticated \
           --memory=512Mi \
           --cpu=1 \
@@ -274,6 +275,7 @@ tasks:
           --platform=managed \
           --region=${GCP_REGION:-${REGION}} \
           --project=${GCP_PROJECT_ID} \
+          --ingress=all \
           --allow-unauthenticated \
           --memory=512Mi \
           --cpu=1 \
