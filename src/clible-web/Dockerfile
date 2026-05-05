@@ -45,6 +45,16 @@ RUN mkdir -p data && chown -R clible:clible /app/web
 # All subsequent steps run as the restricted clible user.
 USER clible
 
+# 3a. PRE-SEED BIBLE TRANSLATIONS
+# Download and parse the core translations into SQLite during the build.
+# This means the container is ready immediately on cold start — no startup delay.
+# If a download fails at build time, CLIBLE_AUTO_SEED retries it on container startup.
+RUN for id in web greeksblgnt fin-1992 fin-stlk eng-darby; do \
+      clible seed install "$id" \
+        && echo "[pre-seed] installed $id" \
+        || echo "[pre-seed] WARNING: $id failed, will retry on startup"; \
+    done
+
 # 4. DEPENDENCIES
 COPY --chown=clible:clible src/clible-web/package*.json ./
 RUN --mount=type=cache,target=/home/clible/.npm,uid=10001,gid=10001 \
