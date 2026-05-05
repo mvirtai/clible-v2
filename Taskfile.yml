@@ -246,7 +246,7 @@ tasks:
           --cpu=1 \
           --min-instances=0 \
           --max-instances=10 \
-          --set-env-vars="NODE_ENV=production,DATABASE_URL=${DATABASE_URL},GEMINI_API_KEY_FOR_BETA_TESTERS=${GEMINI_API_KEY_FOR_BETA_TESTERS},SESSION_SECRET=${SESSION_SECRET}" \
+          --set-env-vars="NODE_ENV=production,DATABASE_URL=${DATABASE_URL},GEMINI_API_KEY_FOR_BETA_TESTERS=${GEMINI_API_KEY_FOR_BETA_TESTERS},SESSION_SECRET=${SESSION_SECRET},CLIBLE_AUTO_SEED=${CLIBLE_AUTO_SEED:-web,greeksblgnt,fin-1992,fin-stlk,eng-darby}" \
           --project=${GCP_PROJECT_ID}
 
   gcp-web-deploy:
@@ -281,7 +281,7 @@ tasks:
           --max-instances=3 \
           --concurrency=80 \
           --timeout=60 \
-          --set-env-vars="NODE_ENV=production,MAX_REQUESTS_PER_HOUR=${MAX_REQUESTS_PER_HOUR:-20},SESSION_SECRET=${SESSION_SECRET},GEMINI_API_KEY_FOR_BETA_TESTERS=${GEMINI_API_KEY_FOR_BETA_TESTERS:-${GEMINI_API_KEY_FOR_BETAS}},DATABASE_URL=${DATABASE_URL}"
+          --set-env-vars="NODE_ENV=production,MAX_REQUESTS_PER_HOUR=${MAX_REQUESTS_PER_HOUR:-10},SESSION_SECRET=${SESSION_SECRET},GEMINI_API_KEY_FOR_BETA_TESTERS=${GEMINI_API_KEY_FOR_BETA_TESTERS:-${GEMINI_API_KEY_FOR_BETAS}},DATABASE_URL=${DATABASE_URL},CLIBLE_AUTO_SEED=${CLIBLE_AUTO_SEED:-web,greeksblgnt,fin-1992,fin-stlk,eng-darby}"
 
   gcp-web-preflight:
     desc: Validate required env vars for Cloud Run web deploy
@@ -313,7 +313,7 @@ tasks:
         gcloud run services update clible-web \
           --region=${GCP_REGION:-${REGION}} \
           --project=${GCP_PROJECT_ID} \
-          --update-env-vars="NODE_ENV=production,MAX_REQUESTS_PER_HOUR=${MAX_REQUESTS_PER_HOUR:-20},SESSION_SECRET=${SESSION_SECRET},GEMINI_API_KEY_FOR_BETA_TESTERS=${GEMINI_API_KEY_FOR_BETA_TESTERS:-${GEMINI_API_KEY_FOR_BETAS}},DATABASE_URL=${DATABASE_URL}"
+          --update-env-vars="NODE_ENV=production,MAX_REQUESTS_PER_HOUR=${MAX_REQUESTS_PER_HOUR:-10},SESSION_SECRET=${SESSION_SECRET},GEMINI_API_KEY_FOR_BETA_TESTERS=${GEMINI_API_KEY_FOR_BETA_TESTERS:-${GEMINI_API_KEY_FOR_BETAS}},DATABASE_URL=${DATABASE_URL},CLIBLE_AUTO_SEED=${CLIBLE_AUTO_SEED:-web,greeksblgnt,fin-1992,fin-stlk,eng-darby}"
 
   gcp-web-url:
     desc: Print Cloud Run service URL

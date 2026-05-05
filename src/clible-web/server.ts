@@ -161,6 +161,37 @@ function runClible(argv: string[]): Promise<{ stdout: string; stderr: string }> 
   });
 }
 
+async function seedTranslationsOnStartup(): Promise<void> {
+  const raw = process.env.CLIBLE_AUTO_SEED?.trim();
+  if (!raw) return;
+
+  const ids = raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (ids.length === 0) return;
+
+  console.log(`[seed] auto-seeding ${ids.length} translation(s): ${ids.join(", ")}`);
+
+  for (const id of ids) {
+    try {
+      const { stdout, stderr } = await runClible(["seed", "install", id]);
+      const msg = stripAnsi(`${stdout}\n${stderr}`).trim();
+      console.log(`[seed] installed ${id}: ${msg.split("\n")[0]}`);
+    } catch (err: any) {
+      const msg = clibleFailureMessage(err);
+      if (msg.toLowerCase().includes("already installed")) {
+        console.log(`[seed] ${id}: already installed, skipping`);
+      } else {
+        console.warn(`[seed] failed to install ${id}: ${msg.split("\n")[0]}`);
+      }
+    }
+  }
+
+  console.log("[seed] auto-seed complete");
+}
+
 function getAiClientOrNull(): GoogleGenAI | null {
   // Prefer beta key if set, fallback to regular key
   const apiKey = normalizeGeminiApiKey(
@@ -675,6 +706,13 @@ async function startServer() {
     } catch (e) {
       console.warn("WARNING: 'clible' CLI not found in PATH. API bridge will fail.");
     }
+
+    // Seed translations declared in CLIBLE_AUTO_SEED (comma-separated IDs).
+    // Runs after the server is listening so health checks are not delayed.
+    // Already-installed translations are skipped silently.
+    seedTranslationsOnStartup().catch((err) => {
+      console.warn("[seed] unexpected error during auto-seed:", (err as Error).message);
+    });
   });
 }
 
