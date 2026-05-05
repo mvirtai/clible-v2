@@ -35,6 +35,7 @@ tasks:
 
   web-test:
     desc: Run web app tests with Vitest
+    deps: [web-install]
     dir: src/clible-web
     cmds:
       - npm run test
