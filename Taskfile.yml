@@ -153,9 +153,9 @@ tasks:
       - uv run ruff format .
 
   format-check:
-    desc: Check formatting without modifying files
+    desc: Auto-format code with Ruff formatter
     cmds:
-      - uv run ruff format --check .
+      - uv run ruff format .
 
   check:
     desc: Run lint, format check, and tests

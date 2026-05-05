@@ -111,9 +111,7 @@ def test_parse_and_format_scope_uses_resolved_book_id(monkeypatch: pytest.Monkey
 
     monkeypatch.setattr("clible.ui.export.scope.get_config", lambda: _Cfg())
     monkeypatch.setattr("clible.ui.export.scope.resolve_book_id", lambda _: "JHN")
-    monkeypatch.setattr(
-        "clible.ui.export.scope.get_display_name", lambda bid, lang: "John"
-    )
+    monkeypatch.setattr("clible.ui.export.scope.get_display_name", lambda bid, lang: "John")
     full, acronym = parse_and_format_scope("John 3:16-17")
     assert full == "John 3:16-17"
     assert acronym == "(JHN 3:16-17)"
@@ -127,12 +125,8 @@ def test_parse_and_format_scope_falls_back_to_structure_name_match(
 
     monkeypatch.setattr("clible.ui.export.scope.get_config", lambda: _Cfg())
     monkeypatch.setattr("clible.ui.export.scope.resolve_book_id", lambda _: None)
-    monkeypatch.setattr(
-        "clible.ui.export.scope._load_book_names", lambda: {"GEN": "Genesis"}
-    )
-    monkeypatch.setattr(
-        "clible.ui.export.scope.get_display_name", lambda bid, lang: "Genesis"
-    )
+    monkeypatch.setattr("clible.ui.export.scope._load_book_names", lambda: {"GEN": "Genesis"})
+    monkeypatch.setattr("clible.ui.export.scope.get_display_name", lambda bid, lang: "Genesis")
     full, acronym = parse_and_format_scope("genesis 1:1")
     assert full == "Genesis 1:1"
     assert acronym == "(GEN 1:1)"
@@ -146,12 +140,8 @@ def test_parse_and_format_scope_id_branch_when_resolver_none(
 
     monkeypatch.setattr("clible.ui.export.scope.get_config", lambda: _Cfg())
     monkeypatch.setattr("clible.ui.export.scope.resolve_book_id", lambda _: None)
-    monkeypatch.setattr(
-        "clible.ui.export.scope._load_book_names", lambda: {"GEN": "Genesis"}
-    )
-    monkeypatch.setattr(
-        "clible.ui.export.scope.get_display_name", lambda bid, lang: "Genesis"
-    )
+    monkeypatch.setattr("clible.ui.export.scope._load_book_names", lambda: {"GEN": "Genesis"})
+    monkeypatch.setattr("clible.ui.export.scope.get_display_name", lambda bid, lang: "Genesis")
     full, acronym = parse_and_format_scope("GEN 1:2")
     assert full == "Genesis 1:2"
     assert acronym == "(GEN 1:2)"
@@ -165,9 +155,7 @@ def test_parse_and_format_scope_returns_original_for_unresolved_reference(
 
     monkeypatch.setattr("clible.ui.export.scope.get_config", lambda: _Cfg())
     monkeypatch.setattr("clible.ui.export.scope.resolve_book_id", lambda _: None)
-    monkeypatch.setattr(
-        "clible.ui.export.scope._load_book_names", lambda: {"GEN": "Genesis"}
-    )
+    monkeypatch.setattr("clible.ui.export.scope._load_book_names", lambda: {"GEN": "Genesis"})
     full, acronym = parse_and_format_scope("Unknownbook 2:3")
     assert full == "Unknownbook 2:3"
     assert acronym == ""
