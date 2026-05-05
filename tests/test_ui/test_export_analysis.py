@@ -59,7 +59,7 @@ def test_export_analysis_xml_contains_metrics_and_ranked_nodes():
     assert '<?xml version="1.0" encoding="UTF-8"?>' in out
     assert '<analysis type="token-stats">' in out
     assert '<metric name="token_count">10</metric>' in out
-    assert '<top_words>' in out
+    assert "<top_words>" in out
     assert '<item rank="1" count="3">grace</item>' in out
 
 
@@ -91,4 +91,3 @@ def test_export_analysis_html_skips_token_sections_when_empty():
     assert "<h2>Top Words</h2>" not in out
     assert "<h2>Top Bigrams</h2>" not in out
     assert "<h2>Top Trigrams</h2>" not in out
-

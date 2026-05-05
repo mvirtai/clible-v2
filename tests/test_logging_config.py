@@ -24,4 +24,3 @@ def test_configure_logging_falls_back_to_warning_for_unknown_level():
     configure_logging(level="notalevel", fmt="json")
     cfg = structlog.get_config()
     assert cfg["wrapper_class"] is structlog.make_filtering_bound_logger(logging.WARNING)
-

@@ -71,7 +71,9 @@ def test_format_title_with_acronym_uses_localized_name(monkeypatch: pytest.Monke
         ui_language = "fi"
 
     monkeypatch.setattr("clible.ui.export.shared.get_config", lambda: _Cfg())
-    monkeypatch.setattr("clible.ui.export.shared.get_display_name", lambda bid, lang: f"{bid}-{lang}")
+    monkeypatch.setattr(
+        "clible.ui.export.shared.get_display_name", lambda bid, lang: f"{bid}-{lang}"
+    )
     full, acronym = format_title_with_acronym("JHN", 3, 16)
     assert full == "JHN-fi 3:16"
     assert acronym == "(JHN 3:16)"
@@ -155,4 +157,3 @@ def test_parse_and_format_scope_returns_original_for_unresolved_reference(
     full, acronym = parse_and_format_scope("Unknownbook 2:3")
     assert full == "Unknownbook 2:3"
     assert acronym == ""
-
