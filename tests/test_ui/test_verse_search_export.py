@@ -171,3 +171,62 @@ def test_export_search_html_includes_statistics_table():
     assert "Unique verses" in result
     assert "Books with matches" in result
     assert "<h1>Search: work</h1>" in result
+
+
+def test_export_search_json_includes_highlight_terms_and_modes():
+    verses = [{"book_id": "JHN", "chapter": 3, "verse": 16, "text": "For God so loved"}]
+    result = export_verses_bundle(
+        verses,
+        kind="search",
+        title="Search: love",
+        format="json",
+        translation_id="web",
+        search_word="love",
+        scope="bible",
+        scope_ref=None,
+        stats={"total_occurrences": 1, "unique_verses": 1, "books_with_matches": 1},
+        highlight_terms=["love", "loved"],
+        search_mode="phrase",
+        search_operator="and",
+    )
+    data = json.loads(result)
+    assert data["highlight_terms"] == ["love", "loved"]
+    assert data["search_mode"] == "phrase"
+    assert data["search_operator"] == "and"
+
+
+def test_export_search_xml_includes_top_books():
+    verses = [{"book_id": "ROM", "chapter": 8, "verse": 28, "text": "All things work together"}]
+    result = export_verses_bundle(
+        verses,
+        kind="search",
+        title="Search: work",
+        format="xml",
+        translation_id="web",
+        search_word="work",
+        scope="testament",
+        scope_ref="NT",
+        stats={
+            "total_occurrences": 5,
+            "unique_verses": 3,
+            "books_with_matches": 2,
+            "top_books": [("ROM", 3), ("JHN", 2)],
+        },
+    )
+    assert "<top-books>" in result
+    assert '<book occurrences="3">ROM</book>' in result
+    assert '<book occurrences="2">JHN</book>' in result
+
+
+def test_export_verse_html_uses_full_title_and_acronym():
+    verses = [{"book_id": "GEN", "chapter": 1, "verse": 1, "text": "In the beginning"}]
+    result = export_verses_bundle(
+        verses,
+        kind="verse",
+        title="ignored title for verse html",
+        format="html",
+        translation_id="web",
+    )
+    assert "Verse export" in result
+    assert "Genesis 1:1" in result
+    assert "(GEN 1:1)" in result
