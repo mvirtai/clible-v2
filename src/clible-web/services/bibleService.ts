@@ -3,8 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { BibleResponse, TextStats, WordFrequency } from '../types/bible';
+import { BibleResponse, InstalledTranslation, TextStats, WordFrequency } from '../types/bible';
 import type { CompareResult } from '../types/compare';
+import type {
+  OriginalStudyResult,
+  OriginalStudyTranslation,
+  OriginalStudyVerse,
+} from '../types/originalStudy';
+import {
+  buildOriginalStudyPayload,
+  inferOriginalSourceLanguage,
+} from './originalStudyPayload';
 
 export class BibleService {
   async getAiInsight(result: BibleResponse): Promise<string> {
@@ -174,6 +183,106 @@ export class BibleService {
           (w) => ({ name: w.word, value: w.count })
         ) ?? [],
     };
+  }
+
+  /**
+   * Fetches original-language + target verses via the CLI bridge, then POST /api/ai/original-study.
+   */
+  async getOriginalStudyResult(
+    reference: string,
+    originalId: string,
+    translationIds: string[],
+    installed: InstalledTranslation[],
+  ): Promise<OriginalStudyResult> {
+    const ref = reference.trim();
+    if (!ref) {
+      throw new Error('Reference is required.');
+    }
+    const origId = originalId.trim();
+    if (!origId) {
+      throw new Error('Original-language translation is required.');
+    }
+
+    const uniqueTargets = [...new Set(translationIds.map((id) => id.trim()).filter(Boolean))].filter(
+      (id) => id !== origId,
+    );
+    if (uniqueTargets.length === 0) {
+      throw new Error('Select at least one translation to compare.');
+    }
+
+    const sourceLanguage = inferOriginalSourceLanguage(origId, installed);
+
+    const allIds = [origId, ...uniqueTargets];
+    const lookups = await Promise.all(allIds.map((tid) => this._fetchVerseLookup(ref, tid)));
+
+    const originalVerses = this._mapLookupToVerses(lookups[0]);
+    const { payload, translations } = buildOriginalStudyPayload({
+      reference: ref,
+      sourceLanguage,
+      originalVerses,
+      uniqueTargets,
+      lookups,
+      installed,
+      mapLookupToVerses: this._mapLookupToVerses.bind(this),
+    });
+
+    const response = await fetch('/api/ai/original-study', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      let message = 'Failed to generate original-language study.';
+      try {
+        const details = await response.json();
+        message =
+          (typeof details.error === 'string' && details.error) ||
+          (typeof details.details === 'string' && details.details) ||
+          message;
+      } catch {
+        /* ignore */
+      }
+      throw new Error(message);
+    }
+
+    const data = await response.json();
+    const analysis = typeof data?.text === 'string' ? data.text : '';
+
+    return {
+      reference: ref,
+      originalId: origId,
+      sourceLanguage,
+      originalVerses,
+      translations,
+      analysis,
+    };
+  }
+
+  private async _fetchVerseLookup(reference: string, translationId: string): Promise<Record<string, unknown>> {
+    const args = `"${reference}" -t ${translationId}`;
+    const response = await fetch(`/api/clible?cmd=verse&args=${encodeURIComponent(args)}`);
+    if (!response.ok) {
+      let message = 'Failed to fetch verse.';
+      try {
+        const err = (await response.json()) as { error?: string };
+        message = typeof err.error === 'string' ? err.error : message;
+      } catch {
+        /* ignore */
+      }
+      throw new Error(message);
+    }
+    return (await response.json()) as Record<string, unknown>;
+  }
+
+  private _mapLookupToVerses(data: Record<string, unknown>): OriginalStudyVerse[] {
+    const rows = (data.verses as Array<Record<string, unknown>> | undefined) ?? [];
+    return rows.map((v) => ({
+      book_name: String(v.book_id ?? ''),
+      chapter: Number(v.chapter ?? 0),
+      verse: Number(v.verse ?? 0),
+      text: String(v.text ?? ''),
+    }));
   }
 
   // Legacy JS fallbacks (optional)
