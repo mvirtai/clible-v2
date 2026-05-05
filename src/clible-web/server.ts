@@ -432,8 +432,21 @@ async function startServer() {
       });
     } catch (error: any) {
       const msg = clibleFailureMessage(error);
-      const status = msg.includes("already installed") || msg.includes("Unknown translation") ? 400 : 500;
-      return res.status(status).json({
+      if (msg.toLowerCase().includes("already installed")) {
+        return res.json({
+          ok: true,
+          translationId,
+          alreadyInstalled: true,
+          message: `Translation '${translationId}' already installed.`,
+        });
+      }
+      if (msg.toLowerCase().includes("unknown translation")) {
+        return res.status(400).json({
+          error: `Unknown translation '${translationId}'.`,
+          details: conciseClibleError(msg),
+        });
+      }
+      return res.status(500).json({
         error: `Failed to install translation '${translationId}'.`,
         details: conciseClibleError(msg),
       });
