@@ -85,7 +85,7 @@ jobs:
             --cpu=1 \
             --min-instances=0 \
             --max-instances=10 \
-            --set-env-vars="GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }},GEMINI_API_KEY_FOR_BETA_TESTERS=${{ secrets.GEMINI_API_KEY_FOR_BETA_TESTERS }},SESSION_SECRET=${{ secrets.SESSION_SECRET }},NODE_ENV=production,MAX_REQUESTS_PER_HOUR=20,DATABASE_URL=${{ secrets.DATABASE_URL }},CLIBLE_GCS_BUCKET=${{ secrets.CLIBLE_GCS_BUCKET }},CLIBLE_AUTO_SEED=web,greeksblgnt,fin-1992,fin-stlk,eng-darby" \
+            --set-env-vars="^|^GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}|GEMINI_API_KEY_FOR_BETA_TESTERS=${{ secrets.GEMINI_API_KEY_FOR_BETA_TESTERS }}|SESSION_SECRET=${{ secrets.SESSION_SECRET }}|NODE_ENV=production|MAX_REQUESTS_PER_HOUR=20|DATABASE_URL=${{ secrets.DATABASE_URL }}|CLIBLE_GCS_BUCKET=${{ secrets.CLIBLE_GCS_BUCKET }}|CLIBLE_AUTO_SEED=web,greeksblgnt,fin-1992,fin-stlk,eng-darby" \
             --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Get service URL
