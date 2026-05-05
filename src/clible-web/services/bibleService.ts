@@ -4,6 +4,7 @@
  */
 
 import { BibleResponse, TextStats, WordFrequency } from '../types/bible';
+import type { CompareResult } from '../types/compare';
 
 export class BibleService {
   async getAiInsight(result: BibleResponse): Promise<string> {
@@ -26,6 +27,71 @@ export class BibleService {
 
     const data = await response.json();
     return typeof data?.text === "string" ? data.text : "";
+  }
+
+  /**
+   * Full translation comparison payload from the CLI analytics compare command.
+   */
+  async getCompareResult(
+    ref: string,
+    leftTranslation: string,
+    rightTranslation: string
+  ): Promise<CompareResult> {
+    const trimmed = ref.trim();
+    if (!trimmed) {
+      throw new Error('Reference is required for comparison.');
+    }
+    const left = leftTranslation.trim();
+    const right = rightTranslation.trim();
+    if (!left || !right) {
+      throw new Error('Both translations must be selected.');
+    }
+    if (left === right) {
+      throw new Error('Choose two different translations to compare.');
+    }
+
+    const args = `compare ${JSON.stringify(trimmed)} --left ${left} --right ${right}`;
+    const response = await fetch(
+      `/api/clible?cmd=analytics&args=${encodeURIComponent(args)}`
+    );
+
+    const raw = await response.text();
+    let data: unknown;
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      throw new Error(raw || 'Invalid response from compare.');
+    }
+
+    if (!response.ok) {
+      const errObj = data as Record<string, unknown>;
+      const message =
+        (typeof errObj.error === 'string' && errObj.error) ||
+        (typeof errObj.details === 'string' && errObj.details) ||
+        (typeof errObj.hint === 'string' ? errObj.hint : '') ||
+        'Translation compare failed.';
+      throw new Error(message);
+    }
+
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      throw new Error('Invalid compare payload.');
+    }
+    const payload = data as Record<string, unknown>;
+    const aligned = payload.aligned_verses;
+    const summary = payload.summary;
+    if (!Array.isArray(aligned) || !summary || typeof summary !== 'object') {
+      throw new Error('Malformed compare JSON from CLI.');
+    }
+    if (
+      typeof payload.reference !== 'string' ||
+      aligned.length === 0
+    ) {
+      throw new Error(
+        'No verses found for this reference in the selected translations.'
+      );
+    }
+
+    return data as CompareResult;
   }
 
   async getAiTone(text: string): Promise<string> {
@@ -54,11 +120,10 @@ export class BibleService {
    * Calls the local CLI bridge for native Clible analytics
    */
   async getNativeAnalytics(
-    type: 'reference' | 'chapter' | 'book' | 'compare',
+    type: 'reference' | 'chapter' | 'book',
     value: string,
     translation: string,
-    top: number = 10,
-    compareTranslation?: string
+    top: number = 10
   ): Promise<{ stats: TextStats, frequency: WordFrequency[] }> {
     let args = '';
 
@@ -76,13 +141,6 @@ export class BibleService {
       // value is a full reference like "John 3:16" — extract only the book name
       const bookName = value.replace(/\s+\d.*$/, '');
       args = `book "${bookName}" --translation ${translation} --top ${top}`;
-    } else if (type === 'compare') {
-      if (!compareTranslation?.trim()) {
-        throw new Error(
-          "Analytics compare requires a second translation id (compareTranslation)."
-        );
-      }
-      args = `compare "${value}" --left ${translation} --right ${compareTranslation}`;
     }
 
     const response = await fetch(`/api/clible?cmd=analytics&args=${encodeURIComponent(args)}`);

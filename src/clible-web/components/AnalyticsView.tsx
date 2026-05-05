@@ -1,4 +1,5 @@
-import { BarChart3, Hash, MessageSquareQuote, Activity, Sparkles, Loader2, Download } from 'lucide-react';
+import { BarChart3, Hash, MessageSquareQuote, Activity, Sparkles, Loader2, Download, Cloud } from 'lucide-react';
+import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import {
   BarChart,
@@ -13,8 +14,9 @@ import { TextStats, WordFrequency } from '../types/bible';
 import type { UILanguage } from '../utils/bookNames';
 import { t } from '../utils/i18n';
 import { markdownComponents } from '../utils/markdownComponents';
+import { WordCloud } from './WordCloud';
 
-export type AnalyticsMode = 'reference' | 'chapter' | 'book' | 'compare';
+export type AnalyticsMode = 'reference' | 'chapter' | 'book';
 
 interface AnalyticsViewProps {
   analyticsMode: AnalyticsMode;
@@ -38,7 +40,8 @@ export function AnalyticsView({
   onExport,
 }: AnalyticsViewProps) {
   const m = t(uiLanguage);
-  const analyticsModes: Array<{ mode: 'reference' | 'chapter' | 'book'; label: string }> = [
+  const [freqView, setFreqView] = useState<'bar' | 'cloud'>('bar');
+  const analyticsModes: Array<{ mode: AnalyticsMode; label: string }> = [
     { mode: 'reference', label: m.analyticsModeReference },
     { mode: 'chapter', label: m.analyticsModeChapter },
     { mode: 'book', label: m.analyticsModeBook },
@@ -46,7 +49,7 @@ export function AnalyticsView({
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex gap-2 bg-[var(--surface-2)] p-1 rounded-xl w-fit border border-[var(--border-soft)]">
           {analyticsModes.map(({ mode, label }) => (
             <button
@@ -89,32 +92,54 @@ export function AnalyticsView({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="bg-white border border-[#E5E5E5] p-6 rounded-3xl shadow-sm space-y-4">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-[#8E8E8E] flex items-center gap-2">
-            <BarChart3 size={16} /> {m.analyticsWordFrequency}
-          </h3>
-          <div className="h-64 min-h-[16rem] min-w-0 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={nativeFrequency} layout="vertical" margin={{ left: 20 }}>
-                <XAxis type="number" hide />
-                <YAxis
-                  dataKey="name"
-                  type="category"
-                  width={80}
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 12, fill: '#8E8E8E' }}
-                />
-                <Tooltip
-                  cursor={{ fill: '#F5F5F5' }}
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                />
-                <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                  {nativeFrequency.map((_, i) => (
-                    <Cell key={i} fill={i === 0 ? '#1A1A1A' : '#D4A373'} fillOpacity={1 - i * 0.1} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-[#8E8E8E] flex items-center gap-2">
+              <BarChart3 size={16} /> {m.analyticsWordFrequency}
+            </h3>
+            <div className="flex gap-1 bg-[#F5F5F5] p-0.5 rounded-lg">
+              <button
+                onClick={() => setFreqView('bar')}
+                className={`p-1.5 rounded-md transition-colors ${freqView === 'bar' ? 'bg-white shadow-sm text-[#1A1A1A]' : 'text-[#8E8E8E] hover:text-[#1A1A1A]'}`}
+                title={m.analyticsFreqViewBarTitle}
+              >
+                <BarChart3 size={14} />
+              </button>
+              <button
+                onClick={() => setFreqView('cloud')}
+                className={`p-1.5 rounded-md transition-colors ${freqView === 'cloud' ? 'bg-white shadow-sm text-[#1A1A1A]' : 'text-[#8E8E8E] hover:text-[#1A1A1A]'}`}
+                title={m.analyticsFreqViewCloudTitle}
+              >
+                <Cloud size={14} />
+              </button>
+            </div>
+          </div>
+          <div className="h-64 min-h-[16rem] min-w-0 w-full flex items-center justify-center overflow-hidden">
+            {freqView === 'bar' ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={nativeFrequency} layout="vertical" margin={{ left: 20 }}>
+                  <XAxis type="number" hide />
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    width={80}
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 12, fill: '#8E8E8E' }}
+                  />
+                  <Tooltip
+                    cursor={{ fill: '#F5F5F5' }}
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                  />
+                  <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                    {nativeFrequency.map((_, i) => (
+                      <Cell key={i} fill={i === 0 ? '#1A1A1A' : '#D4A373'} fillOpacity={1 - i * 0.1} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <WordCloud words={nativeFrequency} />
+            )}
           </div>
         </div>
 

@@ -4,7 +4,7 @@
  */
 
 import { useState, useRef, type KeyboardEvent } from 'react';
-import { Search, Book, ChevronDown, ChevronUp, Clock } from 'lucide-react';
+import { Search, Book, ChevronDown, ChevronUp, Clock, GitCompareArrows } from 'lucide-react';
 import { BookPickerModal } from './BookPickerModal';
 import { bookNameLocalized, type UILanguage } from '../utils/bookNames';
 import { t } from '../utils/i18n';
@@ -33,9 +33,13 @@ function historyScopeLabel(entry: SearchHistoryEntry, lang: UILanguage): string 
   return entry.scope_value ?? entry.search_scope ?? '';
 }
 
+export type StudyEntryTab = 'scripture' | 'verse' | 'compare';
+
 interface SearchPanelProps {
   activeTranslation: string | null;
   uiLanguage: UILanguage;
+  entryTab: StudyEntryTab;
+  onEntryTabChange: (tab: StudyEntryTab) => void;
   onSearch: (options: SearchQueryOptions) => void;
   onVerseSearch: (reference: string) => void;
   history: SearchHistoryEntry[];
@@ -47,6 +51,8 @@ interface SearchPanelProps {
 export function SearchPanel({
   activeTranslation,
   uiLanguage,
+  entryTab,
+  onEntryTabChange,
   onSearch,
   onVerseSearch,
   history,
@@ -63,10 +69,11 @@ export function SearchPanel({
   const [showBookPicker, setShowBookPicker] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const [isVerseMode, setIsVerseMode] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const m = t(uiLanguage);
+  const isVerseMode = entryTab === 'verse';
+  const isCompareTab = entryTab === 'compare';
 
   const handleSubmit = () => {
     if (!query.trim()) return;
@@ -129,33 +136,53 @@ export function SearchPanel({
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          onClick={() => setIsVerseMode(false)}
+          onClick={() => onEntryTabChange('scripture')}
           className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
-            !isVerseMode ? 'bg-[#1A1A1A] text-white' : 'bg-[#F5F5F5] text-[#8E8E8E]'
+            entryTab === 'scripture'
+              ? 'bg-[#1A1A1A] text-white'
+              : 'bg-[#F5F5F5] text-[#8E8E8E]'
           }`}
         >
           {m.searchFindInScripture}
         </button>
         <button
           type="button"
-          onClick={() => setIsVerseMode(true)}
+          onClick={() => onEntryTabChange('verse')}
           className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
-            isVerseMode ? 'bg-[#1A1A1A] text-white' : 'bg-[#F5F5F5] text-[#8E8E8E]'
+            entryTab === 'verse' ? 'bg-[#1A1A1A] text-white' : 'bg-[#F5F5F5] text-[#8E8E8E]'
           }`}
         >
           {m.searchVerseLookup}
         </button>
+        <button
+          type="button"
+          onClick={() => onEntryTabChange('compare')}
+          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+            entryTab === 'compare'
+              ? 'bg-[#1A1A1A] text-white'
+              : 'bg-[#F5F5F5] text-[#8E8E8E]'
+          }`}
+        >
+          <GitCompareArrows size={13} aria-hidden />
+          {m.searchEntryCompare}
+        </button>
       </div>
 
-      {error && (
+      {isCompareTab ? (
+        <p className="text-sm text-[var(--muted)] leading-relaxed">{m.searchCompareLandingHint}</p>
+      ) : null}
+
+      {error ? (
         <p className="text-sm text-red-600" role="alert">
           {error}
         </p>
-      )}
+      ) : null}
 
+      {!isCompareTab ? (
+        <>
       <div className="relative group">
         <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-[#8E8E8E] group-focus-within:text-[#1A1A1A] transition-colors">
           {isVerseMode ? <Book size={20} /> : <Search size={20} />}
@@ -373,6 +400,8 @@ export function SearchPanel({
           }}
         />
       )}
+        </>
+      ) : null}
     </div>
   );
 }

@@ -5,11 +5,13 @@
  * Optional environment overrides:
  * - GEMINI_MODEL_INSIGHT — model for POST /api/ai/insight
  * - GEMINI_MODEL_TONE    — model for POST /api/ai/tone
+ * - GEMINI_MODEL_STUDY   — model for POST /api/ai/study
  */
 
 export const geminiModels = {
   insight: process.env.GEMINI_MODEL_INSIGHT?.trim() || "gemini-flash-latest",
   tone: process.env.GEMINI_MODEL_TONE?.trim() || "gemini-flash-latest",
+  study: process.env.GEMINI_MODEL_STUDY?.trim() || "gemini-flash-latest",
 } as const;
 
 /**
@@ -107,4 +109,48 @@ Use \`- **Label:** explanation\` if needed; keep bullets secondary to \`##\` tit
 --- Passage ---
 
 ${passageText}`;
+}
+
+/** Original-language bridging: scholarly comparison of source wording and a translation. */
+export const studySystemInstruction =
+  "You help readers compare Hebrew or Greek source wording with their translation: lexicon-level glosses where useful, morphology only when pedagogical, parallelism, theological nuance, and translation debates when relevant. " +
+  "Stay balanced and historically grounded. If scholarly views diverge, say so briefly—do not assert certainty where the sources do not justify it. " +
+  "Use the same written language as the translation excerpt whenever it is clearly in one modern language (e.g. Finnish, English); mirror that language for all Markdown headings. " +
+  "Use real Markdown `##` / `###` headings, not bold-only section titles.";
+
+export function buildStudyUserPrompt(params: {
+  reference: string;
+  sourceLanguage: "grc" | "he";
+  sourceText: string;
+  translationText: string;
+}): string {
+  const langLabel =
+    params.sourceLanguage === "grc"
+      ? "Koine Greek (primary text excerpt)"
+      : "Hebrew (primary text excerpt)";
+
+  return `The user compares a ${langLabel} with a companion translation.
+
+## Task (keep this structure with real headings)
+
+Pick natural section titles **in the same language as the translation excerpt**.
+
+1. Opening \`##\` section — one paragraph situating the clause or verse historically and literarily.
+2. Second \`##\` section — lexical and grammatical observations that materially affect meaning (prioritize phenomena visible in the provided strings).
+3. Third \`##\` section — how the quoted translation aligns with, softens, or sharpens possible readings (note ambiguities the original allows).
+4. Close with a short \`##\` section listing **study cautions**: what trained scholars would double-check beyond this snapshot.
+
+---
+
+**Reference**
+
+${params.reference}
+
+**Primary (${langLabel})**
+
+${params.sourceText}
+
+**Translation excerpt**
+
+${params.translationText}`;
 }
