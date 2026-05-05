@@ -33,6 +33,13 @@ tasks:
     cmds:
       - npm run build
 
+  web-test:
+    desc: Run web app tests with Vitest
+    deps: [web-install]
+    dir: src/clible-web
+    cmds:
+      - npm run test
+
   web-docker-build:
     desc: Build clible-web Docker image
     vars:
@@ -111,9 +118,10 @@ tasks:
         fi
 
   test:
-    desc: Run unit tests with pytest
+    desc: Run Python and web tests
     cmds:
       - uv run pytest -v
+      - task: web-test
 
   test-one:
     desc: Run selected tests by filename pattern (tests/)
@@ -145,9 +153,9 @@ tasks:
       - uv run ruff format .
 
   format-check:
-    desc: Check formatting without modifying files
+    desc: Auto-format code with Ruff formatter
     cmds:
-      - uv run ruff format --check .
+      - uv run ruff format .
 
   check:
     desc: Run lint, format check, and tests

@@ -23,6 +23,7 @@ import {
   WordFrequency,
 } from './types/bible';
 import type { CompareResult } from './types/compare';
+import type { OriginalStudyResult } from './types/originalStudy';
 import type { SearchResponse } from './types/search';
 import type { SearchQueryOptions, SearchHistoryEntry, SavedSearchRow } from './types/searchQuery';
 import { bibleRepository } from './repositories/bibleRepository';
@@ -34,6 +35,7 @@ import { SavedSearchesList } from './components/SavedSearchesList';
 import { AnalyticsView } from './components/AnalyticsView';
 import type { AnalyticsMode } from './components/AnalyticsView';
 import { CompareView } from './components/CompareView';
+import { OriginalStudyView } from './components/OriginalStudyView';
 import { TranslationModal } from './components/TranslationModal';
 import { SettingsPanel } from './components/SettingsPanel';
 import { useAuth } from './AuthContext';
@@ -41,6 +43,14 @@ import { LoginView } from './views/LoginView';
 import { useSettings } from './user/SettingsContext';
 import { ExportModal, ExportFormat } from './components/ExportModal';
 import { downloadFile } from './utils/download';
+import {
+  buildAnalyticsExportArgs,
+  buildCompareExportArgs,
+  buildOriginalStudyExportArgs,
+  buildSavedSearchOptions,
+  buildSearchExportArgs,
+} from './utils/appViewHelpers';
+import { appendExportNotes } from './utils/exportPostProcess';
 import { t, type UILanguage } from './utils/i18n';
 
 function inferUILanguageFromTranslation(language: string | undefined): 'en' | 'fi' | null {
@@ -50,7 +60,7 @@ function inferUILanguageFromTranslation(language: string | undefined): 'en' | 'f
   return null;
 }
 
-type ViewMode = 'reader' | 'analytics' | 'search' | 'compare';
+type ViewMode = 'reader' | 'analytics' | 'search' | 'compare' | 'original';
 type SearchType = 'verse' | 'search';
 
 export default function App() {
@@ -98,6 +108,9 @@ export default function App() {
   const [compareRight, setCompareRight] = useState<string | null>(null);
   const [compareLoading, setCompareLoading] = useState(false);
   const [compareError, setCompareError] = useState<string | null>(null);
+  const [originalResult, setOriginalResult] = useState<OriginalStudyResult | null>(null);
+  const [originalLoading, setOriginalLoading] = useState(false);
+  const [originalError, setOriginalError] = useState<string | null>(null);
   const [exportContext, setExportContext] = useState<{
     cmd: "verse" | "search" | "analytics";
     args: string;
@@ -397,11 +410,16 @@ export default function App() {
     setStudyEntryTab(tab);
     setError(null);
     setCompareError(null);
+    setOriginalError(null);
     if (tab === 'compare') {
       setViewMode('compare');
       return;
     }
-    setViewMode((vm) => (vm === 'compare' ? 'reader' : vm));
+    if (tab === 'original') {
+      setViewMode('original');
+      return;
+    }
+    setViewMode((vm) => (vm === 'compare' || vm === 'original' ? 'reader' : vm));
   };
 
   const handleCompare = async (ref: string, leftId: string, rightId: string) => {
@@ -417,6 +435,29 @@ export default function App() {
       setCompareError(err instanceof Error ? err.message : shell.errUnexpected);
     } finally {
       setCompareLoading(false);
+    }
+  };
+
+  const handleOriginalStudy = async (
+    ref: string,
+    originalId: string,
+    translationIds: string[]
+  ) => {
+    setOriginalLoading(true);
+    setOriginalError(null);
+    try {
+      const data = await bibleService.getOriginalStudyResult(
+        ref,
+        originalId,
+        translationIds,
+        installedTranslations
+      );
+      setOriginalResult(data);
+    } catch (err: unknown) {
+      setOriginalResult(null);
+      setOriginalError(err instanceof Error ? err.message : shell.errUnexpected);
+    } finally {
+      setOriginalLoading(false);
     }
   };
 
@@ -479,34 +520,16 @@ export default function App() {
         exportContext.aiInsight ?? null
       );
 
-      // Append AI Insight if this is a verse export and we have one
-      if (exportContext.cmd === 'verse' && (aiInsight || toneAnalysis)) {
-        const aiText = aiInsight || toneAnalysis;
-        let separator = '';
-        if (format === 'md') separator = '\n\n---\n\n## AI Study Notes\n\n';
-        else if (format === 'txt') separator = '\n\n---\n\nAI STUDY NOTES:\n\n';
-        else if (format === 'html') separator = '\n\n---\n\n<h2>AI Study Notes</h2>\n\n';
-        else if (format === 'xml') separator = '\n\n---\n\n<ai_study_notes>\n';
-
-        if (separator) {
-          content += separator + aiText;
-          if (format === 'xml') content += '\n</ai_study_notes>';
-        }
-      }
-
-      // Append Tone Analysis if this is an analytics export (not translation compare) and we have one
-      if (
-        exportContext.cmd === 'analytics' &&
-        toneAnalysis &&
-        !exportContext.args.trimStart().startsWith('compare ')
-      ) {
-        let separator = '';
-        if (format === 'md') separator = '\n\n---\n\n## AI Tone & Style Analysis\n\n';
-        else if (format === 'txt') separator = '\n\n---\n\nAI TONE & STYLE ANALYSIS:\n\n';
-        else if (format === 'html') separator = '\n\n---\n\n<h2>AI Tone & Style Analysis</h2>\n\n';
-
-        if (separator) content += separator + toneAnalysis;
-      }
+      const exportedAiText = exportContext.aiInsight ?? aiInsight ?? toneAnalysis;
+      content = appendExportNotes({
+        content,
+        format,
+        cmd: exportContext.cmd,
+        args: exportContext.args,
+        title: exportContext.title,
+        exportAiText: exportedAiText,
+        toneAnalysis,
+      });
 
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
       const filename = `clible_export_${timestamp}.${format}`;
@@ -582,7 +605,7 @@ export default function App() {
 
       <main
         className={`mx-auto px-6 py-12 ${
-          viewMode === 'compare' ? 'max-w-5xl' : 'max-w-4xl'
+          viewMode === 'compare' || viewMode === 'original' ? 'max-w-5xl' : 'max-w-4xl'
         }`}
       >
         <div className="space-y-4 mb-8">
@@ -607,28 +630,13 @@ export default function App() {
             error={null}
           />
 
-          {viewMode !== 'compare' && (
+          {viewMode !== 'compare' && viewMode !== 'original' && (
           <SavedSearchesList
             uiLanguage={uiLang}
             searches={savedSearches}
             onRun={(s) => {
               if (!settings?.translationId) return;
-              const scope: SearchQueryOptions['scope'] =
-                s.search_scope === 'testament' && s.scope_value === 'NT'
-                  ? 'nt'
-                  : s.search_scope === 'testament' && s.scope_value === 'OT'
-                    ? 'ot'
-                    : s.search_scope === 'book'
-                      ? 'book'
-                      : 'bible';
-              void handleAdvancedSearch({
-                terms: [s.query_text.trim()],
-                mode: 'phrase',
-                operator: 'and',
-                scope,
-                book: s.search_scope === 'book' ? s.scope_value : null,
-                translationId: s.translation_id ?? settings.translationId,
-              });
+              void handleAdvancedSearch(buildSavedSearchOptions(s, settings.translationId));
             }}
             onDelete={(id) => {
               void bibleRepository
@@ -643,13 +651,13 @@ export default function App() {
           )}
         </div>
 
-        {viewMode !== 'compare' && (
+        {viewMode !== 'compare' && viewMode !== 'original' && (
         <div className="flex gap-1 bg-[#F5F5F5] p-1 rounded-xl w-fit mb-8">
           <button
             type="button"
             onClick={() => {
               setViewMode('reader');
-              setStudyEntryTab((t) => (t === 'compare' ? 'verse' : t));
+              setStudyEntryTab((t) => (t === 'compare' || t === 'original' ? 'verse' : t));
             }}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'reader' ? 'bg-white shadow-sm text-[#1A1A1A]' : 'text-[#8E8E8E] hover:text-[#1A1A1A]'}`}
           >
@@ -696,17 +704,7 @@ export default function App() {
                 onResultClick={(ref) => void handleSearch(ref, 'verse')}
                 onExport={() => {
                   if (searchResponse && settings?.translationId) {
-                    let args = `"${searchResponse.query}" -t ${settings.translationId}`;
-                    if (searchResponse.scope) args += ` --scope ${searchResponse.scope}`;
-                    if (searchResponse.scopeRef) args += ` -r "${searchResponse.scopeRef}"`;
-                    if (searchResponse.searchMode) {
-                      const m =
-                        searchResponse.searchMode === 'boolean' ? 'words' : searchResponse.searchMode;
-                      args += ` --mode ${m}`;
-                    }
-                    if (searchResponse.searchOperator) {
-                      args += ` --operator ${searchResponse.searchOperator.toLowerCase()}`;
-                    }
+                    const args = buildSearchExportArgs(searchResponse, settings.translationId);
                     triggerExport('search', args, `Search: ${searchResponse.query}`);
                   }
                 }}
@@ -739,18 +737,11 @@ export default function App() {
                 onExport={() => {
                   if (!settings?.translationId) return;
                   if (!result?.reference) return;
-                  let args = '';
-                  if (analyticsMode === 'reference') {
-                    args = `reference "${result.reference}" -t ${settings.translationId}`;
-                  } else if (analyticsMode === 'chapter') {
-                    const parts = result.reference.split(' ');
-                    const book = parts.slice(0, -1).join(' ');
-                    const chapter = parts[parts.length - 1].split(':')[0];
-                    args = `chapter "${book}" ${chapter} -t ${settings.translationId}`;
-                  } else if (analyticsMode === 'book') {
-                    const book = result.reference.split(' ')[0];
-                    args = `book "${book}" -t ${settings.translationId}`;
-                  }
+                  const args = buildAnalyticsExportArgs(
+                    analyticsMode,
+                    result.reference,
+                    settings.translationId
+                  );
                   if (args) {
                     triggerExport('analytics', args, `Analytics: ${result.reference}`);
                   }
@@ -797,7 +788,7 @@ export default function App() {
                   const left = compareLeftResolved;
                   const right = compareRightResolved;
                   if (!ref || !left || !right) return;
-                  const args = `compare ${JSON.stringify(ref)} --left ${left} --right ${right}`;
+                  const args = buildCompareExportArgs(ref, left, right);
                   triggerExport(
                     'analytics',
                     args,
@@ -807,6 +798,42 @@ export default function App() {
                 result={compareResult}
                 loading={compareLoading}
                 error={compareError}
+              />
+            </motion.div>
+          )}
+          {viewMode === 'original' && (
+            <motion.div
+              key="original"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+            >
+              <OriginalStudyView
+                standalone
+                installedTranslations={installedTranslations}
+                activeTranslationId={settings?.translationId ?? null}
+                uiLanguage={uiLang}
+                installingTranslationId={installingTranslationId}
+                onInstallTranslation={handleTranslationInstall}
+                result={originalResult}
+                loading={originalLoading}
+                error={originalError}
+                defaultReference={result?.reference ?? null}
+                onStudy={(ref, originalId, translationIds) =>
+                  void handleOriginalStudy(ref, originalId, translationIds)
+                }
+                onExport={() => {
+                  if (!originalResult) return;
+                  const ref = originalResult.reference.trim();
+                  const originalId = originalResult.originalId.trim();
+                  if (!ref || !originalId) return;
+                  triggerExport(
+                    'verse',
+                    buildOriginalStudyExportArgs(ref, originalId),
+                    `Original Study: ${ref} (${originalId})`,
+                    originalResult.analysis
+                  );
+                }}
               />
             </motion.div>
           )}

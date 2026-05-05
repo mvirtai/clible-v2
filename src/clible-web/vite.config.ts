@@ -42,5 +42,11 @@ export default defineConfig(({mode}) => {
       // Do not modify—file watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
     },
+    test: {
+      environment: 'happy-dom',
+      setupFiles: './test/setupTests.ts',
+      globals: false,
+      css: true,
+    },
   };
 });
