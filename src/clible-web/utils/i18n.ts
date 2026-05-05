@@ -130,6 +130,28 @@ export const strings = {
     compareAiStudyHint: 'Connecting a scholarly model to Hebrew/Greek + your translation is planned next.',
     compareNeedTwoTranslations:
       'Install at least two translations to compare.',
+
+    tabOriginalStudy: 'Original Languages',
+    originalStudyTitle: 'Original Language Study',
+    originalStudyLandingHint:
+      'Pair an original-language text (Greek or Hebrew) with up to three modern translations. AI provides phonetic transliteration and a comparative reading.',
+    originalSetupTitle: 'Original language packs required',
+    originalSetupHint:
+      'To study the original languages, install Greek (NT) or Hebrew (OT). Both are small, public-domain editions.',
+    originalInstallGreek: 'Install Greek NT (greeksblgnt)',
+    originalInstallHebrew: 'Install Hebrew OT (heb-leningrad)',
+    originalSelectOriginal: 'Original-language source',
+    originalSelectTranslations: 'Compare against (1–3 translations)',
+    originalRunButton: 'Analyse',
+    originalLoading: 'Consulting the sources…',
+    originalAnalysisHeading: 'Scholarly analysis',
+    originalNoResult: 'Run an analysis to see the original-language study.',
+    originalNeedTargets: 'Select at least one translation to compare against.',
+    originalReferenceLabel: 'Reference',
+    originalReferencePlaceholder: 'e.g. John 3:16 or Genesis 1:1',
+    originalVersesHeading: 'Verses side by side',
+    originalAlreadyInstalled: 'Installed',
+
     errAnalyticsNeedVerse:
       'Look up a verse first to use Reference, Chapter, or Book analytics.',
 
@@ -330,6 +352,28 @@ export const strings = {
       'Heprea/kreikka + oma käännös -pohjaisen mallin kytkeminen toteutetaan seuraavassa vaiheessa.',
     compareNeedTwoTranslations:
       'Asenna ainakin kaksi käännöstä vertailua varten.',
+
+    tabOriginalStudy: 'Alkukieli',
+    originalStudyTitle: 'Alkukielitutkimus',
+    originalStudyLandingHint:
+      'Yhdistä alkukielinen teksti (kreikka tai heprea) ja enintään kolme nykykäännöstä. Tekoäly tuottaa foneettisen translitteroinnin ja vertailevan tulkinnan.',
+    originalSetupTitle: 'Alkukielipaketti puuttuu',
+    originalSetupHint:
+      'Alkukielitutkimusta varten asenna kreikka (UT) tai heprea (VT). Molemmat ovat kompakteja, vapaasti saatavilla olevia laitoksia.',
+    originalInstallGreek: 'Asenna kreikka (UT) — greeksblgnt',
+    originalInstallHebrew: 'Asenna heprea (VT) — heb-leningrad',
+    originalSelectOriginal: 'Alkukielen lähde',
+    originalSelectTranslations: 'Vertaa käännöksiin (1–3)',
+    originalRunButton: 'Analysoi',
+    originalLoading: 'Tutkitaan alkutekstiä…',
+    originalAnalysisHeading: 'Tieteellinen analyysi',
+    originalNoResult: 'Aloita analyysi nähdäksesi alkukielitutkimuksen.',
+    originalNeedTargets: 'Valitse vähintään yksi käännös vertailtavaksi.',
+    originalReferenceLabel: 'Viite',
+    originalReferencePlaceholder: 'esim. Joh. 3:16 tai 1. Moos. 1:1',
+    originalVersesHeading: 'Jakeet rinnakkain',
+    originalAlreadyInstalled: 'Asennettu',
+
     errAnalyticsNeedVerse:
       'Viite-, luku- ja kirja-analyysi vaatii ensin jaehaun.',
 

@@ -4,7 +4,7 @@
  */
 
 import { useState, useRef, type KeyboardEvent } from 'react';
-import { Search, Book, ChevronDown, ChevronUp, Clock, GitCompareArrows } from 'lucide-react';
+import { Search, Book, ChevronDown, ChevronUp, Clock, GitCompareArrows, Languages } from 'lucide-react';
 import { BookPickerModal } from './BookPickerModal';
 import { bookNameLocalized, type UILanguage } from '../utils/bookNames';
 import { t } from '../utils/i18n';
@@ -33,7 +33,7 @@ function historyScopeLabel(entry: SearchHistoryEntry, lang: UILanguage): string 
   return entry.scope_value ?? entry.search_scope ?? '';
 }
 
-export type StudyEntryTab = 'scripture' | 'verse' | 'compare';
+export type StudyEntryTab = 'scripture' | 'verse' | 'compare' | 'original';
 
 interface SearchPanelProps {
   activeTranslation: string | null;
@@ -74,6 +74,8 @@ export function SearchPanel({
   const m = t(uiLanguage);
   const isVerseMode = entryTab === 'verse';
   const isCompareTab = entryTab === 'compare';
+  const isOriginalTab = entryTab === 'original';
+  const isLandingOnly = isCompareTab || isOriginalTab;
 
   const handleSubmit = () => {
     if (!query.trim()) return;
@@ -169,10 +171,25 @@ export function SearchPanel({
           <GitCompareArrows size={13} aria-hidden />
           {m.searchEntryCompare}
         </button>
+        <button
+          type="button"
+          onClick={() => onEntryTabChange('original')}
+          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+            entryTab === 'original'
+              ? 'bg-[#1A1A1A] text-white'
+              : 'bg-[#F5F5F5] text-[#8E8E8E]'
+          }`}
+        >
+          <Languages size={13} aria-hidden />
+          {m.tabOriginalStudy}
+        </button>
       </div>
 
       {isCompareTab ? (
         <p className="text-sm text-[var(--muted)] leading-relaxed">{m.searchCompareLandingHint}</p>
+      ) : null}
+      {isOriginalTab ? (
+        <p className="text-sm text-[var(--muted)] leading-relaxed">{m.originalStudyLandingHint}</p>
       ) : null}
 
       {error ? (
@@ -181,7 +198,7 @@ export function SearchPanel({
         </p>
       ) : null}
 
-      {!isCompareTab ? (
+      {!isLandingOnly ? (
         <>
       <div className="relative group">
         <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-[#8E8E8E] group-focus-within:text-[#1A1A1A] transition-colors">
