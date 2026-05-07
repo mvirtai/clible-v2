@@ -1,0 +1,6 @@
+node_modules
+.vitepress/dist
+.vitepress/cache
+
+# Synced from docs/api/openapi.yml on every build via scripts/sync-openapi.mjs.
+public/api/openapi.yml
