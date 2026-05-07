@@ -111,10 +111,37 @@ export class BibleRepository {
   private mapVerseLookupToBibleResponse(data: Record<string, unknown>): BibleResponse {
     const rows = (data.verses as Array<Record<string, unknown>> | undefined) ?? [];
     const first = rows[0];
-    const refDisplay =
-      first != null
-        ? `${String(first.book_id ?? "")} ${String(first.chapter ?? "")}:${String(first.verse ?? "")}`.trim()
-        : String(data.title ?? "");
+    const last = rows.length > 0 ? rows[rows.length - 1] : undefined;
+
+    const refDisplay = (() => {
+      if (first && last) {
+        const bookFirst = String(first.book_id ?? '').trim();
+        const chFirst = String(first.chapter ?? '').trim();
+        const vFirst = String(first.verse ?? '').trim();
+        const bookLast = String(last.book_id ?? '').trim();
+        const chLast = String(last.chapter ?? '').trim();
+        const vLast = String(last.verse ?? '').trim();
+
+        if (bookFirst && chFirst && vFirst) {
+          if (bookFirst === bookLast && chFirst === chLast && vFirst === vLast) {
+            return `${bookFirst} ${chFirst}:${vFirst}`.trim();
+          }
+          if (bookFirst === bookLast && chFirst === chLast && vLast) {
+            return `${bookFirst} ${chFirst}:${vFirst}-${vLast}`.trim();
+          }
+          if (bookFirst === bookLast && chLast && vLast) {
+            return `${bookFirst} ${chFirst}:${vFirst}-${chLast}:${vLast}`.trim();
+          }
+          if (bookLast && chLast && vLast) {
+            return `${bookFirst} ${chFirst}:${vFirst}-${bookLast} ${chLast}:${vLast}`.trim();
+          }
+        }
+      }
+
+      const title = String(data.title ?? '').trim();
+      const m = title.match(/^\s*Verses:\s*(.+)\s*$/i);
+      return (m?.[1] ?? title).trim();
+    })();
     const text = rows.map((v) => String(v.text ?? "")).join(" ");
     const translationName = String(data.translation_id ?? "");
 
