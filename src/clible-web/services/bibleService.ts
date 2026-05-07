@@ -5,9 +5,11 @@
 
 import { BibleResponse, InstalledTranslation, TextStats, WordFrequency } from '../types/bible';
 import type { CompareResult } from '../types/compare';
+import type { AiTextResponse } from '../types/ai';
 import type {
   OriginalStudyResult,
   OriginalStudyTranslation,
+  StudyScope,
   OriginalStudyVerse,
 } from '../types/originalStudy';
 import {
@@ -16,11 +18,40 @@ import {
 } from './originalStudyPayload';
 
 export class BibleService {
-  async getAiInsight(result: BibleResponse): Promise<string> {
+  async getAiDeepDive(params: {
+    topic: string;
+    outputLanguage: "fi" | "en";
+    context?: { feature?: string; reference?: string; note?: string };
+  }): Promise<AiTextResponse> {
+    const response = await fetch("/api/ai/deep-dive", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+    });
+
+    if (!response.ok) {
+      let details: any = undefined;
+      try {
+        details = await response.json();
+      } catch {
+        // ignore
+      }
+      const message = details?.hint || details?.details || details?.error || "Failed to generate deep dive.";
+      throw new Error(message);
+    }
+
+    const data = (await response.json()) as Record<string, unknown>;
+    return {
+      text: typeof data?.text === "string" ? data.text : "",
+      nextFocus: Array.isArray(data?.nextFocus) ? (data.nextFocus as any[]) : [],
+    };
+  }
+
+  async getAiInsight(result: BibleResponse, focus?: string): Promise<AiTextResponse> {
     const response = await fetch("/api/ai/insight", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: result.text }),
+      body: JSON.stringify({ text: result.text, ...(focus?.trim() ? { focus: focus.trim() } : {}) }),
     });
 
     if (!response.ok) {
@@ -34,8 +65,11 @@ export class BibleService {
       throw new Error(message);
     }
 
-    const data = await response.json();
-    return typeof data?.text === "string" ? data.text : "";
+    const data = (await response.json()) as Record<string, unknown>;
+    return {
+      text: typeof data?.text === "string" ? data.text : "",
+      nextFocus: Array.isArray(data?.nextFocus) ? (data.nextFocus as any[]) : [],
+    };
   }
 
   /**
@@ -103,11 +137,11 @@ export class BibleService {
     return data as CompareResult;
   }
 
-  async getAiTone(text: string): Promise<string> {
+  async getAiTone(text: string, focus?: string): Promise<AiTextResponse> {
     const response = await fetch("/api/ai/tone", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text, ...(focus?.trim() ? { focus: focus.trim() } : {}) }),
     });
 
     if (!response.ok) {
@@ -121,8 +155,11 @@ export class BibleService {
       throw new Error(message);
     }
 
-    const data = await response.json();
-    return typeof data?.text === "string" ? data.text : "";
+    const data = (await response.json()) as Record<string, unknown>;
+    return {
+      text: typeof data?.text === "string" ? data.text : "",
+      nextFocus: Array.isArray(data?.nextFocus) ? (data.nextFocus as any[]) : [],
+    };
   }
 
   /**
@@ -193,6 +230,8 @@ export class BibleService {
     originalId: string,
     translationIds: string[],
     installed: InstalledTranslation[],
+    scope: StudyScope = 'verse',
+    focus?: string,
   ): Promise<OriginalStudyResult> {
     const ref = reference.trim();
     if (!ref) {
@@ -218,12 +257,14 @@ export class BibleService {
     const originalVerses = this._mapLookupToVerses(lookups[0]);
     const { payload, translations } = buildOriginalStudyPayload({
       reference: ref,
+      scope,
       sourceLanguage,
       originalVerses,
       uniqueTargets,
       lookups,
       installed,
       mapLookupToVerses: this._mapLookupToVerses.bind(this),
+      focus,
     });
 
     const response = await fetch('/api/ai/original-study', {
@@ -246,16 +287,19 @@ export class BibleService {
       throw new Error(message);
     }
 
-    const data = await response.json();
-    const analysis = typeof data?.text === 'string' ? data.text : '';
+    const data = (await response.json()) as Record<string, unknown>;
+    const analysis = typeof data?.text === 'string' ? String(data.text) : '';
+    const nextFocus = Array.isArray(data?.nextFocus) ? (data.nextFocus as any[]) : [];
 
     return {
       reference: ref,
+      scope,
       originalId: origId,
       sourceLanguage,
       originalVerses,
       translations,
       analysis,
+      nextFocus,
     };
   }
 

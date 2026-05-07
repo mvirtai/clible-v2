@@ -67,7 +67,13 @@ describe('BibleService.getOriginalStudyResult', () => {
       )
       // AI endpoint
       .mockResolvedValueOnce(
-        new Response(JSON.stringify({ text: 'analysis body' }), { status: 200 }),
+        new Response(
+          JSON.stringify({
+            text: 'analysis body',
+            nextFocus: [{ label: 'agápē', kind: 'word', reason: 'key term' }],
+          }),
+          { status: 200 },
+        ),
       );
 
     vi.stubGlobal('fetch', fetchMock as typeof fetch);
@@ -82,6 +88,7 @@ describe('BibleService.getOriginalStudyResult', () => {
     expect(out.reference).toBe('John 3:16');
     expect(out.sourceLanguage).toBe('grc');
     expect(out.analysis).toBe('analysis body');
+    expect(out.nextFocus?.[0]?.label).toBe('agápē');
     expect(out.translations.map((t) => t.id)).toEqual(['fin-1992', 'web']);
 
     const aiCall = fetchMock.mock.calls[3];
@@ -90,7 +97,39 @@ describe('BibleService.getOriginalStudyResult', () => {
     expect(body.sourceLanguage).toBe('grc');
     expect(body.translations).toHaveLength(2);
     expect(body.reference).toBe('John 3:16');
+    expect(body.scope).toBe('verse');
     expect(body.sourceText).toContain('ΟΥΤΩΣ');
+  });
+
+  it('sends chapter scope to original-study endpoint', async () => {
+    const service = new BibleService();
+    const fetchMock = vi.fn();
+
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            verses: [{ book_id: 'JHN', chapter: 3, verse: 1, text: 'ΗΝ ΔΕ' }],
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            verses: [{ book_id: 'JHN', chapter: 3, verse: 1, text: 'Mutta oli' }],
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(new Response(JSON.stringify({ text: 'ok' }), { status: 200 }));
+
+    vi.stubGlobal('fetch', fetchMock as typeof fetch);
+    await service.getOriginalStudyResult('John 3', 'greeksblgnt', ['fin-1992'], installed, 'chapter');
+
+    const aiCall = fetchMock.mock.calls[2];
+    const body = JSON.parse(String((aiCall[1] as RequestInit).body));
+    expect(body.scope).toBe('chapter');
   });
 
   it('uses he source language for hebrew originals', async () => {

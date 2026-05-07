@@ -97,6 +97,33 @@ export function markdownComponents(options: {
       <ol className={`mb-3 list-decimal text-[var(--text)] space-y-1 pl-5 ${body}`}>{children}</ol>
     ),
     li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+    table: ({ children }) => (
+      <div className="mb-4 overflow-x-auto">
+        <table className="w-full border-collapse text-sm text-[var(--text)]">{children}</table>
+      </div>
+    ),
+    thead: ({ children }) => (
+      <thead className={invert ? 'bg-gray-800/70' : 'bg-[var(--surface-2)]'}>{children}</thead>
+    ),
+    tbody: ({ children }) => <tbody>{children}</tbody>,
+    tr: ({ children }) => (
+      <tr className={invert ? 'border-b border-gray-700' : 'border-b border-[var(--border-soft)]'}>
+        {children}
+      </tr>
+    ),
+    th: ({ children }) => (
+      <th
+        className={`px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide ${invert ? 'text-gray-200 border-b border-gray-600' : 'text-[var(--muted)] border-b border-[var(--border)]'
+          }`}
+      >
+        {children}
+      </th>
+    ),
+    td: ({ children }) => (
+      <td className={`px-3 py-2 align-top ${invert ? 'text-gray-200' : 'text-[var(--text)]'}`}>
+        {children}
+      </td>
+    ),
     code: ({ children }) => (
       <code className={`rounded px-1 py-0.5 text-[var(--text)] font-mono text-[0.9em] ${codeBg}`}>
         {children}

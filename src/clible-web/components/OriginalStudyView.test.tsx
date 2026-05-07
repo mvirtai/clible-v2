@@ -51,7 +51,7 @@ describe('OriginalStudyView', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Analyse' }));
 
-    expect(onStudy).toHaveBeenCalledWith('John 3:16', 'greeksblgnt', ['fin-1992']);
+    expect(onStudy).toHaveBeenCalledWith('John 3:16', 'greeksblgnt', ['fin-1992'], 'verse');
   });
 
   it('renders result table and export button when result exists', () => {
@@ -61,6 +61,7 @@ describe('OriginalStudyView', () => {
     ];
     const result: OriginalStudyResult = {
       reference: 'John 3:16',
+      scope: 'verse',
       originalId: 'greeksblgnt',
       sourceLanguage: 'grc',
       originalVerses: [{ book_name: 'JHN', chapter: 3, verse: 16, text: 'ΟΥΤΩΣ' }],
@@ -72,6 +73,7 @@ describe('OriginalStudyView', () => {
         },
       ],
       analysis: '## Analysis\n\nText.',
+      nextFocus: [{ label: 'agápē', kind: 'word', reason: 'key term' }],
     };
     const onExport = vi.fn();
     render(

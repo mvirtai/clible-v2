@@ -10,16 +10,21 @@ import { promisify } from "util";
 import path from "path";
 import { GoogleGenAI } from "@google/genai";
 import {
+  buildBookStudyPrompt,
+  buildChapterStudyPrompt,
+  buildDeepDivePrompt,
   buildInsightUserPrompt,
   buildOriginalStudyPrompt,
   buildStudyUserPrompt,
   buildToneUserPrompt,
+  deepDiveSystemInstruction,
   geminiModels,
   insightSystemInstruction,
   originalStudySystemInstruction,
   studySystemInstruction,
   toneSystemInstruction,
 } from "./ai.config";
+import { extractNextFocus } from "./utils/nextFocus";
 
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
@@ -286,6 +291,7 @@ async function startServer() {
     }
 
     const text = typeof req.body?.text === "string" ? req.body.text : "";
+    const focus = typeof req.body?.focus === "string" ? req.body.focus : undefined;
     if (!text.trim()) {
       return res.status(400).json({ error: "Missing or invalid 'text'." });
     }
@@ -293,13 +299,15 @@ async function startServer() {
     try {
       const response = await ai.models.generateContent({
         model: geminiModels.insight,
-        contents: buildInsightUserPrompt(text),
+        contents: buildInsightUserPrompt(text, focus),
         config: {
           systemInstruction: insightSystemInstruction,
         },
       });
 
-      res.json({ text: response.text ?? "" });
+      const raw = response.text ?? "";
+      const { cleanedText, nextFocus } = extractNextFocus(raw);
+      res.json({ text: cleanedText, nextFocus });
     } catch (error: any) {
       console.error("AI insight error:", error);
       res.status(500).json({
@@ -319,6 +327,7 @@ async function startServer() {
     }
 
     const text = typeof req.body?.text === "string" ? req.body.text : "";
+    const focus = typeof req.body?.focus === "string" ? req.body.focus : undefined;
     if (!text.trim()) {
       return res.status(400).json({ error: "Missing or invalid 'text'." });
     }
@@ -326,13 +335,15 @@ async function startServer() {
     try {
       const response = await ai.models.generateContent({
         model: geminiModels.tone,
-        contents: buildToneUserPrompt(text),
+        contents: buildToneUserPrompt(text, focus),
         config: {
           systemInstruction: toneSystemInstruction,
         },
       });
 
-      res.json({ text: response.text ?? "" });
+      const raw = response.text ?? "";
+      const { cleanedText, nextFocus } = extractNextFocus(raw);
+      res.json({ text: cleanedText, nextFocus });
     } catch (error: any) {
       console.error("AI tone error:", error);
       res.status(500).json({
@@ -356,6 +367,7 @@ async function startServer() {
       typeof req.body?.sourceText === "string" ? req.body.sourceText.trim() : "";
     const translationText =
       typeof req.body?.translationText === "string" ? req.body.translationText.trim() : "";
+    const focus = typeof req.body?.focus === "string" ? req.body.focus : undefined;
     const rawLang =
       typeof req.body?.sourceLanguage === "string" ? req.body.sourceLanguage.trim().toLowerCase() : "";
     const sourceLanguage = rawLang === "he" || rawLang.startsWith("hbo") || rawLang.startsWith("heb")
@@ -376,17 +388,72 @@ async function startServer() {
           sourceLanguage,
           sourceText,
           translationText,
+          focus,
         }),
         config: {
           systemInstruction: studySystemInstruction,
         },
       });
 
-      res.json({ text: response.text ?? "" });
+      const raw = response.text ?? "";
+      const { cleanedText, nextFocus } = extractNextFocus(raw);
+      res.json({ text: cleanedText, nextFocus });
     } catch (error: any) {
       console.error("AI study error:", error);
       res.status(500).json({
         error: "Failed to generate study analysis",
+        details: error?.message ?? String(error),
+      });
+    }
+  });
+
+  app.post("/api/ai/deep-dive", requireAuth, aiRateLimit, async (req, res) => {
+    const ai = getAiClientOrNull();
+    if (!ai) {
+      return res.status(503).json({
+        error: "AI disabled",
+        hint: "Set GEMINI_API_KEY to enable AI features.",
+      });
+    }
+
+    const topic = typeof req.body?.topic === "string" ? req.body.topic.trim() : "";
+    const outputLanguage =
+      typeof req.body?.outputLanguage === "string" && req.body.outputLanguage === "fi"
+        ? "fi"
+        : "en";
+    const context =
+      req.body?.context && typeof req.body.context === "object" && !Array.isArray(req.body.context)
+        ? (req.body.context as Record<string, unknown>)
+        : null;
+
+    if (!topic) {
+      return res.status(400).json({ error: "Missing or invalid 'topic'." });
+    }
+
+    try {
+      const response = await ai.models.generateContent({
+        model: geminiModels.insight,
+        contents: buildDeepDivePrompt({
+          topic,
+          outputLanguage,
+          context: {
+            feature: typeof context?.feature === "string" ? (context.feature as any) : undefined,
+            reference: typeof context?.reference === "string" ? context.reference : undefined,
+            note: typeof context?.note === "string" ? context.note : undefined,
+          },
+        }),
+        config: {
+          systemInstruction: deepDiveSystemInstruction,
+        },
+      });
+
+      const raw = response.text ?? "";
+      const { cleanedText, nextFocus } = extractNextFocus(raw);
+      res.json({ text: cleanedText, nextFocus });
+    } catch (error: any) {
+      console.error("AI deep dive error:", error);
+      res.status(500).json({
+        error: "Failed to generate deep dive",
         details: error?.message ?? String(error),
       });
     }
@@ -556,25 +623,43 @@ async function startServer() {
     const ai = getAiClientOrNull();
     if (!ai) return res.status(503).json({ error: "AI disabled", hint: "Set GEMINI_API_KEY." });
   
-    const { reference, sourceText, sourceLanguage, translations } = req.body as {
+    const { reference, sourceText, sourceLanguage, translations, scope, focus } = req.body as {
       reference?: string;
       sourceText?: string;
       sourceLanguage?: string;
       translations?: Array<{ id: string; name: string; text: string }>;
+      scope?: string;
+      focus?: string;
     };
   
     if (!reference?.trim() || !sourceText?.trim() || !Array.isArray(translations) || translations.length === 0) {
       return res.status(400).json({ error: "Missing required fields." });
     }
     const lang = sourceLanguage === "he" ? "he" : "grc";
+    const normalizedScope = scope === "book" || scope === "chapter" ? scope : "verse";
   
     try {
+      const promptBuilder =
+        normalizedScope === "book"
+          ? buildBookStudyPrompt
+          : normalizedScope === "chapter"
+            ? buildChapterStudyPrompt
+            : buildOriginalStudyPrompt;
+
       const response = await ai.models.generateContent({
         model: geminiModels.originalStudy,
-        contents: buildOriginalStudyPrompt({ reference, sourceText, sourceLanguage: lang, translations }),
+        contents: promptBuilder({
+          reference,
+          sourceText,
+          sourceLanguage: lang,
+          translations,
+          focus: typeof focus === "string" ? focus : undefined,
+        }),
         config: { systemInstruction: originalStudySystemInstruction },
       });
-      res.json({ text: response.text ?? "" });
+      const raw = response.text ?? "";
+      const { cleanedText, nextFocus } = extractNextFocus(raw);
+      res.json({ text: cleanedText, nextFocus });
     } catch (error: any) {
       res.status(500).json({ error: "Failed to generate original study", details: error?.message });
     }

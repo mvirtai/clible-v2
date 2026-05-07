@@ -6,16 +6,22 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BookOpenCheck, Download, Languages, Loader2, Sparkles } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 import type { InstalledTranslation } from '../types/bible';
-import type { OriginalStudyResult, OriginalStudyVerse } from '../types/originalStudy';
+import type { OriginalStudyResult, OriginalStudyVerse, StudyScope } from '../types/originalStudy';
 import type { UILanguage } from '../utils/bookNames';
 import { t } from '../utils/i18n';
 import { markdownComponents } from '../utils/markdownComponents';
+import { escapeOrderedListStarts } from '../utils/markdownText';
+import type { NextFocusItem } from '../utils/nextFocus';
+import { NextFocusChips } from './NextFocusChips';
+import { DeepDiveCard } from './DeepDiveCard';
 
 const GREEK_PACK_ID = 'greeksblgnt';
 const HEBREW_PACK_ID = 'heb-leningrad';
 const MAX_TARGETS = 3;
+const STUDY_SCOPES: StudyScope[] = ['verse', 'chapter', 'book'];
 
 function isOriginalLanguage(tr: InstalledTranslation): boolean {
   const l = (tr.language ?? '').toLowerCase().trim();
@@ -36,7 +42,15 @@ export interface OriginalStudyViewProps {
   loading: boolean;
   error: string | null;
   defaultReference: string | null;
-  onStudy: (reference: string, originalId: string, translationIds: string[]) => void;
+  onStudy: (
+    reference: string,
+    originalId: string,
+    translationIds: string[],
+    scope: StudyScope,
+  ) => void;
+  onNextFocusPick?: (item: NextFocusItem) => void;
+  deepDiveText?: string | null;
+  onDeepDiveClose?: () => void;
   onExport?: () => void;
   standalone?: boolean;
 }
@@ -52,6 +66,9 @@ export function OriginalStudyView({
   error,
   defaultReference,
   onStudy,
+  onNextFocusPick,
+  deepDiveText,
+  onDeepDiveClose,
   onExport,
   standalone = false,
 }: OriginalStudyViewProps) {
@@ -73,6 +90,7 @@ export function OriginalStudyView({
   const hebrewInstalled = installedTranslations.some((tr) => tr.id === HEBREW_PACK_ID);
 
   const [reference, setReference] = useState(() => defaultReference?.trim() ?? '');
+  const [scope, setScope] = useState<StudyScope>('verse');
   const [originalId, setOriginalId] = useState<string>(() => originalOptions[0]?.id ?? '');
   const [targetIds, setTargetIds] = useState<string[]>(() => {
     if (activeTranslationId && !isOriginalLanguage({ id: activeTranslationId, name: '', language: '', format: '' })) {
@@ -122,6 +140,28 @@ export function OriginalStudyView({
     !!originalId &&
     targetIds.length > 0 &&
     targetIds.length <= MAX_TARGETS;
+
+  const scopeLabels: Record<StudyScope, string> = {
+    verse: uiLanguage === 'fi' ? 'Jae' : 'Verse',
+    chapter: uiLanguage === 'fi' ? 'Kappale' : 'Chapter',
+    book: uiLanguage === 'fi' ? 'Kirja' : 'Book',
+  };
+
+  const scopeReferenceHint = (() => {
+    if (scope === 'chapter') {
+      return uiLanguage === 'fi'
+        ? 'Kappalehaku: käytä muotoa "Johannes 3" ilman jaenumeroa.'
+        : 'Chapter scope: use a reference like "John 3" without a verse number.';
+    }
+    if (scope === 'book') {
+      return uiLanguage === 'fi'
+        ? 'Kirjahaku: käytä vain kirjan nimeä. Analyysi painottaa rakennetta ja avainkohtia.'
+        : 'Book scope: use only a book name. Analysis focuses on structure and key passages.';
+    }
+    return uiLanguage === 'fi'
+      ? 'Jaehaku: yksittäinen jae tai jaealue toimii parhaiten.'
+      : 'Verse scope: a single verse or short range works best.';
+  })();
 
   const toggleTarget = (id: string) => {
     setTargetIds((prev) => {
@@ -174,6 +214,27 @@ export function OriginalStudyView({
   const renderForm = () => (
     <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm space-y-5">
       <div className="space-y-1">
+        <div className="flex flex-wrap gap-2 pb-2" role="tablist" aria-label="Study scope">
+          {STUDY_SCOPES.map((nextScope) => {
+            const active = scope === nextScope;
+            return (
+              <button
+                key={nextScope}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setScope(nextScope)}
+                className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors ${
+                  active
+                    ? 'border-[#D4A373] bg-[var(--surface-2)] text-[var(--text)]'
+                    : 'border-[var(--border)] text-[var(--muted)] hover:bg-[var(--surface-2)]'
+                }`}
+              >
+                {scopeLabels[nextScope]}
+              </button>
+            );
+          })}
+        </div>
         <label className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
           {m.originalReferenceLabel}
         </label>
@@ -184,6 +245,7 @@ export function OriginalStudyView({
           placeholder={m.originalReferencePlaceholder}
           className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm"
         />
+        <p className="text-xs text-[var(--muted)]">{scopeReferenceHint}</p>
       </div>
 
       <div className="space-y-1">
@@ -250,7 +312,7 @@ export function OriginalStudyView({
         <button
           type="button"
           disabled={!canRun}
-          onClick={() => onStudy(reference.trim(), originalId, targetIds)}
+          onClick={() => onStudy(reference.trim(), originalId, targetIds, scope)}
           className="inline-flex items-center gap-2 rounded-full bg-[#1A1A1A] px-6 py-2.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-40"
         >
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles size={18} />}
@@ -343,10 +405,27 @@ export function OriginalStudyView({
               {m.originalAnalysisHeading}
             </h3>
             <div className="prose prose-sm max-w-none">
-              <ReactMarkdown components={markdownComponents({ invert: false, insightLayout: true })}>
-                {result.analysis}
+              <ReactMarkdown
+                components={markdownComponents({ invert: false, insightLayout: true })}
+                remarkPlugins={[remarkGfm]}
+              >
+                {escapeOrderedListStarts(result.analysis)}
               </ReactMarkdown>
             </div>
+            {onNextFocusPick ? (
+              <NextFocusChips
+                title={uiLanguage === 'fi' ? 'Syvennä seuraavaksi' : 'Next focus'}
+                items={result.nextFocus ?? []}
+                onPick={onNextFocusPick}
+              />
+            ) : null}
+            {deepDiveText && onDeepDiveClose ? (
+              <DeepDiveCard
+                title={uiLanguage === 'fi' ? 'Syvennys' : 'Deep dive'}
+                text={deepDiveText}
+                onClose={onDeepDiveClose}
+              />
+            ) : null}
           </div>
         ) : null}
       </div>

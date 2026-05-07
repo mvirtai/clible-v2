@@ -5,7 +5,7 @@ FROM ${BASE_IMAGE}
 
 LABEL org.opencontainers.image.title="clible-web" \
       org.opencontainers.image.description="Clible Bible study tool – web interface" \
-      org.opencontainers.image.source="https://github.com/vivaldev/clible-v2"
+      org.opencontainers.image.source="https://github.com/mvirtai/clible-v2"
 
 # Base image sets ENTRYPOINT to `clible`; override so npm scripts run normally.
 ENTRYPOINT []
@@ -49,7 +49,7 @@ USER clible
 # Download and parse the core translations into SQLite during the build.
 # This means the container is ready immediately on cold start — no startup delay.
 # If a download fails at build time, CLIBLE_AUTO_SEED retries it on container startup.
-RUN for id in web greeksblgnt fin-1992 fin-stlk eng-darby; do \
+RUN for id in web greeksblgnt fin-1992; do \
       clible seed install "$id" \
         && echo "[pre-seed] installed $id" \
         || echo "[pre-seed] WARNING: $id failed, will retry on startup"; \

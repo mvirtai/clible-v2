@@ -14,7 +14,11 @@ import { TextStats, WordFrequency } from '../types/bible';
 import type { UILanguage } from '../utils/bookNames';
 import { t } from '../utils/i18n';
 import { markdownComponents } from '../utils/markdownComponents';
+import { escapeOrderedListStarts } from '../utils/markdownText';
+import type { NextFocusItem } from '../utils/nextFocus';
 import { WordCloud } from './WordCloud';
+import { NextFocusChips } from './NextFocusChips';
+import { DeepDiveCard } from './DeepDiveCard';
 
 export type AnalyticsMode = 'reference' | 'chapter' | 'book';
 
@@ -23,9 +27,13 @@ interface AnalyticsViewProps {
   nativeStats: TextStats | null;
   nativeFrequency: WordFrequency[];
   toneAnalysis: string | null;
+  toneNextFocus?: NextFocusItem[];
   aiLoading: boolean;
   uiLanguage: UILanguage;
   onModeChange: (mode: AnalyticsMode) => void;
+  onToneNextFocusPick?: (item: NextFocusItem) => void;
+  deepDiveText?: string | null;
+  onDeepDiveClose?: () => void;
   onExport: () => void;
 }
 
@@ -34,9 +42,13 @@ export function AnalyticsView({
   nativeStats,
   nativeFrequency,
   toneAnalysis,
+  toneNextFocus,
   aiLoading,
   uiLanguage,
   onModeChange,
+  onToneNextFocusPick,
+  deepDiveText,
+  onDeepDiveClose,
   onExport,
 }: AnalyticsViewProps) {
   const m = t(uiLanguage);
@@ -158,8 +170,23 @@ export function AnalyticsView({
           ) : toneAnalysis ? (
             <div className="text-lg font-serif leading-relaxed">
               <ReactMarkdown components={markdownComponents({ invert: true, toneLayout: true })}>
-                {toneAnalysis}
+                {escapeOrderedListStarts(toneAnalysis)}
               </ReactMarkdown>
+              {onToneNextFocusPick ? (
+                <NextFocusChips
+                  title={uiLanguage === 'fi' ? 'Syvennä seuraavaksi' : 'Next focus'}
+                  items={toneNextFocus ?? []}
+                  onPick={onToneNextFocusPick}
+                />
+              ) : null}
+              {deepDiveText && onDeepDiveClose ? (
+                <DeepDiveCard
+                  title={uiLanguage === 'fi' ? 'Syvennys' : 'Deep dive'}
+                  text={deepDiveText}
+                  invert
+                  onClose={onDeepDiveClose}
+                />
+              ) : null}
             </div>
           ) : (
             <p className="text-lg font-serif italic leading-relaxed text-gray-400">
