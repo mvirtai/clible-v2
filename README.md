@@ -1,220 +1,146 @@
 # clible
 
-A Bible study web application with full-text search, text analytics, and AI-powered insights. Built as an offline-first tool: Bible translations are seeded from open XML sources into a local SQLite database, so all verse lookups and searches run without any API calls at query time.
+[![CI](https://github.com/mvirtai/clible-v2/actions/workflows/ci.yml/badge.svg)](https://github.com/mvirtai/clible-v2/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-91%25-brightgreen)](#)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Docker](https://img.shields.io/badge/docker-ready-2496ED.svg?logo=docker&logoColor=white)](#)
 
-The project has two interfaces: a **web app** (the primary user interface) and a **CLI tool** (the engine behind the web app, also usable directly).
+Offline-first Bible study tool with full-text search, text analytics, and AI-powered insights. Bible translations are seeded from open XML sources into a local SQLite database, so every verse lookup, search, and analytics call runs without an external API at query time.
+
+The project ships two interfaces:
+
+- A **web app** (the primary user interface): React 19 + Vite frontend, Node.js/Express bridge, deployed as a single Docker image.
+- A **CLI tool** that powers the web app and is also a first-class user surface for power users and scripting.
+
+> **Full documentation:** [https://mvirtai.github.io/clible-v2/](https://mvirtai.github.io/clible-v2/)
 
 ---
 
 ## Features
 
-### Web app
-
-- **Verse lookup** — search by reference (`John 3:16`, `Genesis 1:1-3`, `1 Corinthians 13:4`)
-- **Full-text search** — FTS5-powered search across the whole Bible or scoped to a book, chapter, testament, or verse range; includes occurrence statistics and top-book breakdown
-- **Text analytics** — word frequency, lexical diversity, bigrams, trigrams, and concordance for any reference, chapter, or whole book; compare two translations side-by-side with word-level diffs
-- **AI insights** — Gemini-powered study notes and tone analysis for any passage (rate-limited; requires API key)
-- **Translation management** — install translations from the catalog through the UI
-- **User accounts** — registration, login, and per-user settings (preferred translation, theme)
-- **Export** — download search results or analytics as Markdown, HTML, JSON, CSV, or XML
-
-### CLI tool
-
-The same engine is available as a standalone CLI for power users and scripting:
-
-```bash
-clible verse "John 3:16"
-clible search "grace" --scope book --reference Romans
-clible analytics chapter John 3
-clible analytics compare "Psalm 23" --left web --right kjv
-```
+- **Verse lookup** — references like `John 3:16` or `Genesis 1:1-3` resolved instantly from local SQLite.
+- **FTS5 full-text search** — scoped to whole-Bible, book, chapter, testament, or verse range; with statistics and top-book breakdown.
+- **Text analytics** — word frequency, lexical diversity, n-grams, concordance, and side-by-side translation comparison.
+- **AI insights** — optional Gemini-powered study notes, tone analysis, and original-language study (rate-limited).
+- **User accounts** — registration, login, sessions, and per-user settings (preferred translation, theme).
+- **Export** — Markdown, HTML, JSON, CSV, TXT, and XML output for any verse, search, or analytics command.
 
 ---
 
-## Translations
+## Quick start
 
-Translations are installed from public-domain XML repositories ([seven1m/open-bibles](https://github.com/seven1m/open-bibles), [Beblia/Holy-Bible-XML-Format](https://github.com/Beblia/Holy-Bible-XML-Format)). Run `clible seed available` to see the full catalog.
+```bash
+git clone https://github.com/mvirtai/clible-v2.git
+cd clible-v2
+uv sync --all-groups
 
-Included examples:
+# Seed an English translation (one-time, ~4 MB)
+uv run clible seed install web
 
-| ID | Translation | Language | Format |
-|----|-------------|----------|--------|
-| `web` | World English Bible | English | USFX |
-| `kjv` | King James Version | English | OSIS |
-| `fin-1992` | Finnish Bible 1992 | Finnish | BEBLIA |
-| `fin-biblia-33-38` | Finnish Bible 1933/38 | Finnish | OSIS |
-| `greek` | Greek New Testament | Ancient Greek | BEBLIA |
+# Try the CLI
+uv run clible verse "John 3:16"
+uv run clible search "grace" --scope book --reference Romans
+uv run clible analytics chapter John 3
+```
 
-All 18 Greek variants in the catalog (Textus Receptus, Byzantine, SBL GNT, etc.) are supported.
+For the web app, the development guide, and the deployment guide, see the [documentation site](https://mvirtai.github.io/clible-v2/).
 
 ---
 
 ## Architecture
 
 ```
-Web UI (React/Vite)
+Web UI (React 19 / Vite)
       │ HTTP
-Express server (Node.js/TypeScript)   ← session auth, AI proxy, rate limiting
+Express bridge (Node.js / TypeScript)   ← session auth, AI proxy, rate limiting
       │ child_process.spawn
-Clible CLI (Python)                   ← verse engine, FTS5 search, analytics
+clible CLI (Python 3.12)                ← verse engine, FTS5 search, analytics
       │ sqlite3
-SQLite (clible.db)                    ← seeded from XML; read-only at runtime
+SQLite (clible.db)                      ← seeded from XML; read-only at runtime
       │
-PostgreSQL (Neon)                     ← user accounts, sessions, settings
+PostgreSQL (Neon)                       ← user accounts, sessions, settings
 ```
 
-The Express server is a thin bridge: it sanitises request parameters, spawns `clible` commands with `--json`, and forwards the structured output to the browser. All Bible logic lives in the Python CLI layer; the web layer adds auth, AI, and user state on top.
+The Express layer is a thin bridge: it sanitises request parameters, spawns `clible` subcommands with `--json`, and forwards the structured output to the browser. All Bible logic lives in the Python CLI; the web layer adds auth, AI, and user state on top.
 
-**Key design choices:**
-- **Offline-first** — Bible text is seeded once, then all lookups are local (no API dependency at runtime)
-- **Layered architecture** — UI → Services → Repositories → SQLite; each layer is independently testable
-- **Dependency injection** — no global state or singletons; tests inject in-memory SQLite connections
-- **FTS5** — SQLite full-text search with triggers keeping the index in sync; no external search engine needed
+**Design principles:**
 
-See [docs/architecture/overview.md](docs/architecture/overview.md) and [docs/architecture/adr/](docs/architecture/adr/) for the detailed design and rationale.
+- **Offline-first** — Bible text is seeded once; subsequent lookups never touch the network.
+- **Layered architecture** — UI → Services → Repositories → SQLite, each layer testable in isolation.
+- **Dependency injection** — no global state or singletons; tests inject in-memory connections and mock parsers.
+- **FTS5** — SQLite full-text search with triggers keeping the index in sync; no external search engine.
+
+For the rationale behind the major design choices, see the [Architecture Decision Records](https://mvirtai.github.io/clible-v2/architecture/adr/001-offline-first-sqlite).
 
 ---
 
 ## Tech stack
 
-| Layer | Technology |
-|-------|-----------|
-| Web frontend | React 18, TypeScript, Vite |
-| Web backend | Node.js, Express, TypeScript |
-| CLI | Python 3.12+, Click, Rich |
-| Verse data | SQLite + FTS5 |
-| User data | PostgreSQL (Neon) |
-| AI | Google Gemini (`@google/genai`) |
-| Session storage | `connect-pg-simple` |
-| Container | Docker (single image: CLI + web) |
-| CI/CD | GitHub Actions (lint, test, build, push to Artifact Registry) |
-| Package management | uv (Python), npm (Node) |
+| Layer            | Technology                                            |
+|------------------|-------------------------------------------------------|
+| Web frontend     | React 19, TypeScript, Vite 6, Tailwind CSS 4          |
+| Web backend      | Node.js, Express 4, TypeScript                        |
+| CLI              | Python 3.12+, Click, Rich                             |
+| Verse data       | SQLite + FTS5                                         |
+| User data        | PostgreSQL (Neon)                                     |
+| Sessions         | `express-session` + `connect-pg-simple` (HTTP-only cookie) |
+| AI               | Google Gemini (`@google/genai`)                       |
+| Container        | Docker (single image: CLI + web)                      |
+| CI/CD            | GitHub Actions (lint, test, build, push, docs deploy) |
+| Package managers | uv (Python), npm (Node)                               |
 
 ---
 
-## CLI reference
+## Documentation
 
-### Translations
+The canonical entry point is the [documentation site](https://mvirtai.github.io/clible-v2/). Highlights:
 
-```bash
-clible seed available           # browse the catalog
-clible seed install web         # download and seed a translation (~4 MB)
-clible seed list                # show installed translations
-clible seed remove web          # uninstall
-```
+- [Getting started](https://mvirtai.github.io/clible-v2/guide/getting-started) — install, seed, first commands
+- [CLI reference](https://mvirtai.github.io/clible-v2/cli/analytics) — command examples and output shapes
+- [Architecture overview](https://mvirtai.github.io/clible-v2/architecture/overview) — layers, patterns, ADRs
+- [Web architecture](https://mvirtai.github.io/clible-v2/architecture/web) — Express bridge and request flow
+- [API reference](https://mvirtai.github.io/clible-v2/api/reference) — interactive OpenAPI 3.1 spec
+- [Deployment](https://mvirtai.github.io/clible-v2/guide/deployment) — Cloud Run, Compute Engine, Fly.io, Render
 
-### Verse lookup
-
-```bash
-clible verse "John 3:16"
-clible verse "John 3:16-18"     # verse range
-clible verse "Genesis 1:1" -t kjv
-```
-
-Reference format: `"Book Chapter:Verse"` or `"Book Chapter:Start-End"`.
-
-### Search
-
-```bash
-clible search grace
-clible search love --scope book --reference John
-clible search peace --scope testament --reference NT
-clible search faith --scope chapter --reference "Hebrews 11"
-clible search hope --limit 20
-```
-
-Scope options: `bible` (default), `book`, `testament`, `chapter`, `verse`.
-
-### Analytics
-
-```bash
-clible analytics reference "John 3:16"
-clible analytics chapter John 3 --top 15
-clible analytics book Romans
-clible analytics compare "John 3:16-18" --left web --right kjv
-```
-
-### Export
-
-Any `verse`, `search`, or `analytics` command accepts `--export`:
-
-```bash
-clible verse "Psalm 23:1-6" --export "PATH=~/notes,FILENAME=ps23,FORMAT=md"
-clible search grace --scope book --reference John --export "FORMAT=json"
-clible analytics reference "John 3:16" --export "FORMAT=html"
-```
-
-Formats: `md`, `html`, `json`, `csv`, `txt`, `xml`.
-
-### Multilanguage
-
-Interface and labels are always English. Bible text language is controlled by `-t / --translation`. For analytics stopword filtering, set `CLIBLE_ANALYTICS_LANGUAGE` (supports `en`, `fi`, `grc`, `el`):
-
-```bash
-CLIBLE_ANALYTICS_LANGUAGE=grc clible analytics reference "John 3:16" -t greek
-```
+The docs are versioned in this repo under [`docs-site/`](docs-site/). Source-of-truth Markdown for guides and architecture lives there; the OpenAPI spec lives at [`docs/api/openapi.yml`](docs/api/openapi.yml).
 
 ---
 
 ## Development
 
 ```bash
-git clone <repo-url>
-cd clible-v2
-uv sync --all-groups        # install Python deps
-uv run pytest -v            # run tests (>91% coverage)
-uv run ruff check .         # lint
-uv run ruff format --check .
+uv sync --all-groups              # install Python deps
+uv run pytest -v                  # run the test suite
+uv run ruff check .               # lint
+uv run ruff format --check .      # format check
 ```
 
-Run the web app locally:
+For the web app:
 
 ```bash
 cd src/clible-web
 npm install
-npm run dev    # Vite dev server + Express, with /api/* proxy
+npm run dev                       # Vite + Express, with /api/* proxy
 ```
 
-See [docs/guides/development.md](docs/guides/development.md) for the full development workflow.
+For the docs site:
+
+```bash
+cd docs-site
+npm install
+npm run dev                       # http://localhost:5173
+```
+
+See the [development guide](https://mvirtai.github.io/clible-v2/guide/development) for the full workflow.
 
 ---
 
-## Configuration
+## Contributing
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `CLIBLE_DB_PATH` | `{data_dir}/clible.db` | SQLite database path |
-| `CLIBLE_DATA_DIR` | `src/clible/data` | Data directory |
-| `CLIBLE_ANALYTICS_LANGUAGE` | `en` | Stopword language for analytics |
-
-Web-specific (required for the web app):
-
-| Variable | Description |
-|----------|-------------|
-| `GEMINI_API_KEY` | Google Gemini API key (AI features; optional) |
-| `SESSION_SECRET` | 64-char hex string for session signing |
-| `DATABASE_URL` | PostgreSQL connection string |
+Contributions are welcome — please read the [contributing guide](https://mvirtai.github.io/clible-v2/contributing) before opening a PR. The architectural rules listed there are enforced in code review.
 
 ---
 
-## Documentation
+## License
 
-- [docs/PROJECT_OVERVIEW.md](docs/PROJECT_OVERVIEW.md) — implementation status and file map
-- [ROADMAP.md](ROADMAP.md) — current status and feature direction
-- [docs/architecture/overview.md](docs/architecture/overview.md) — layered architecture and design patterns
-- [docs/architecture/adr/](docs/architecture/adr/) — Architecture Decision Records
-- [docs/api/openapi.yml](docs/api/openapi.yml) — OpenAPI 3.1 spec for the web API
-- [docs/guides/development.md](docs/guides/development.md) — local setup and workflow
-- [NOTICE.md](NOTICE.md) — data sources and licensed translation notices
-
----
-
-## Troubleshooting
-
-**`Error: Unknown translation: <id>`** — run `clible seed available` for the valid ID list.
-
-**`Error: Translation '<id>' is already installed`** — remove it first with `clible seed remove <id>` if you want to reinstall.
-
-**`Verse(s) not found`** — check the reference format (`Book Chapter:Verse`), confirm a translation is installed (`clible seed list`), and pass `-t <id>` to specify which one.
-
-**Analytics results are sparse** — analyze a larger scope (`analytics chapter` or `analytics book`), or set `CLIBLE_ANALYTICS_LANGUAGE` to match the Bible text language.
+Bible translation notices and data sources are listed in [`NOTICE.md`](NOTICE.md).

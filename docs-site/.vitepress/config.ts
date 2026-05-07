@@ -1,7 +1,5 @@
 import { defineConfig } from "vitepress";
 
-const base = process.env.DOCS_BASE ?? "/clible-v2/";
-
 export default defineConfig({
   title: "clible",
   description:
@@ -12,10 +10,10 @@ export default defineConfig({
 
   // GitHub Pages serves the site under the repo path.
   // Override via env var when deploying to a custom domain.
-  base,
+  base: process.env.DOCS_BASE ?? "/clible-v2/",
 
   head: [
-    ["link", { rel: "icon", href: `${base}favicon.svg`, type: "image/svg+xml" }],
+    ["link", { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" }],
     ["meta", { name: "theme-color", content: "#2c3e50" }],
   ],
 
