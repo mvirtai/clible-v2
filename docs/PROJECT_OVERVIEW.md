@@ -1,8 +1,10 @@
 # clible v2 — Project Overview
 
-**Last updated:** 2026-04-29
+**Last updated:** 2026-05-07
 
 This document provides a comprehensive picture of the clible v2 application: what it is, its architecture, current implementation status, and where all the pieces live.
+
+> The same content is published as a navigable page in the [VitePress docs site](https://mvirtai.github.io/clible-v2/architecture/project-overview). This Markdown file remains the source-of-truth copy that ships with the repository.
 
 ---
 
@@ -78,7 +80,7 @@ clible is a command-line Bible study tool. The v2 rebuild aims for:
 | **CI** | `.github/workflows/ci.yml` | uv, ruff, pytest on push/PR |
 | **Task automation** | `Taskfile.yml` | lint/test/check + Docker build/push tasks |
 | **Dependencies** | `pyproject.toml` | click, rich, requests, ruff, pytest, pytest-mock |
-| **Web UI** | `src/clible-web/` | React/Vite + Express bridge; verse lookup, FTS5 search, analytics, export, AI insights, JWT auth |
+| **Web UI** | `src/clible-web/` | React/Vite + Express bridge; verse lookup, FTS5 search, analytics, export, AI insights, session-cookie auth |
 | **Analytics scopes (web)** | `src/clible-web/services/bibleService.ts` | Reference/Chapter/Book scope arg-building with correct reference parsing |
 | **Web DB (PostgreSQL)** | `src/clible-web/db/` | `pg` Pool singleton (`pool.ts`), migration runner (`migrate.ts`), initial schema (`migrations/001_users_sessions_settings.sql`) |
 | **Web sessions** | `src/clible-web/server.ts` | `connect-pg-simple` session store backed by the PostgreSQL pool |
@@ -161,8 +163,23 @@ clible-v2/
 │   ├── test_parsers/
 │   ├── test_services/
 │   └── fixtures/             # sample.usfx.xml, etc.
+├── docs-site/                  # VitePress documentation site (deployed to GitHub Pages)
+│   ├── .vitepress/config.ts
+│   ├── index.md
+│   ├── guide/                  # getting-started, development, deployment, search
+│   ├── cli/                    # per-command CLI reference
+│   ├── architecture/           # overview, web, ADRs, project-overview (mirror of this file)
+│   └── api/reference.md        # Redoc renders docs/api/openapi.yml
 ├── docs/
-│   └── PROJECT_OVERVIEW.md   # This file
+│   ├── PROJECT_OVERVIEW.md     # This file (also mirrored in docs-site/architecture)
+│   ├── api/openapi.yml         # OpenAPI 3.1 spec — single source of truth
+│   ├── architecture/           # overview, web-architecture, ADRs (mirrored in docs-site)
+│   ├── guides/                 # development, deployment, search (mirrored in docs-site)
+│   ├── CLOUD_SQL_SETUP.md
+│   ├── GCLOUD_CHEATSHEET.md
+│   ├── SECURE_COMMIT_STRATEGY.md
+│   ├── API_KEY_MANAGEMENT.md
+│   └── archive/                # historical notes, not source of truth
 ├── main.py                   # Launches cli.main()
 ├── pyproject.toml
 └── .github/workflows/ci.yml
@@ -214,9 +231,11 @@ Index: `idx_verses_lookup` (redundant `idx_verses_search` on `text` removed in m
 
 ## Related Documents
 
-- **README.md** — User-facing usage and installation
+- **README.md** — GitHub landing page; quick start and links to the docs site
 - **ROADMAP.md** — Current status and feature direction
+- **docs-site/** — VitePress documentation site (canonical reading experience)
 - **docs/architecture/overview.md** — Architecture layers, patterns, and ADR index
+- **docs/architecture/adr/** — Decision records 001–004
 - **docs/api/openapi.yml** — OpenAPI 3.1 spec for the web API
 - **docs/archive/PLAN.md** — Original phase plan (archived; superseded by ROADMAP.md)
 
