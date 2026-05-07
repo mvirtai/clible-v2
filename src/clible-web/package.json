@@ -47,6 +47,8 @@
     "@types/express-session": "^1.18.2",
     "@types/node": "^22.14.0",
     "@types/pg": "^8.20.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
     "autoprefixer": "^10.4.21",
     "happy-dom": "^20.9.0",
     "jsdom": "^29.1.1",

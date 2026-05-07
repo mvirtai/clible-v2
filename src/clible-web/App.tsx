@@ -12,6 +12,7 @@ import {
   Globe,
   Activity,
   LogOut,
+  Shield,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -39,6 +40,7 @@ import { CompareView } from './components/CompareView';
 import { OriginalStudyView } from './components/OriginalStudyView';
 import { TranslationModal } from './components/TranslationModal';
 import { SettingsPanel } from './components/SettingsPanel';
+import { AdminView } from './components/AdminView';
 import { useAuth } from './AuthContext';
 import { LoginView } from './views/LoginView';
 import { useSettings } from './user/SettingsContext';
@@ -61,7 +63,7 @@ function inferUILanguageFromTranslation(language: string | undefined): 'en' | 'f
   return null;
 }
 
-type ViewMode = 'reader' | 'analytics' | 'search' | 'compare' | 'original';
+type ViewMode = 'reader' | 'analytics' | 'search' | 'compare' | 'original' | 'admin';
 type SearchType = 'verse' | 'search';
 
 export default function App() {
@@ -645,6 +647,15 @@ export default function App() {
             >
               <Settings size={20} />
             </button>
+            {user.isAdmin && (
+              <button
+                onClick={() => setViewMode('admin')}
+                className="p-2 hover:bg-[#F5F5F5] rounded-full transition-colors"
+                title="Admin"
+              >
+                <Shield size={20} />
+              </button>
+            )}
             <div className="flex items-center gap-2 pl-2 border-l border-[#E5E5E5]">
               <span className="text-sm text-[#8E8E8E]">{user!.username}</span>
               <button
@@ -661,7 +672,9 @@ export default function App() {
 
       <main
         className={`mx-auto px-6 py-12 ${
-          viewMode === 'compare' || viewMode === 'original' ? 'max-w-5xl' : 'max-w-4xl'
+          viewMode === 'compare' || viewMode === 'original' || viewMode === 'admin'
+            ? 'max-w-5xl'
+            : 'max-w-4xl'
         }`}
       >
         <div className="space-y-4 mb-8">
@@ -686,7 +699,7 @@ export default function App() {
             error={null}
           />
 
-          {viewMode !== 'compare' && viewMode !== 'original' && (
+          {viewMode !== 'compare' && viewMode !== 'original' && viewMode !== 'admin' && (
           <SavedSearchesList
             uiLanguage={uiLang}
             searches={savedSearches}
@@ -707,7 +720,7 @@ export default function App() {
           )}
         </div>
 
-        {viewMode !== 'compare' && viewMode !== 'original' && (
+        {viewMode !== 'compare' && viewMode !== 'original' && viewMode !== 'admin' && (
         <div className="flex gap-1 bg-[#F5F5F5] p-1 rounded-xl w-fit mb-8">
           <button
             type="button"
@@ -730,6 +743,16 @@ export default function App() {
         )}
 
         <AnimatePresence mode="wait">
+          {viewMode === 'admin' && (
+            <motion.div
+              key="admin"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+            >
+              <AdminView currentUserId={user.id} />
+            </motion.div>
+          )}
           {viewMode === 'reader' && (
             <motion.div key="reader" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
               <ReaderView

@@ -12,6 +12,27 @@ declare module 'express-session' {
 
 export const authRouter = Router();
 
+type PublicUser = {
+  id: string;
+  username: string;
+  aiAccess: boolean;
+  isAdmin: boolean;
+};
+
+function toPublicUser(row: {
+  id: string;
+  username: string;
+  ai_access?: boolean;
+  is_admin?: boolean;
+}): PublicUser {
+  return {
+    id: row.id,
+    username: row.username,
+    aiAccess: Boolean(row.ai_access),
+    isAdmin: Boolean(row.is_admin),
+  };
+}
+
 // POST /api/auth/register
 authRouter.post('/register', async (req, res) => {
   const { username, password } = req.body;
@@ -41,7 +62,7 @@ authRouter.post('/register', async (req, res) => {
   );
 
   req.session.userId = id;
-  res.status(201).json({ id, username });
+  res.status(201).json({ id, username, aiAccess: false, isAdmin: false } satisfies PublicUser);
 });
 
 // POST /api/auth/login
@@ -52,7 +73,12 @@ authRouter.post('/login', async (req, res) => {
     id: string;
     username: string;
     password_hash: string;
-  }>('SELECT id, username, password_hash FROM users WHERE username = $1', [username]);
+    ai_access: boolean;
+    is_admin: boolean;
+  }>(
+    'SELECT id, username, password_hash, ai_access, is_admin FROM users WHERE username = $1',
+    [username],
+  );
 
   const user = rows[0];
 
@@ -67,7 +93,7 @@ authRouter.post('/login', async (req, res) => {
   }
 
   req.session.userId = user.id;
-  res.json({ id: user.id, username: user.username });
+  res.json(toPublicUser(user));
 });
 
 // POST /api/auth/logout
@@ -84,8 +110,13 @@ authRouter.get('/me', async (req, res) => {
     return res.status(401).json({ error: 'Not authenticated.' });
   }
 
-  const { rows } = await pool.query<{ id: string; username: string }>(
-    'SELECT id, username FROM users WHERE id = $1',
+  const { rows } = await pool.query<{
+    id: string;
+    username: string;
+    ai_access: boolean;
+    is_admin: boolean;
+  }>(
+    'SELECT id, username, ai_access, is_admin FROM users WHERE id = $1',
     [req.session.userId],
   );
   const user = rows[0];
@@ -95,7 +126,7 @@ authRouter.get('/me', async (req, res) => {
     return res.status(401).json({ error: 'User not found.' });
   }
 
-  res.json(user);
+  res.json(toPublicUser(user));
 });
 
 // (user settings routes live in src/clible-web/user/settings_routes.ts)

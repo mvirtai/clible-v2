@@ -1,6 +1,8 @@
 import { useState, FormEvent } from 'react';
 
-type Props = { onSuccess: (user: { id: string; username: string }) => void };
+type Props = {
+  onSuccess: (user: { id: string; username: string; aiAccess: boolean; isAdmin: boolean }) => void;
+};
 
 export function LoginView({ onSuccess }: Props) {
     const [mode, setMode] = useState<"login" | "register">("login");

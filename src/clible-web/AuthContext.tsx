@@ -1,11 +1,22 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
-type User = { id: string; username: string} | null;
+/**
+ * Authenticated user information as returned by GET /api/auth/me.
+ *
+ * Purpose: keep UI decisions (e.g. admin affordances, AI buttons) aligned with
+ * server-side authorization while keeping sensitive fields off the client.
+ */
+type User = {
+  id: string;
+  username: string;
+  aiAccess: boolean;
+  isAdmin: boolean;
+} | null;
 
 type AuthContextType = {
     user: User;
     loading: boolean;
-    login: (user: { id: string; username: string }) => void;
+    login: (user: { id: string; username: string; aiAccess: boolean; isAdmin: boolean }) => void;
     logout: () => Promise<void>;
 };
 
@@ -23,7 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode}) {
             .finally(() => setLoading(false))
     }, []);
 
-    const login = (u: { id: string; username: string }) => setUser(u);
+    const login = (u: { id: string; username: string; aiAccess: boolean; isAdmin: boolean }) => setUser(u);
 
     const logout = async () => {
         await fetch("/api/auth/logout", { method: "POST" });
