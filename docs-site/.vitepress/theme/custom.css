@@ -1,0 +1,6 @@
+/* Redoc renders its own typography; pin its container to a comfortable width
+   and remove VitePress's default page padding so the spec uses the full canvas. */
+.redoc-host {
+  margin: 0 auto;
+  max-width: 1200px;
+}
