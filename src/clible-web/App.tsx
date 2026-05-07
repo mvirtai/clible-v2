@@ -23,7 +23,8 @@ import {
   WordFrequency,
 } from './types/bible';
 import type { CompareResult } from './types/compare';
-import type { OriginalStudyResult } from './types/originalStudy';
+import type { OriginalStudyResult, StudyScope } from './types/originalStudy';
+import type { NextFocusItem } from './utils/nextFocus';
 import type { SearchResponse } from './types/search';
 import type { SearchQueryOptions, SearchHistoryEntry, SavedSearchRow } from './types/searchQuery';
 import { bibleRepository } from './repositories/bibleRepository';
@@ -80,12 +81,16 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<string[]>([]);
   const [aiInsight, setAiInsight] = useState<string | null>(null);
+  const [aiInsightNextFocus, setAiInsightNextFocus] = useState<NextFocusItem[]>([]);
+  const [aiInsightDeepDive, setAiInsightDeepDive] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('reader');
   const [searchType, setSearchType] = useState<SearchType>('verse');
   const [analyticsMode, setAnalyticsMode] = useState<AnalyticsMode>('reference');
   const [toneAnalysis, setToneAnalysis] = useState<string | null>(null);
+  const [toneNextFocus, setToneNextFocus] = useState<NextFocusItem[]>([]);
+  const [toneDeepDive, setToneDeepDive] = useState<string | null>(null);
   const [installedTranslations, setInstalledTranslations] = useState<InstalledTranslation[]>([]);
   const [availableTranslations, setAvailableTranslations] = useState<AvailableTranslation[]>([]);
   const [loadingAvailableTranslations, setLoadingAvailableTranslations] = useState(false);
@@ -111,6 +116,7 @@ export default function App() {
   const [originalResult, setOriginalResult] = useState<OriginalStudyResult | null>(null);
   const [originalLoading, setOriginalLoading] = useState(false);
   const [originalError, setOriginalError] = useState<string | null>(null);
+  const [originalDeepDive, setOriginalDeepDive] = useState<string | null>(null);
   const [exportContext, setExportContext] = useState<{
     cmd: "verse" | "search" | "analytics";
     args: string;
@@ -358,9 +364,30 @@ export default function App() {
     setAiLoading(true);
     try {
       const insight = await bibleService.getAiInsight(result);
-      setAiInsight(insight);
+      setAiInsight(insight.text);
+      setAiInsightNextFocus(insight.nextFocus ?? []);
+      setAiInsightDeepDive(null);
     } catch (err) {
       setAiInsight(err instanceof Error ? err.message : shell.errInsightsFailed);
+      setAiInsightNextFocus([]);
+      setAiInsightDeepDive(null);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleAiInsightFocus = async (item: NextFocusItem) => {
+    if (!result) return;
+    setAiLoading(true);
+    try {
+      const dd = await bibleService.getAiDeepDive({
+        topic: item.label,
+        outputLanguage: uiLang,
+        context: { feature: "insight", reference: result.reference },
+      });
+      setAiInsightDeepDive(dd.text);
+    } catch (err) {
+      setAiInsightDeepDive(err instanceof Error ? err.message : shell.errInsightsFailed);
     } finally {
       setAiLoading(false);
     }
@@ -392,15 +419,38 @@ export default function App() {
       setNativeFrequency(frequency);
       try {
         const tone = await bibleService.getAiTone(result.text);
-        setToneAnalysis(tone);
+        setToneAnalysis(tone.text);
+        setToneNextFocus(tone.nextFocus ?? []);
+        setToneDeepDive(null);
       } catch (err) {
         console.warn('AI tone unavailable:', err);
         setToneAnalysis(err instanceof Error ? err.message : shell.errAiToneUnavailable);
+        setToneNextFocus([]);
+        setToneDeepDive(null);
       }
     } catch (err) {
       console.error('Analytics error:', err);
       setNativeStats(bibleService.calculateStats(result.text));
       setNativeFrequency(bibleService.calculateWordFrequency(result.text));
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleToneFocus = async (item: NextFocusItem) => {
+    if (!result) return;
+    if (!toneAnalysis) return;
+    setAiLoading(true);
+    try {
+      const dd = await bibleService.getAiDeepDive({
+        topic: item.label,
+        outputLanguage: uiLang,
+        context: { feature: "tone", reference: result.reference },
+      });
+      setToneDeepDive(dd.text);
+    } catch (err) {
+      console.warn('AI tone unavailable:', err);
+      setToneDeepDive(err instanceof Error ? err.message : shell.errAiToneUnavailable);
     } finally {
       setAiLoading(false);
     }
@@ -441,7 +491,9 @@ export default function App() {
   const handleOriginalStudy = async (
     ref: string,
     originalId: string,
-    translationIds: string[]
+    translationIds: string[],
+    scope: StudyScope,
+    focus?: string,
   ) => {
     setOriginalLoading(true);
     setOriginalError(null);
@@ -450,12 +502,16 @@ export default function App() {
         ref,
         originalId,
         translationIds,
-        installedTranslations
+        installedTranslations,
+        scope,
+        focus,
       );
       setOriginalResult(data);
+      setOriginalDeepDive(null);
     } catch (err: unknown) {
       setOriginalResult(null);
       setOriginalError(err instanceof Error ? err.message : shell.errUnexpected);
+      setOriginalDeepDive(null);
     } finally {
       setOriginalLoading(false);
     }
@@ -680,8 +736,12 @@ export default function App() {
                 result={result}
                 uiLanguage={settings?.uiLanguage ?? 'en'}
                 aiInsight={aiInsight}
+                aiNextFocus={aiInsightNextFocus}
                 aiLoading={aiLoading}
                 onAiInsight={handleAiInsight}
+                onAiNextFocusPick={handleAiInsightFocus}
+                deepDiveText={aiInsightDeepDive}
+                onDeepDiveClose={() => setAiInsightDeepDive(null)}
                 onExport={() => {
                   if (result && settings?.translationId) {
                     triggerExport(
@@ -731,9 +791,13 @@ export default function App() {
                 nativeStats={nativeStats}
                 nativeFrequency={nativeFrequency}
                 toneAnalysis={toneAnalysis}
+                toneNextFocus={toneNextFocus}
                 aiLoading={aiLoading}
                 uiLanguage={uiLang}
                 onModeChange={(nextMode) => void handleAnalytics(nextMode)}
+                onToneNextFocusPick={handleToneFocus}
+                deepDiveText={toneDeepDive}
+                onDeepDiveClose={() => setToneDeepDive(null)}
                 onExport={() => {
                   if (!settings?.translationId) return;
                   if (!result?.reference) return;
@@ -819,9 +883,27 @@ export default function App() {
                 loading={originalLoading}
                 error={originalError}
                 defaultReference={result?.reference ?? null}
-                onStudy={(ref, originalId, translationIds) =>
-                  void handleOriginalStudy(ref, originalId, translationIds)
+                onStudy={(ref, originalId, translationIds, scope) =>
+                  void handleOriginalStudy(ref, originalId, translationIds, scope)
                 }
+                onNextFocusPick={(item) => {
+                  if (!originalResult) return;
+                  setOriginalLoading(true);
+                  setOriginalError(null);
+                  void bibleService
+                    .getAiDeepDive({
+                      topic: item.label,
+                      outputLanguage: uiLang,
+                      context: { feature: "original-study", reference: originalResult.reference },
+                    })
+                    .then((dd) => setOriginalDeepDive(dd.text))
+                    .catch((e: unknown) =>
+                      setOriginalDeepDive(e instanceof Error ? e.message : shell.errUnexpected),
+                    )
+                    .finally(() => setOriginalLoading(false));
+                }}
+                deepDiveText={originalDeepDive}
+                onDeepDiveClose={() => setOriginalDeepDive(null)}
                 onExport={() => {
                   if (!originalResult) return;
                   const ref = originalResult.reference.trim();
@@ -900,14 +982,21 @@ export default function App() {
       <footer className="max-w-5xl mx-auto px-6 py-12 border-t border-[#F5F5F5] mt-24">
         <div className="flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex items-center gap-2 text-[#8E8E8E] text-sm">
-            <Terminal size={14} /><span>{shell.footerInspired}</span>
+            <Terminal size={14} /><span>{shell.footerCopyright({ year: new Date().getFullYear() })}</span>
           </div>
           <div className="flex gap-8 text-sm font-medium text-[#8E8E8E]">
-            <a href="#" className="hover:text-[#1A1A1A] transition-colors">{shell.footerDocumentation}</a>
-            <a href="#" className="hover:text-[#1A1A1A] transition-colors">{shell.footerApi}</a>
-            <a href="#" className="hover:text-[#1A1A1A] transition-colors">{shell.footerGithub}</a>
+            <a href="/docs" className="hover:text-[#1A1A1A] transition-colors">{shell.footerDocumentation}</a>
+            <a href="/docs#api" className="hover:text-[#1A1A1A] transition-colors">{shell.footerApi}</a>
+            <a
+              href="https://github.com/mvirtai/clible-v2"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-[#1A1A1A] transition-colors"
+            >
+              {shell.footerGithub}
+            </a>
           </div>
-          <div className="text-[#8E8E8E] text-xs font-mono">v2.0.0-WEB</div>
+          <div className="text-[#8E8E8E] text-xs font-mono">v{__APP_VERSION__}</div>
         </div>
       </footer>
     </div>

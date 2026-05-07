@@ -5,13 +5,21 @@ import type { UILanguage } from '../utils/bookNames';
 import { formatReferenceForDisplay } from '../utils/bookNames';
 import { t, verseAriaLabel } from '../utils/i18n';
 import { markdownComponents } from '../utils/markdownComponents';
+import { escapeOrderedListStarts } from '../utils/markdownText';
+import type { NextFocusItem } from '../utils/nextFocus';
+import { NextFocusChips } from './NextFocusChips';
+import { DeepDiveCard } from './DeepDiveCard';
 
 interface ReaderViewProps {
   result: BibleResponse | null;
   uiLanguage: UILanguage;
   aiInsight: string | null;
+  aiNextFocus?: NextFocusItem[];
   aiLoading: boolean;
   onAiInsight: () => void;
+  onAiNextFocusPick?: (item: NextFocusItem) => void;
+  deepDiveText?: string | null;
+  onDeepDiveClose?: () => void;
   onExport: () => void;
 }
 
@@ -19,8 +27,12 @@ export function ReaderView({
   result,
   uiLanguage,
   aiInsight,
+  aiNextFocus,
   aiLoading,
   onAiInsight,
+  onAiNextFocusPick,
+  deepDiveText,
+  onDeepDiveClose,
   onExport,
 }: ReaderViewProps) {
   const m = t(uiLanguage);
@@ -109,8 +121,22 @@ export function ReaderView({
         ) : aiInsight ? (
           <div className="max-w-none font-sans">
             <ReactMarkdown components={markdownComponents({ invert: false, insightLayout: true })}>
-              {aiInsight}
+              {escapeOrderedListStarts(aiInsight)}
             </ReactMarkdown>
+            {onAiNextFocusPick ? (
+              <NextFocusChips
+                title={uiLanguage === 'fi' ? 'Syvennä seuraavaksi' : 'Next focus'}
+                items={aiNextFocus ?? []}
+                onPick={onAiNextFocusPick}
+              />
+            ) : null}
+            {deepDiveText && onDeepDiveClose ? (
+              <DeepDiveCard
+                title={uiLanguage === 'fi' ? 'Syvennys' : 'Deep dive'}
+                text={deepDiveText}
+                onClose={onDeepDiveClose}
+              />
+            ) : null}
           </div>
         ) : (
           <p className="text-[#8E8E8E] text-sm italic">{m.readerAiPlaceholder}</p>
