@@ -1,5 +1,5 @@
 import type { InstalledTranslation } from '../types/bible';
-import type { OriginalStudyTranslation, OriginalStudyVerse } from '../types/originalStudy';
+import type { OriginalStudyTranslation, OriginalStudyVerse, StudyScope } from '../types/originalStudy';
 
 export interface OriginalStudyPayloadTranslation {
   id: string;
@@ -9,9 +9,11 @@ export interface OriginalStudyPayloadTranslation {
 
 export interface OriginalStudyPayload {
   reference: string;
+  scope: StudyScope;
   sourceText: string;
   sourceLanguage: 'grc' | 'he';
   translations: OriginalStudyPayloadTranslation[];
+  focus?: string;
 }
 
 export function inferOriginalSourceLanguage(
@@ -25,12 +27,14 @@ export function inferOriginalSourceLanguage(
 
 export function buildOriginalStudyPayload(params: {
   reference: string;
+  scope: StudyScope;
   sourceLanguage: 'grc' | 'he';
   originalVerses: OriginalStudyVerse[];
   uniqueTargets: string[];
   lookups: Array<Record<string, unknown>>;
   installed: InstalledTranslation[];
   mapLookupToVerses: (data: Record<string, unknown>) => OriginalStudyVerse[];
+  focus?: string;
 }): {
   payload: OriginalStudyPayload;
   translations: OriginalStudyTranslation[];
@@ -61,9 +65,11 @@ export function buildOriginalStudyPayload(params: {
   return {
     payload: {
       reference: params.reference,
+      scope: params.scope,
       sourceText,
       sourceLanguage: params.sourceLanguage,
       translations: payloadTranslations,
+      ...(params.focus?.trim() ? { focus: params.focus.trim() } : {}),
     },
     translations,
   };

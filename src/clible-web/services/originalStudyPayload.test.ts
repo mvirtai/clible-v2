@@ -45,6 +45,7 @@ describe('buildOriginalStudyPayload', () => {
     const originalVerses = mapLookupToVerses(lookups[0]);
     const out = buildOriginalStudyPayload({
       reference: 'John 3:16',
+      scope: 'verse',
       sourceLanguage: 'grc',
       originalVerses,
       uniqueTargets: ['fin-1992', 'web'],
@@ -54,6 +55,7 @@ describe('buildOriginalStudyPayload', () => {
     });
 
     expect(out.payload.reference).toBe('John 3:16');
+    expect(out.payload.scope).toBe('verse');
     expect(out.payload.sourceText).toContain('ΟΥΤΩΣ');
     expect(out.payload.translations.map((t) => t.id)).toEqual(['fin-1992', 'web']);
     expect(out.translations.map((t) => t.id)).toEqual(['fin-1992', 'web']);
@@ -67,6 +69,7 @@ describe('buildOriginalStudyPayload', () => {
     const originalVerses = mapLookupToVerses(lookups[0]);
     const out = buildOriginalStudyPayload({
       reference: 'John 3:16',
+      scope: 'chapter',
       sourceLanguage: 'grc',
       originalVerses,
       uniqueTargets: ['web'],
@@ -82,6 +85,7 @@ describe('buildOriginalStudyPayload', () => {
     expect(() =>
       buildOriginalStudyPayload({
         reference: 'John 3:16',
+        scope: 'book',
         sourceLanguage: 'grc',
         originalVerses: [{ book_name: 'JHN', chapter: 3, verse: 16, text: '   ' }],
         uniqueTargets: ['web'],
