@@ -1,10 +1,8 @@
 # clible v2 — Project Overview
 
-**Last updated:** 2026-05-07
+**Last updated:** 2026-04-29
 
 This document provides a comprehensive picture of the clible v2 application: what it is, its architecture, current implementation status, and where all the pieces live.
-
-> The same content is published as a navigable page in the [VitePress docs site](https://mvirtai.github.io/clible-v2/architecture/project-overview). This Markdown file remains the source-of-truth copy that ships with the repository.
 
 ---
 
@@ -163,23 +161,22 @@ clible-v2/
 │   ├── test_parsers/
 │   ├── test_services/
 │   └── fixtures/             # sample.usfx.xml, etc.
-├── docs-site/                  # VitePress documentation site (deployed to GitHub Pages)
+├── docs-site/                # VitePress documentation site (you are reading it)
 │   ├── .vitepress/config.ts
 │   ├── index.md
-│   ├── guide/                  # getting-started, development, deployment, search
-│   ├── cli/                    # per-command CLI reference
-│   ├── architecture/           # overview, web, ADRs, project-overview (mirror of this file)
-│   └── api/reference.md        # Redoc renders docs/api/openapi.yml
-├── docs/
-│   ├── PROJECT_OVERVIEW.md     # This file (also mirrored in docs-site/architecture)
-│   ├── api/openapi.yml         # OpenAPI 3.1 spec — single source of truth
-│   ├── architecture/           # overview, web-architecture, ADRs (mirrored in docs-site)
-│   ├── guides/                 # development, deployment, search (mirrored in docs-site)
+│   ├── guide/                # getting-started, development, deployment, search
+│   ├── cli/                  # per-command CLI reference
+│   ├── architecture/         # overview, web, ADRs, project-overview (this file)
+│   └── api/                  # OpenAPI reference embedded via Redoc
+├── docs/                     # Source-of-truth documents the docs site reads from
+│   ├── api/openapi.yml
+│   ├── architecture/         # legacy (mirrored in docs-site/architecture)
+│   ├── guides/               # legacy (mirrored in docs-site/guide)
+│   ├── PROJECT_OVERVIEW.md   # legacy (mirrored as architecture/project-overview)
 │   ├── CLOUD_SQL_SETUP.md
 │   ├── GCLOUD_CHEATSHEET.md
 │   ├── SECURE_COMMIT_STRATEGY.md
-│   ├── API_KEY_MANAGEMENT.md
-│   └── archive/                # historical notes, not source of truth
+│   └── archive/              # historical notes, not source of truth
 ├── main.py                   # Launches cli.main()
 ├── pyproject.toml
 └── .github/workflows/ci.yml
@@ -231,13 +228,11 @@ Index: `idx_verses_lookup` (redundant `idx_verses_search` on `text` removed in m
 
 ## Related Documents
 
-- **README.md** — GitHub landing page; quick start and links to the docs site
-- **ROADMAP.md** — Current status and feature direction
-- **docs-site/** — VitePress documentation site (canonical reading experience)
-- **docs/architecture/overview.md** — Architecture layers, patterns, and ADR index
-- **docs/architecture/adr/** — Decision records 001–004
-- **docs/api/openapi.yml** — OpenAPI 3.1 spec for the web API
-- **docs/archive/PLAN.md** — Original phase plan (archived; superseded by ROADMAP.md)
+- **[README.md](https://github.com/vivaldev/clible-v2/blob/main/README.md)** — GitHub landing
+- **[Roadmap](/roadmap)** — Current status and feature direction
+- **[Architecture overview](/architecture/overview)** — Layers, patterns, and ADR index
+- **[API reference](/api/reference)** — Interactive OpenAPI 3.1 spec for the web API
+- **`docs/archive/PLAN.md`** — Original phase plan (archived; superseded by the roadmap)
 
 ---
 
