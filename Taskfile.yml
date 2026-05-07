@@ -40,6 +40,52 @@ tasks:
     cmds:
       - npm run test
 
+  web-prompt-print:
+    desc: Print the exact Gemini prompt payload (systemInstruction + contents)
+    deps: [web-install]
+    dir: src/clible-web
+    vars:
+      MODE: '{{default "original-study" .MODE}}'
+      SCOPE: '{{default "verse" .SCOPE}}'
+      REF: '{{default "John 3:16" .REF}}'
+      SOURCE_LANG: '{{default "grc" .SOURCE_LANG}}'
+      SOURCE_TEXT: '{{default "" .SOURCE_TEXT}}'
+      SOURCE_ID: '{{default "greeksblgnt" .SOURCE_ID}}'
+      PASSAGE: '{{default "" .PASSAGE}}'
+      TRANSLATION_TEXT: '{{default "" .TRANSLATION_TEXT}}'
+      TRANSLATION_ID: '{{default "fin-1992" .TRANSLATION_ID}}'
+    cmds:
+      - |
+        set -eu
+        if [ "{{.MODE}}" = "insight" ] || [ "{{.MODE}}" = "tone" ]; then
+          if [ -z "{{.PASSAGE}}" ]; then
+            echo "Usage: task web-prompt-print MODE={{.MODE}} PASSAGE='...'"
+            exit 1
+          fi
+          npm run prompt:print -- --mode "{{.MODE}}" --passage "{{.PASSAGE}}"
+          exit 0
+        fi
+        if [ "{{.MODE}}" = "study" ]; then
+          npm run prompt:print -- \
+            --mode study \
+            --reference "{{.REF}}" \
+            --sourceLanguage "{{.SOURCE_LANG}}" \
+            --fetchFromClible 1 \
+            --sourceId "{{.SOURCE_ID}}" \
+            --translationId "{{.TRANSLATION_ID}}" \
+            ${SOURCE_TEXT:+--sourceText "{{.SOURCE_TEXT}}"} \
+            ${TRANSLATION_TEXT:+--translationText "{{.TRANSLATION_TEXT}}"}
+          exit 0
+        fi
+        npm run prompt:print -- \
+          --mode original-study \
+          --scope "{{.SCOPE}}" \
+          --reference "{{.REF}}" \
+          --sourceLanguage "{{.SOURCE_LANG}}" \
+          --fetchFromClible 1 \
+          --sourceId "{{.SOURCE_ID}}" \
+          ${SOURCE_TEXT:+--sourceText "{{.SOURCE_TEXT}}"}
+
   web-docker-build:
     desc: Build clible-web Docker image
     vars:

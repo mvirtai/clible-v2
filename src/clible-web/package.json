@@ -1,7 +1,7 @@
 {
   "name": "react-example",
   "private": true,
-  "version": "2.1.0",
+  "version": "2.2.0",
   "type": "module",
   "scripts": {
     "dev": "sh -c \"npm run dev:api & npm run dev:web\"",
@@ -13,7 +13,8 @@
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prompt:print": "tsx scripts/printGeminiPrompt.ts"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
@@ -33,6 +34,7 @@
     "react-dom": "^19.0.0",
     "react-markdown": "^10.1.0",
     "recharts": "^3.8.1",
+    "remark-gfm": "^4.0.1",
     "tsx": "^4.21.0",
     "vite": "^6.2.0"
   },

@@ -22,6 +22,9 @@ export default defineConfig(({mode}) => {
   return {
     root,
     plugins: [react(), tailwindcss()],
+    define: {
+      __APP_VERSION__: JSON.stringify(process.env.npm_package_version ?? '0.0.0'),
+    },
     build: {
       outDir: 'dist',
       emptyOutDir: true,
