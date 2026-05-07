@@ -32,6 +32,8 @@ import { pool } from "./db/pool";
 import { runMigrations } from "./db/migrate";
 import { authRouter } from "./auth/routes";
 import { requireAuth } from "./auth/middleware";
+import { requireAiAccess, requireAdmin } from "./auth/userAccess";
+import { adminRouter } from "./admin/routes";
 import { settingsRouter } from "./user/settings_routes";
 import { createRateLimiter } from "./middleware/rateLimit";
 
@@ -274,6 +276,9 @@ async function startServer() {
   // Authenticated user settings
   app.use("/api/user/settings", settingsRouter);
 
+  // Admin API (capability toggles, monitoring, etc.)
+  app.use("/api/admin", requireAdmin, adminRouter);
+
   // Rate limiters for AI endpoints
   const aiRateLimit = createRateLimiter({
     windowMs: 60 * 60 * 1000, // 1 hour
@@ -281,7 +286,7 @@ async function startServer() {
     message: "AI request limit reached. Please try again later.",
   });
 
-  app.post("/api/ai/insight", requireAuth, aiRateLimit, async (req, res) => {
+  app.post("/api/ai/insight", requireAuth, requireAiAccess, aiRateLimit, async (req, res) => {
     const ai = getAiClientOrNull();
     if (!ai) {
       return res.status(503).json({
@@ -317,7 +322,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/ai/tone", requireAuth, aiRateLimit, async (req, res) => {
+  app.post("/api/ai/tone", requireAuth, requireAiAccess, aiRateLimit, async (req, res) => {
     const ai = getAiClientOrNull();
     if (!ai) {
       return res.status(503).json({
@@ -353,7 +358,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/ai/study", requireAuth, aiRateLimit, async (req, res) => {
+  app.post("/api/ai/study", requireAuth, requireAiAccess, aiRateLimit, async (req, res) => {
     const ai = getAiClientOrNull();
     if (!ai) {
       return res.status(503).json({
@@ -407,7 +412,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/ai/deep-dive", requireAuth, aiRateLimit, async (req, res) => {
+  app.post("/api/ai/deep-dive", requireAuth, requireAiAccess, aiRateLimit, async (req, res) => {
     const ai = getAiClientOrNull();
     if (!ai) {
       return res.status(503).json({
@@ -619,7 +624,7 @@ async function startServer() {
   });
 
   // Original-language study: multi-translation comparison with phonetic transliteration.
-  app.post("/api/ai/original-study", requireAuth, aiRateLimit, async (req, res) => {
+  app.post("/api/ai/original-study", requireAuth, requireAiAccess, aiRateLimit, async (req, res) => {
     const ai = getAiClientOrNull();
     if (!ai) return res.status(503).json({ error: "AI disabled", hint: "Set GEMINI_API_KEY." });
   
