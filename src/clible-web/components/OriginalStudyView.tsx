@@ -19,13 +19,28 @@ import { NextFocusChips } from './NextFocusChips';
 import { DeepDiveCard } from './DeepDiveCard';
 
 const GREEK_PACK_ID = 'greeksblgnt';
-const HEBREW_PACK_ID = 'heb-leningrad';
+/**
+ * Default Hebrew pack to install from the UI.
+ *
+ * Note: some upstream catalogs label Hebrew packs with language "en" even when
+ * the text is Hebrew. We therefore use ID heuristics (see isOriginalLanguage)
+ * and avoid relying on `language` alone.
+ */
+const HEBREW_PACK_ID = 'hebrewaleppocodex';
 const MAX_TARGETS = 3;
 const STUDY_SCOPES: StudyScope[] = ['verse', 'chapter', 'book'];
 
 function isOriginalLanguage(tr: InstalledTranslation): boolean {
   const l = (tr.language ?? '').toLowerCase().trim();
-  return l === 'grc' || l === 'he' || l === 'hbo' || l.startsWith('heb');
+  if (l === 'grc' || l === 'he' || l === 'hbo' || l.startsWith('heb')) return true;
+
+  // Fallback: treat clearly-named IDs as original-language sources even if
+  // the catalog metadata is inaccurate (e.g. language "en").
+  const id = (tr.id ?? '').toLowerCase().trim();
+  if (id === GREEK_PACK_ID) return true;
+  if (id.startsWith('hebrew')) return true;
+  if (id.includes('leningrad')) return true;
+  return false;
 }
 
 function verseRow(rows: OriginalStudyVerse[], chapter: number, verse: number): OriginalStudyVerse | undefined {
@@ -37,6 +52,8 @@ export interface OriginalStudyViewProps {
   activeTranslationId: string | null;
   uiLanguage: UILanguage;
   installingTranslationId: string | null;
+  installError?: string | null;
+  installSuccess?: string | null;
   onInstallTranslation: (id: string) => void;
   result: OriginalStudyResult | null;
   loading: boolean;
@@ -60,6 +77,8 @@ export function OriginalStudyView({
   activeTranslationId,
   uiLanguage,
   installingTranslationId,
+  installError = null,
+  installSuccess = null,
   onInstallTranslation,
   result,
   loading,
@@ -180,6 +199,16 @@ export function OriginalStudyView({
         <h3 className="text-base font-semibold">{m.originalSetupTitle}</h3>
       </div>
       <p className="text-sm text-[var(--muted)] leading-relaxed">{m.originalSetupHint}</p>
+      {installError && (
+        <p className="text-sm text-red-600" role="alert">
+          {installError}
+        </p>
+      )}
+      {installSuccess && (
+        <p className="text-sm text-emerald-700" role="status">
+          {installSuccess}
+        </p>
+      )}
       <div className="flex flex-wrap gap-3">
         <button
           type="button"

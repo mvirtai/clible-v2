@@ -183,6 +183,12 @@ export const strings = {
 
     // TranslationModal
     translationModalTitle: 'Select Translation',
+    translationSearchPlaceholder: 'Search translations (id, name, language)…',
+    translationSearchHint: 'Tip: try “fin”, “greek”, “hebrew”, or a translation id like “web”.',
+    translationFeaturedLabel: 'Featured',
+    translationInstalledSectionLabel: 'Installed',
+    translationBrowseLabel: 'Browse',
+    translationBrowseLimitedHint: 'Showing a limited list. Use search to find more.',
     translationNoneInstalled:
       'No translations are installed on this server yet. Use Install to fetch one from the catalog.',
     translationCatalogLoading: 'Loading translation catalog...',
@@ -403,6 +409,12 @@ export const strings = {
       'Asennetut käännökset ovat palvelimen laajuisia. Valintasi tallennetaan käyttäjää kohti.',
 
     translationModalTitle: 'Valitse käännös',
+    translationSearchPlaceholder: 'Hae käännöksiä (id, nimi, kieli)…',
+    translationSearchHint: 'Vinkki: kokeile “fin”, “greek”, “hebrew” tai käännös-id:tä kuten “web”.',
+    translationFeaturedLabel: 'Tärkeimmät',
+    translationInstalledSectionLabel: 'Asennetut',
+    translationBrowseLabel: 'Selaa',
+    translationBrowseLimitedHint: 'Lista on rajattu. Haku löytää lisää.',
     translationNoneInstalled:
       'Tällä palvelimella ei ole vielä asennettuja käännöksiä. Asenna jokin luettelosta.',
     translationCatalogLoading: 'Ladataan käännösluetteloa...',

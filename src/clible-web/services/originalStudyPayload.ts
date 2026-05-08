@@ -22,7 +22,13 @@ export function inferOriginalSourceLanguage(
 ): 'grc' | 'he' {
   const origMeta = installed.find((t) => t.id === originalId);
   const langRaw = (origMeta?.language ?? '').toLowerCase().trim();
-  return langRaw === 'he' || langRaw.startsWith('heb') || langRaw === 'hbo' ? 'he' : 'grc';
+  if (langRaw === 'he' || langRaw.startsWith('heb') || langRaw === 'hbo') return 'he';
+
+  // Fallback: some catalogs mislabel Hebrew packs as "en".
+  const id = originalId.toLowerCase().trim();
+  if (id.startsWith('hebrew') || id.includes('leningrad')) return 'he';
+
+  return 'grc';
 }
 
 export function buildOriginalStudyPayload(params: {

@@ -34,6 +34,9 @@ describe('OriginalStudyView', () => {
     expect(screen.getByText('Original language packs required')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Install Greek NT/i }));
     expect(onInstallTranslation).toHaveBeenCalledWith('greeksblgnt');
+
+    fireEvent.click(screen.getByRole('button', { name: /Install Hebrew OT/i }));
+    expect(onInstallTranslation).toHaveBeenCalledWith('hebrewaleppocodex');
   });
 
   it('submits selected reference/original/targets', () => {
