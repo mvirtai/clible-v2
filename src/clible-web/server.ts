@@ -30,6 +30,7 @@ import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import { pool } from "./db/pool";
 import { runMigrations } from "./db/migrate";
+import { seedReadingPlanTemplates } from "./db/seed_reading_plans";
 import { authRouter } from "./auth/routes";
 import { requireAuth } from "./auth/middleware";
 import { requireAiAccess, requireAdmin } from "./auth/userAccess";
@@ -816,6 +817,14 @@ async function startServer() {
       console.log("[migrate] all migrations applied");
     } catch (err) {
       console.error("[migrate] failed:", (err as Error).message);
+      process.exit(1);
+    }
+
+    // Seed reading plan templates into PostgreSQL so user progress can reference them.
+    try {
+      await seedReadingPlanTemplates();
+    } catch (err) {
+      console.error("[seed] reading plan templates failed:", (err as Error).message);
       process.exit(1);
     }
 
