@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import {
   Book,
+  BookOpen,
   Terminal,
   History,
   Settings,
@@ -41,6 +42,8 @@ import { OriginalStudyView } from './components/OriginalStudyView';
 import { TranslationModal } from './components/TranslationModal';
 import { SettingsPanel } from './components/SettingsPanel';
 import { AdminView } from './components/AdminView';
+import { ReadingPlanView } from './components/ReadingPlanView';
+import { StreakBadge } from './components/StreakBadge';
 import { useAuth } from './AuthContext';
 import { LoginView } from './views/LoginView';
 import { useSettings } from './user/SettingsContext';
@@ -63,7 +66,7 @@ function inferUILanguageFromTranslation(language: string | undefined): 'en' | 'f
   return null;
 }
 
-type ViewMode = 'reader' | 'analytics' | 'search' | 'compare' | 'original' | 'admin';
+type ViewMode = 'reader' | 'reading' | 'analytics' | 'search' | 'compare' | 'original' | 'admin';
 type SearchType = 'verse' | 'search';
 
 export default function App() {
@@ -651,6 +654,15 @@ export default function App() {
 
           <div className="flex items-center gap-4">
             <button
+              onClick={() => setViewMode('reading')}
+              className="flex items-center gap-2 px-3 py-1.5 hover:bg-[#F5F5F5] rounded-full transition-colors text-sm font-medium border border-[#E5E5E5]"
+              title={t(uiLang).tabReading}
+            >
+              <BookOpen size={16} />
+              <span>{t(uiLang).tabReading}</span>
+              <StreakBadge uiLanguage={uiLang} />
+            </button>
+            <button
               onClick={() => setShowTranslations(!showTranslations)}
               className="flex items-center gap-2 px-3 py-1.5 hover:bg-[#F5F5F5] rounded-full transition-colors text-sm font-medium border border-[#E5E5E5]"
             >
@@ -716,22 +728,24 @@ export default function App() {
             </p>
           )}
 
-          <SearchPanel
-            activeTranslation={settings?.translationId ?? null}
-            uiLanguage={settings?.uiLanguage ?? 'en'}
-            entryTab={studyEntryTab}
-            onEntryTabChange={handleEntryTabChange}
-            onSearch={handleAdvancedSearch}
-            onVerseSearch={(ref) => void handleSearch(ref, 'verse')}
-            history={searchHistoryApi}
-            onHistoryClear={() => {
-              void bibleRepository.clearSearchHistory().then(() => setSearchHistoryApi([]));
-            }}
-            loading={loading}
-            error={null}
-          />
+          {viewMode !== 'reading' && (
+            <SearchPanel
+              activeTranslation={settings?.translationId ?? null}
+              uiLanguage={settings?.uiLanguage ?? 'en'}
+              entryTab={studyEntryTab}
+              onEntryTabChange={handleEntryTabChange}
+              onSearch={handleAdvancedSearch}
+              onVerseSearch={(ref) => void handleSearch(ref, 'verse')}
+              history={searchHistoryApi}
+              onHistoryClear={() => {
+                void bibleRepository.clearSearchHistory().then(() => setSearchHistoryApi([]));
+              }}
+              loading={loading}
+              error={null}
+            />
+          )}
 
-          {viewMode !== 'compare' && viewMode !== 'original' && viewMode !== 'admin' && (
+          {viewMode !== 'compare' && viewMode !== 'original' && viewMode !== 'admin' && viewMode !== 'reading' && (
           <SavedSearchesList
             uiLanguage={uiLang}
             searches={savedSearches}
@@ -766,6 +780,15 @@ export default function App() {
           </button>
           <button
             type="button"
+            onClick={() => setViewMode('reading')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'reading' ? 'bg-white shadow-sm text-[#1A1A1A]' : 'text-[#8E8E8E] hover:text-[#1A1A1A]'}`}
+          >
+            <div className="flex items-center gap-2">
+              <BookOpen size={16} /> Reading
+            </div>
+          </button>
+          <button
+            type="button"
             onClick={() => void handleAnalytics()}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'analytics' ? 'bg-white shadow-sm text-[#1A1A1A]' : 'text-[#8E8E8E] hover:text-[#1A1A1A]'}`}
           >
@@ -783,6 +806,16 @@ export default function App() {
               exit={{ opacity: 0, y: -12 }}
             >
               <AdminView currentUserId={user.id} />
+            </motion.div>
+          )}
+          {viewMode === 'reading' && (
+            <motion.div
+              key="reading"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+            >
+              <ReadingPlanView uiLanguage={uiLang} />
             </motion.div>
           )}
           {viewMode === 'reader' && (

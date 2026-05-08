@@ -235,6 +235,33 @@ export const strings = {
     // BookPickerModal
     bookPickerTitle: 'Choose a Book',
     bookPickerClose: 'Close',
+
+    // ReadingPlanView / StreakBadge
+    tabReading: 'Reading',
+    readingTitle: 'Reading',
+    readingSubtitle: 'Build a habit with a daily plan and streak.',
+    readingLoading: 'Loading reading plan…',
+    readingDays: (n: number) => `${n} day${n === 1 ? '' : 's'}`,
+    readingDaysCompleted: (done: number, total: number) => `${done}/${total} days completed`,
+    readingActivePlan: 'Active plan',
+    readingStart: 'Start',
+    readingAbandon: 'Abandon',
+    readingToday: 'Today',
+    readingDay: (n: number) => `Day ${n}`,
+    readingMarkComplete: 'Mark complete',
+    readingCompleted: 'Completed',
+    readingNoPassages: 'No passages for today.',
+    readingStreakAriaLabel: (n: number) => `Reading streak: ${n} day${n === 1 ? '' : 's'}`,
+
+    readingPlanPsalms30Title: 'Psalms in 30 Days',
+    readingPlanPsalms30Desc:
+      'Read the Book of Psalms in 30 days (5 psalms per day).',
+    readingPlanNt90Title: 'New Testament in 90 Days',
+    readingPlanNt90Desc:
+      'Read the New Testament in 90 days (mostly 3 chapters per day).',
+    readingPlanAnnualTitle: 'Bible in a Year',
+    readingPlanAnnualDesc:
+      'Read the full Bible in 365 days (auto-generated: 3–4 chapters per day).',
   },
   fi: {
     chooseTranslation: 'Valitse käännös',
@@ -457,6 +484,32 @@ export const strings = {
 
     bookPickerTitle: 'Valitse kirja',
     bookPickerClose: 'Sulje',
+
+    tabReading: 'Lukeminen',
+    readingTitle: 'Lukeminen',
+    readingSubtitle: 'Rakenna tapa päivittäisellä lukusuunnitelmalla.',
+    readingLoading: 'Ladataan lukusuunnitelmaa…',
+    readingDays: (n: number) => `${n} päivää`,
+    readingDaysCompleted: (done: number, total: number) => `${done}/${total} päivää suoritettu`,
+    readingActivePlan: 'Aktiivinen suunnitelma',
+    readingStart: 'Aloita',
+    readingAbandon: 'Hylkää',
+    readingToday: 'Tänään',
+    readingDay: (n: number) => `Päivä ${n}`,
+    readingMarkComplete: 'Merkitse tehdyksi',
+    readingCompleted: 'Suoritettu',
+    readingNoPassages: 'Ei luettavaa tänään.',
+    readingStreakAriaLabel: (n: number) => `Lukuputki: ${n} päivää`,
+
+    readingPlanPsalms30Title: 'Psalmit 30 päivässä',
+    readingPlanPsalms30Desc:
+      'Lue psalmit 30 päivässä (viisi psalmia päivässä).',
+    readingPlanNt90Title: 'Uusi testamentti 90 päivässä',
+    readingPlanNt90Desc:
+      'Lue Uusi testamentti 90 päivässä (pääosin kolme lukua päivässä).',
+    readingPlanAnnualTitle: 'Raamattu vuodessa',
+    readingPlanAnnualDesc:
+      'Lue koko Raamattu 365 päivässä (automaattinen jako: 3–4 lukua päivässä).',
   },
 } as const;
 
@@ -464,6 +517,33 @@ export type Messages = typeof strings.en;
 
 export function t(lang: UILanguage): Messages {
   return strings[lang] as unknown as Messages;
+}
+
+/** UI copy for catalog reading plans (seed data is English; translate by stable id). */
+export function localizedReadingPlanCopy(
+  lang: UILanguage,
+  plan: { id: string; name: string; description: string | null },
+): { name: string; description: string | null } {
+  const m = t(lang);
+  switch (plan.id) {
+    case '30day-psalms':
+      return {
+        name: m.readingPlanPsalms30Title,
+        description: m.readingPlanPsalms30Desc,
+      };
+    case '90day-nt':
+      return {
+        name: m.readingPlanNt90Title,
+        description: m.readingPlanNt90Desc,
+      };
+    case 'annual':
+      return {
+        name: m.readingPlanAnnualTitle,
+        description: m.readingPlanAnnualDesc,
+      };
+    default:
+      return { name: plan.name, description: plan.description };
+  }
 }
 
 export function verseAriaLabel(verse: number, lang: UILanguage): string {
