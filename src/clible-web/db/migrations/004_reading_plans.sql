@@ -35,34 +35,3 @@ CREATE TABLE IF NOT EXISTS reading_progress (
 
 CREATE INDEX IF NOT EXISTS idx_reading_progress_plan_day
   ON reading_progress(user_plan_id, day_number);
-
-
-
--- Plan templates (seeded from JSON)
-CREATE TABLE IF NOT EXISTS reading_plan_templates (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    description TEXT,
-    duration_days INTEGER NOT NULL,
-    entries JSONB NOT NULL  -- [{day, passages:[{book_id, chapter_start, chapter_end }]}]
-);
-
--- User's active / completed plans
-CREATE TABLE IF NOT EXISTS user_reading_plans (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    plan_id TEXT NOT NULL REFERENCES reading_plan_templates(id) ON DELETE CASCADE,
-    started_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    status TEXT NOT NULL DEFAULT 'active', -- active | completed | abandoned
-);
-CREATE UNIQUE INDEX idx_one_active_plan ON user_reading_plans(user_id)
-WHERE status = 'active';
-
--- Daily progress tracking
-CREATE TABLE IF NOT EXISTS reading_progress (
-    id TEXT PRIMARY KEY,
-    user_plan_id TEXT NOT NULL REFERENCES user_reading_plans(id) ON DELETE CASCADE,
-    day_number INTEGER NOT NULL,
-    completed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE(user_plan_id, day_number)
-)

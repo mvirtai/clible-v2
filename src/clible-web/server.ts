@@ -36,6 +36,7 @@ import { requireAuth } from "./auth/middleware";
 import { requireAiAccess, requireAdmin } from "./auth/userAccess";
 import { adminRouter } from "./admin/routes";
 import { settingsRouter } from "./user/settings_routes";
+import { readingRouter } from "./user/reading_routes";
 import { createRateLimiter } from "./middleware/rateLimit";
 
 const execAsync = promisify(exec);
@@ -239,6 +240,14 @@ async function startServer() {
   const PORT = parseInt(process.env.PORT || "3000");
   const isProduction = process.env.NODE_ENV === "production";
 
+  // COOKIE_SECURE defaults to true in production so that cookies are only
+  // sent over HTTPS on Cloud Run. Set COOKIE_SECURE=false to run the
+  // production image locally over plain HTTP (e.g. task web-docker-run).
+  const secureCookies =
+    process.env.COOKIE_SECURE !== undefined
+      ? process.env.COOKIE_SECURE === "true"
+      : isProduction;
+
   // Cloud Run terminates TLS before forwarding traffic to Express.
   // trust proxy is required so secure session cookies can be set.
   if (isProduction) {
@@ -264,7 +273,7 @@ async function startServer() {
       saveUninitialized: false,
       cookie: {
         httpOnly: true,
-        secure: isProduction,
+        secure: secureCookies,
         sameSite: "lax",
         maxAge: 24 * 60 * 60 * 1000,
       },
@@ -276,6 +285,9 @@ async function startServer() {
 
   // Authenticated user settings
   app.use("/api/user/settings", settingsRouter);
+
+  // Authenticated reading plans + progress
+  app.use("/api/user/reading", readingRouter);
 
   // Admin API (capability toggles, monitoring, etc.)
   app.use("/api/admin", requireAdmin, adminRouter);
