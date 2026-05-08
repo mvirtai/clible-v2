@@ -101,6 +101,7 @@ export default function App() {
   const [translationInstallSuccess, setTranslationInstallSuccess] = useState<string | null>(null);
   const [installingTranslationId, setInstallingTranslationId] = useState<string | null>(null);
   const [showTranslations, setShowTranslations] = useState(false);
+  const [translationQuery, setTranslationQuery] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [nativeStats, setNativeStats] = useState<TextStats | null>(null);
   const [nativeFrequency, setNativeFrequency] = useState<WordFrequency[]>([]);
@@ -199,6 +200,37 @@ export default function App() {
       cancelled = true;
     };
   }, [user, settings?.uiLanguage]);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    const handle = window.setTimeout(() => {
+      void (async () => {
+        try {
+          setLoadingAvailableTranslations(true);
+          const available = await bibleRepository.listAvailableTranslations(translationQuery);
+          if (!cancelled) {
+            setAvailableTranslations(available);
+            setTranslationsLoadError(null);
+          }
+        } catch (e: unknown) {
+          if (!cancelled) {
+            setTranslationsLoadError(
+              e instanceof Error
+                ? e.message
+                : t((settings?.uiLanguage ?? 'en') as UILanguage).errFailedLoadTranslations
+            );
+          }
+        } finally {
+          if (!cancelled) setLoadingAvailableTranslations(false);
+        }
+      })();
+    }, 250);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(handle);
+    };
+  }, [user, settings?.uiLanguage, translationQuery]);
 
   useEffect(() => {
     if (!user) return;
@@ -901,6 +933,8 @@ export default function App() {
                 activeTranslationId={settings?.translationId ?? null}
                 uiLanguage={uiLang}
                 installingTranslationId={installingTranslationId}
+                installError={translationInstallError}
+                installSuccess={translationInstallSuccess}
                 onInstallTranslation={handleTranslationInstall}
                 result={originalResult}
                 loading={originalLoading}
@@ -957,6 +991,8 @@ export default function App() {
             installingTranslationId={installingTranslationId}
             activeTranslation={settings?.translationId ?? null}
             uiLanguage={uiLang}
+            query={translationQuery}
+            onQueryChange={setTranslationQuery}
             onSelect={handleTranslationSelect}
             onInstall={handleTranslationInstall}
             onClose={() => setShowTranslations(false)}
