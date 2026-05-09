@@ -1,6 +1,6 @@
 # clible v2 — Project Overview
 
-**Last updated:** 2026-04-29
+**Last updated:** 2026-05-09
 
 This document provides a comprehensive picture of the clible v2 application: what it is, its architecture, current implementation status, and where all the pieces live.
 
@@ -78,17 +78,19 @@ clible is a command-line Bible study tool. The v2 rebuild aims for:
 | **CI** | `.github/workflows/ci.yml` | uv, ruff, pytest on push/PR |
 | **Task automation** | `Taskfile.yml` | lint/test/check + Docker build/push tasks |
 | **Dependencies** | `pyproject.toml` | click, rich, requests, ruff, pytest, pytest-mock |
-| **Web UI** | `src/clible-web/` | React/Vite + Express bridge; verse lookup, FTS5 search, analytics, export, AI insights, session-cookie auth |
+| **Web UI** | `src/clible-web/` | React/Vite + Express bridge; verse lookup, FTS5 search, analytics, export, AI insights, reading plans, EN/FI UI strings, session-cookie auth |
 | **Analytics scopes (web)** | `src/clible-web/services/bibleService.ts` | Reference/Chapter/Book scope arg-building with correct reference parsing |
-| **Web DB (PostgreSQL)** | `src/clible-web/db/` | `pg` Pool singleton (`pool.ts`), migration runner (`migrate.ts`), initial schema (`migrations/001_users_sessions_settings.sql`) |
+| **Web DB (PostgreSQL)** | `src/clible-web/db/` | `pg` Pool singleton (`pool.ts`), migration runner (`migrate.ts`), migrations `001`–`004` (users/sessions/settings, `ui_language`, `ai_access`/`is_admin`, reading plans + progress) |
 | **Web sessions** | `src/clible-web/server.ts` | `connect-pg-simple` session store backed by the PostgreSQL pool |
+| **Reading plans (web)** | `user/reading_routes.ts`, `ReadingPlanContext.tsx`, `components/ReadingPlanView.tsx`, `db/seed_reading_plans.ts`, `data/reading_plans/*.json` | Catalog templates (e.g. 30-day Psalms, 90-day NT, annual Bible); one active plan per user; day completion and streak; templates seeded at server startup |
 | **PostgreSQL setup guide** | `docs/CLOUD_SQL_SETUP.md` | How to provision Neon (free tier) or Cloud SQL and wire `DATABASE_URL` |
 
 ### Planned (not yet implemented)
 
 | Area | Notes |
 | ---- | ----- |
-| — | — |
+| **Reading plan depth** | Per-verse notes inside a plan, richer templates beyond the seeded catalog |
+| **Broader i18n** | Locales beyond EN/FI for the web UI |
 
 ---
 
@@ -101,11 +103,13 @@ clible-v2/
 │   ├── db/                        # PostgreSQL layer
 │   │   ├── pool.ts                # pg.Pool singleton (DATABASE_URL)
 │   │   ├── migrate.ts             # Migration runner (ordered .sql files)
-│   │   └── migrations/            # 001_users_sessions_settings.sql
-│   ├── auth/                      # Registration, login, logout routes
-│   ├── user/                      # Settings routes; SettingsContext (React)
+│   │   ├── seed_reading_plans.ts  # Upserts JSON templates into reading_plan_templates
+│   │   └── migrations/            # 001_users_sessions_settings … 004_reading_plans
+│   ├── data/reading_plans/        # Plan template JSON (ids e.g. 30day-psalms, 90day-nt, annual)
+│   ├── auth/                      # Registration, login, logout routes; AI/admin capability checks
+│   ├── user/                      # settings_routes, reading_routes; SettingsContext, ReadingPlanContext
 │   ├── App.tsx                    # Root component; state, routing, analytics
-│   ├── components/                # AnalyticsView, ReaderView, SearchView, …
+│   ├── components/                # AnalyticsView, ReaderView, SearchView, ReadingPlanView, …
 │   ├── services/bibleService.ts   # Analytics scope arg-building, AI calls
 │   ├── repositories/              # HTTP calls to /api/*
 │   ├── types/                     # Shared TS types (BibleResponse, TextStats, …)
@@ -238,7 +242,8 @@ Index: `idx_verses_lookup` (redundant `idx_verses_search` on `text` removed in m
 
 ## What’s Next (Backlog)
 
-High-impact remaining items (as of `2026-04-12`):
+High-impact remaining items (as of `2026-05-09`):
+
 - **Extended analytics scopes**: multi-book, Old/New Testament, whole-Bible analysis.
 - **Concordance view (web)**: expose the CLI concordance command in the web UI.
 - **CLI connection management refactor**: use Click context to keep a single DB connection per command invocation.

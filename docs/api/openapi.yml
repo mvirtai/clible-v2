@@ -6,7 +6,7 @@ info:
   description: |
     REST API for the clible web application. The server is an Express/Node.js bridge
     that proxies requests to the Python CLI for Bible data, and handles auth, user
-    settings, and AI features directly.
+    settings, reading plans (PostgreSQL), and AI features directly.
 
     Authentication uses HTTP-only session cookies (`connect.sid`). Log in via
     `POST /api/auth/login` to receive a session cookie, then include it in
@@ -14,6 +14,13 @@ info:
 
     Most endpoints require an authenticated session. Endpoints that do not are
     marked with `public` in their description.
+
+    **Gemini / AI:** `POST /api/ai/*` routes require both `GEMINI_API_KEY` on the server
+    and `ai_access = true` on the user row (otherwise 403). Admin-only routes use `/api/admin/*`
+    with `is_admin = true`.
+
+    This specification lists core endpoints; additional CLI-backed routes (e.g. saved searches)
+    may exist — see `src/clible-web/server.ts` for the full Express surface.
 
 servers:
   - url: http://localhost:3000
@@ -27,13 +34,15 @@ tags:
   - name: auth
     description: Registration, login, logout, and current user
   - name: settings
-    description: Per-user settings (translation preference, theme)
+    description: Per-user settings (translation preference, theme, UI language)
+  - name: reading
+    description: Reading plan templates and per-user progress (PostgreSQL)
   - name: translations
     description: Available and installed Bible translations
   - name: bible
     description: Verse lookup, full-text search, and analytics via the CLI bridge
   - name: ai
-    description: AI-powered study insights and tone analysis (Gemini)
+    description: AI-powered study features (Gemini); requires ai_access on the user account
 
 paths:
 
@@ -197,6 +206,136 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+
+  # ─── Reading plans ─────────────────────────────────────────────────────────
+
+  /api/user/reading/plans:
+    get:
+      tags: [reading]
+      summary: List reading plan templates
+      description: Returns catalog plans seeded on the server (e.g. 30-day Psalms, 90-day NT, annual).
+      operationId: listReadingPlanTemplates
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Template summaries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReadingPlanSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/user/reading/active:
+    get:
+      tags: [reading]
+      summary: Get active reading plan
+      description: Current active plan with today's passages, progress, and streak. JSON `null` if none.
+      operationId: getActiveReadingPlan
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Active plan or null
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/ActiveReadingPlanState"
+                  - type: "null"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    delete:
+      tags: [reading]
+      summary: Abandon active reading plan
+      description: Marks the user's active plan as abandoned.
+      operationId: abandonActiveReadingPlan
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Plan abandoned
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok]
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/user/reading/start/{planId}:
+    post:
+      tags: [reading]
+      summary: Start a reading plan
+      description: Abandons any previous active plan and starts the given template.
+      operationId: startReadingPlan
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: annual
+      responses:
+        "200":
+          description: New active plan state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActiveReadingPlanState"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: Unknown plan id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/user/reading/complete/{dayNumber}:
+    post:
+      tags: [reading]
+      summary: Mark a reading day complete
+      description: Idempotent per `(plan instance, day number)`. Updates streak/progress.
+      operationId: completeReadingPlanDay
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: dayNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+      responses:
+        "200":
+          description: Completion recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadingDayCompleteResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: No active reading plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
   # ─── Translations ─────────────────────────────────────────────────────────
 
@@ -381,6 +520,7 @@ paths:
         Uses Gemini to generate a study note or reflection for the given Bible text.
         Rate-limited to `MAX_REQUESTS_PER_HOUR` per user (default: 20).
         Returns 503 if `GEMINI_API_KEY` is not configured.
+        Returns 403 if the user account does not have `ai_access`.
       operationId: getInsight
       security:
         - sessionCookie: []
@@ -420,6 +560,7 @@ paths:
         Uses Gemini to analyse the tone, mood, and theme of the given Bible text.
         Rate-limited to `MAX_REQUESTS_PER_HOUR` per user (default: 20).
         Returns 503 if `GEMINI_API_KEY` is not configured.
+        Returns 403 if the user account does not have `ai_access`.
       operationId: getToneAnalysis
       security:
         - sessionCookie: []
@@ -498,6 +639,11 @@ components:
           type: string
           enum: [light, dark, system]
           example: system
+        uiLanguage:
+          type: string
+          enum: [en, fi]
+          description: Web UI copy locale
+          example: en
 
     UserSettingsPatch:
       type: object
@@ -510,6 +656,97 @@ components:
           type: string
           enum: [light, dark, system]
           example: dark
+        uiLanguage:
+          type: string
+          enum: [en, fi]
+          example: fi
+
+    ReadingPlanSummary:
+      type: object
+      required: [id, name, durationDays]
+      properties:
+        id:
+          type: string
+          example: annual
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        durationDays:
+          type: integer
+          minimum: 1
+
+    BiblePassageRef:
+      type: object
+      required: [bookId, chapterStart, chapterEnd]
+      properties:
+        bookId:
+          type: string
+          description: Clible book id (e.g. PSA, JHN)
+          example: PSA
+        chapterStart:
+          type: integer
+          minimum: 1
+        chapterEnd:
+          type: integer
+          minimum: 1
+
+    ActiveReadingPlanState:
+      type: object
+      required: [plan, startedAt, today, progress, streak]
+      properties:
+        plan:
+          $ref: "#/components/schemas/ReadingPlanSummary"
+        startedAt:
+          type: string
+          format: date-time
+        today:
+          type: object
+          required: [dayNumber, passages, completed]
+          properties:
+            dayNumber:
+              type: integer
+            passages:
+              type: array
+              items:
+                $ref: "#/components/schemas/BiblePassageRef"
+            completed:
+              type: boolean
+        progress:
+          type: object
+          required: [completedDays, totalDays]
+          properties:
+            completedDays:
+              type: integer
+              minimum: 0
+            totalDays:
+              type: integer
+              minimum: 1
+        streak:
+          type: object
+          required: [count]
+          properties:
+            count:
+              type: integer
+              minimum: 0
+            asOfDate:
+              type: string
+              nullable: true
+              description: ISO date (YYYY-MM-DD) the streak count is anchored to
+
+    ReadingDayCompleteResponse:
+      type: object
+      required: [ok, alreadyCompleted, active]
+      properties:
+        ok:
+          type: boolean
+          example: true
+        alreadyCompleted:
+          type: boolean
+          description: True when this day was already marked complete
+        active:
+          $ref: "#/components/schemas/ActiveReadingPlanState"
 
     TranslationCatalogEntry:
       type: object
@@ -550,6 +787,10 @@ components:
           type: string
           description: AI-generated text
           example: "This passage highlights the depth of God's love..."
+        nextFocus:
+          type: string
+          nullable: true
+          description: Optional suggested focus string for a follow-up request
 
     Error:
       type: object

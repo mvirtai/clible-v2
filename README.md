@@ -21,8 +21,9 @@ The project ships two interfaces:
 - **Verse lookup** — references like `John 3:16` or `Genesis 1:1-3` resolved instantly from local SQLite.
 - **FTS5 full-text search** — scoped to whole-Bible, book, chapter, testament, or verse range; with statistics and top-book breakdown.
 - **Text analytics** — word frequency, lexical diversity, n-grams, concordance, and side-by-side translation comparison.
-- **AI insights** — optional Gemini-powered study notes, tone analysis, and original-language study (rate-limited).
-- **User accounts** — registration, login, sessions, and per-user settings (preferred translation, theme).
+- **AI insights** — optional Gemini-powered study notes, tone analysis, and original-language study (rate-limited; `ai_access` on the account).
+- **User accounts** — registration, login, sessions, and per-user settings (preferred translation, theme, UI language EN/FI).
+- **Reading plans (web)** — catalog plans with daily passages, progress, and streaks (stored in PostgreSQL).
 - **Export** — Markdown, HTML, JSON, CSV, TXT, and XML output for any verse, search, or analytics command.
 
 ---
@@ -58,7 +59,7 @@ clible CLI (Python 3.12)                ← verse engine, FTS5 search, analytics
       │ sqlite3
 SQLite (clible.db)                      ← seeded from XML; read-only at runtime
       │
-PostgreSQL (Neon)                       ← user accounts, sessions, settings
+PostgreSQL (Neon)                       ← user accounts, sessions, settings, reading plans
 ```
 
 The Express layer is a thin bridge: it sanitises request parameters, spawns `clible` subcommands with `--json`, and forwards the structured output to the browser. All Bible logic lives in the Python CLI; the web layer adds auth, AI, and user state on top.

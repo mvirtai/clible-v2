@@ -60,7 +60,7 @@ SQLite database (clible.db)
 
 The Express server is a thin bridge. It sanitises request parameters, spawns `clible` commands with `--json`, parses the stdout, and forwards the result to the browser. It does not duplicate any verse lookup or search logic — that all lives in the Python CLI.
 
-User sessions, authentication, and settings are stored in a separate PostgreSQL database (Neon). Verse data stays in SQLite.
+User sessions, authentication, settings, and reading-plan progress are stored in a separate PostgreSQL database (Neon). Verse data stays in SQLite.
 
 See `docs/architecture/web-architecture.md` for the full web integration details.
 

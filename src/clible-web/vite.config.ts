@@ -28,6 +28,28 @@ export default defineConfig(({mode}) => {
     build: {
       outDir: 'dist',
       emptyOutDir: true,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes('node_modules')) return;
+            if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/')) {
+              return 'vendor-react';
+            }
+            if (id.includes('node_modules/lucide-react')) return 'vendor-icons';
+            if (id.includes('node_modules/motion')) return 'vendor-motion';
+            if (id.includes('node_modules/recharts')) return 'vendor-charts';
+            if (id.includes('node_modules/d3')) return 'vendor-d3';
+            if (
+              id.includes('node_modules/react-markdown') ||
+              id.includes('node_modules/remark') ||
+              id.includes('node_modules/mdast') ||
+              id.includes('node_modules/micromark')
+            ) {
+              return 'vendor-markdown';
+            }
+          },
+        },
+      },
     },
     resolve: {
       alias: {

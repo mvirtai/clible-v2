@@ -11,7 +11,8 @@ A modern React web interface for the [Clible v2](../../README.md) Bible study to
 - **Compare Verses** — View the same verse across different translations
 - **Download Results** — Export your findings as CSV, Excel-friendly, JSON, HTML, Markdown, or plain text
 - **Manage Multiple Translations** — Download and switch between Bible translations
-- **User Accounts** — Save your preferences (favorite translation, dark/light theme)
+- **Reading plans** — Pick a guided plan (e.g. Psalms in 30 days, New Testament in 90 days, Bible in a year), track daily readings, and see your streak
+- **UI language** — English or Finnish for web interface copy (from settings)
 
 ## 🚀 Quick Start (No Technical Setup)
 
