@@ -50,7 +50,7 @@ The bridge handles four concerns:
 | Concern              | How                                                             |
 |---------------------|-----------------------------------------------------------------|
 | CLI dispatch         | Sanitise `cmd`/`args` params, build argv, spawn `clible`       |
-| Authentication guard | `requireAuth` middleware — session cookie required on all `/api/clible` routes |
+| Authentication guard | `requireAuth` — session cookie required for `/api/clible`, translation endpoints, reading plans, saved searches, etc. |
 | AI proxy             | Forward text to Gemini with server-side API key; never expose key to browser |
 | Rate limiting        | `MAX_REQUESTS_PER_HOUR` env var caps AI endpoint calls per user |
 
@@ -82,22 +82,56 @@ App.tsx               — state, routing
 
 ## Authentication
 
-Sessions are stored in PostgreSQL using `connect-pg-simple`. The session cookie is HTTP-only. Registration and login are handled by `auth/routes.ts`; the `requireAuth` middleware blocks unauthenticated requests to all `/api/clible` and AI endpoints.
+Sessions are stored in PostgreSQL using `connect-pg-simple`. The session cookie is HTTP-only. Registration and login are handled by `auth/routes.ts`; the `requireAuth` middleware blocks unauthenticated requests to Bible bridge routes, translation install/list, reading-plan APIs, and similar user-facing endpoints.
 
 Auth endpoints (`/api/auth/register`, `/login`, `/logout`, `/me`) do not require authentication.
+
+Users rows carry capability flags (PostgreSQL migration `003`): `ai_access` must be true for Gemini routes (`requireAiAccess` middleware returns 403 otherwise); `is_admin` gates `/api/admin/*`.
+
+---
+
+## PostgreSQL user data
+
+Alongside `sessions`, the pool-backed schema holds:
+
+- **`users`** — accounts (`password_hash`, `ai_access`, `is_admin`)
+- **`user_settings`** — `translation_id`, `theme`, **`ui_language`** (`en` | `fi`), timestamps
+
+Reading-plan tables (migration `004`):
+
+- **`reading_plan_templates`** — catalog entries seeded from `src/clible-web/data/reading_plans/*.json` at startup (`seed_reading_plans.ts`)
+- **`user_reading_plans`** — which template a user is following (`status`: active or abandoned; unique active row per user)
+- **`reading_progress`** — completed plan days (used for progress counts and streaks)
+
+Bible text remains in SQLite via the CLI; PostgreSQL stores identity, preferences, and plan progress only.
+
+---
+
+## Reading plans API
+
+Authenticated routes under `/api/user/reading` (see `user/reading_routes.ts`):
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `GET` | `/plans` | List template summaries |
+| `GET` | `/active` | Current active plan + today's passages + streak, or JSON `null` |
+| `POST` | `/start/:planId` | Abandon prior active plan and start the given template |
+| `POST` | `/complete/:dayNumber` | Mark a day complete (idempotent per day) |
+| `DELETE` | `/active` | Abandon the active plan |
+
+The React layer loads this via `ReadingPlanContext` and renders `ReadingPlanView`.
 
 ---
 
 ## AI features
 
-Two Gemini-backed endpoints are available to authenticated users:
+Gemini-backed routes live in `server.ts`. They require an authenticated session, **`ai_access`** on the user row, and (unless disabled) `GEMINI_API_KEY` on the server. Responses commonly include generated `text` and optional `nextFocus` for follow-up prompts.
 
-- `POST /api/ai/insight` — study insight for a given verse/passage
-- `POST /api/ai/tone` — tone/theme analysis
+Examples: `POST /api/ai/insight`, `/api/ai/tone`, `/api/ai/study`, `/api/ai/deep-dive`, `/api/ai/original-study`. They share hourly rate limiting (`MAX_REQUESTS_PER_HOUR`).
 
-Both are rate-limited. The Gemini API key is never sent to the browser — it is read from `GEMINI_API_KEY` env var and used only server-side.
+The Gemini API key is never sent to the browser — it is read from `GEMINI_API_KEY` env var and used only server-side.
 
----
+For request/response shapes of the documented endpoints, see `docs/api/openapi.yml` (the spec may not list every AI variant; refer to `server.ts` for the full set).
 
 ## JSON output contract
 

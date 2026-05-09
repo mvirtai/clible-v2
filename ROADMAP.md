@@ -12,8 +12,10 @@ The core product is complete and deployed.
 |------|--------|
 | CLI (verse, search, analytics, seed, backup, export) | Done |
 | Web UI (React/Vite + Express bridge) | Done |
+| Web UI language (EN / FI) | Done |
+| Reading plans on the web (catalog, progress, streak) | Done |
 | Authentication and user settings (PostgreSQL) | Done |
-| AI features (Gemini insight + tone analysis) | Done |
+| AI features (Gemini: insight, tone, study flows; gated by `ai_access`) | Done |
 | Docker packaging and Cloud Run deployment | Done |
 | CI pipeline (GitHub Actions: lint, test, build, push) | Done |
 | Test coverage (Python CLI, >91%) | Done |
@@ -39,15 +41,15 @@ Structured logging (JSON) via `structlog`. Consistent, user-friendly error messa
 
 | Feature | What |
 |---------|------|
-| Advanced search (M1) | Boolean operators (AND/OR/NOT/NEAR), book/testament filters, saved searches |
-| Reading plans (M3) | Pre-loaded plans (annual, 90-day, thematic), progress tracking, notes per verse |
+| Advanced search (M1) | Richer query syntax (booleans, NEAR, …); saved searches and history already exposed via CLI and authenticated web APIs |
+| Reading plans (M3) | Web: seeded catalog + progress + streaks shipped; extend with per-verse notes and custom templates |
 | Export formats (M2) | PDF export, shareable web links |
 | Mobile-first UI (M5) | PWA support, touch controls, dark mode improvements |
 
 ### Lower priority
 
 - Translation comparison views (side-by-side, diff) in the web UI
-- Internationalization (i18n) for UI strings
+- Further locales beyond EN/FI for the web UI
 
 ---
 
@@ -68,7 +70,7 @@ These would differentiate the project significantly if pursued.
 
 1. **H2 (performance)** and **H4 (error handling)** — production-readiness signals
 2. **One Wild feature** — W1 (AI assistant) or W7 (accessibility) for differentiation
-3. **M3 (reading plans)** and **M1 (advanced search)** — core user value
+3. **M3 extensions** (notes, templates) and **M1** (advanced query syntax) — deepen core study workflows
 
 Already done: H1 (testing >91%), H3 (documentation), H3 (docs), CI/CD, Docker, deployment.
 
