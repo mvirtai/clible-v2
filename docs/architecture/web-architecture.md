@@ -125,13 +125,27 @@ The React layer loads this via `ReadingPlanContext` and renders `ReadingPlanView
 
 ## AI features
 
-Gemini-backed routes live in `server.ts`. They require an authenticated session, **`ai_access`** on the user row, and (unless disabled) `GEMINI_API_KEY` on the server. Responses commonly include generated `text` and optional `nextFocus` for follow-up prompts.
+Gemini-backed `POST /api/ai/*` routes are implemented in `server.ts`. Each call requires:
 
-Examples: `POST /api/ai/insight`, `/api/ai/tone`, `/api/ai/study`, `/api/ai/deep-dive`, `/api/ai/original-study`. They share hourly rate limiting (`MAX_REQUESTS_PER_HOUR`).
+- an authenticated session,
+- **`ai_access`** on the user row (otherwise 403),
+- **`GEMINI_API_KEY`** on the server (otherwise 503 / disabled message).
 
-The Gemini API key is never sent to the browser — it is read from `GEMINI_API_KEY` env var and used only server-side.
+They share hourly rate limiting via `MAX_REQUESTS_PER_HOUR`. The API key never reaches the browser.
 
-For request/response shapes of the documented endpoints, see `docs/api/openapi.yml` (the spec may not list every AI variant; refer to `server.ts` for the full set).
+| Route | Role |
+|-------|------|
+| `/api/ai/insight` | Study note / reflection for passage text |
+| `/api/ai/tone` | Tone, mood, and theme analysis |
+| `/api/ai/study` | Original-language oriented study (Hebrew/Greek source plus translation text in the payload) |
+| `/api/ai/deep-dive` | Longer topical deep dive (optional structured `context`, output language `en` / `fi`) |
+| `/api/ai/original-study` | Multi-translation comparison with transliteration-style original-language emphasis (verse/chapter/book scope) |
+
+**Response shape:** successful responses are JSON with generated **`text`** and often optional **`nextFocus`** — a short suggested follow-up angle the UI can send back as `focus` on the next request (see `extractNextFocus` / prompts in `server.ts`).
+
+For machine-readable contracts, see `docs/api/openapi.yml` (partial) and `server.ts` for every field.
+
+---
 
 ## JSON output contract
 

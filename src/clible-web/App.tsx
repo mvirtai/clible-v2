@@ -58,6 +58,7 @@ import {
 } from './utils/appViewHelpers';
 import { appendExportNotes } from './utils/exportPostProcess';
 import { t, type UILanguage } from './utils/i18n';
+import { docsSiteApiReferenceUrl, docsSiteHomeUrl } from './utils/docsSiteUrls';
 
 function inferUILanguageFromTranslation(language: string | undefined): 'en' | 'fi' | null {
   const lower = (language ?? '').toLowerCase().trim();
@@ -1077,8 +1078,22 @@ export default function App() {
             <Terminal size={14} /><span>{shell.footerCopyright({ year: new Date().getFullYear() })}</span>
           </div>
           <div className="flex gap-8 text-sm font-medium text-[#8E8E8E]">
-            <a href="/docs" className="hover:text-[#1A1A1A] transition-colors">{shell.footerDocumentation}</a>
-            <a href="/docs#api" className="hover:text-[#1A1A1A] transition-colors">{shell.footerApi}</a>
+            <a
+              href={docsSiteHomeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-[#1A1A1A] transition-colors"
+            >
+              {shell.footerDocumentation}
+            </a>
+            <a
+              href={docsSiteApiReferenceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-[#1A1A1A] transition-colors"
+            >
+              {shell.footerApi}
+            </a>
             <a
               href="https://github.com/mvirtai/clible-v2"
               target="_blank"
