@@ -126,12 +126,14 @@ tasks:
           docker run --rm -p {{.PORT}}:3000 \
             -v clible-data:/home/clible/.clible-data \
             --env-file .env \
+            -e COOKIE_SECURE=false \
             clible-web-ci
         else
           docker run --rm -p {{.PORT}}:3000 \
             -e GEMINI_API_KEY_FOR_BETA_TESTERS \
             -e SESSION_SECRET \
             -e DATABASE_URL \
+            -e COOKIE_SECURE=false \
             -v clible-data:/home/clible/.clible-data \
             clible-web-ci
         fi
@@ -152,6 +154,7 @@ tasks:
             -v clible-data:/home/clible/.clible-data \
             --env-file .env \
             -e NODE_ENV=development \
+            -e COOKIE_SECURE=false \
             clible-web-ci
         else
           docker run --rm -p {{.PORT}}:3000 \
@@ -159,6 +162,7 @@ tasks:
             -e SESSION_SECRET \
             -e DATABASE_URL \
             -e NODE_ENV=development \
+            -e COOKIE_SECURE=false \
             -v clible-data:/home/clible/.clible-data \
             clible-web-ci
         fi

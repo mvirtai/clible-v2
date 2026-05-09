@@ -1,0 +1,8 @@
+{
+  "id": "annual",
+  "name": "Bible in a Year",
+  "description": "Read the full Bible in 365 days (auto-generated: 3–4 chapters per day).",
+  "durationDays": 365,
+  "generator": { "type": "sequentialChapters", "scope": "bible" }
+}
+
