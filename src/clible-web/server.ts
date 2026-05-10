@@ -4,10 +4,13 @@
  */
 
 import "./load-env";
+import compression from "compression";
 import express, { type Request, type Response, type NextFunction } from "express";
+import helmet from "helmet";
 import { exec, spawn } from "child_process";
 import { promisify } from "util";
 import path from "path";
+import { fileURLToPath } from "node:url";
 import { GoogleGenAI } from "@google/genai";
 import {
   buildBookStudyPrompt,
@@ -38,6 +41,7 @@ import { adminRouter } from "./admin/routes";
 import { settingsRouter } from "./user/settings_routes";
 import { readingRouter } from "./user/reading_routes";
 import { createRateLimiter } from "./middleware/rateLimit";
+import { attachProductionStaticServing } from "./productionStaticRoutes";
 
 const execAsync = promisify(exec);
 const PgSession = connectPgSimple(session);
@@ -235,9 +239,12 @@ function getSessionSecret(): string {
   return normalized || "dev-secret-change-in-production";
 }
 
-async function startServer() {
+/**
+ * Builds the Express application (middleware and routes only). Listening and
+ * startup hooks are handled separately so tests can probe the app via supertest.
+ */
+export function buildExpressApplication(): express.Application {
   const app = express();
-  const PORT = parseInt(process.env.PORT || "3000");
   const isProduction = process.env.NODE_ENV === "production";
 
   // COOKIE_SECURE defaults to true in production so that cookies are only
@@ -254,6 +261,13 @@ async function startServer() {
     app.set("trust proxy", 1);
   }
 
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginEmbedderPolicy: false,
+    }),
+  );
+  app.use(compression());
   app.use(express.json());
 
   app.get("/health", (_req, res) => {
@@ -794,12 +808,11 @@ async function startServer() {
 
   // Static assets in production only. In development, run Vite as a separate dev server
   // and proxy /api/* requests to this server.
+  // CLIBLE_WEB_DIST overrides dist root for tests or custom deployments.
   if (process.env.NODE_ENV === "production") {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
+    const rawDist = process.env.CLIBLE_WEB_DIST?.trim();
+    const distPath = rawDist ? path.resolve(rawDist) : path.join(process.cwd(), "dist");
+    attachProductionStaticServing(app, distPath);
   }
 
   app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
@@ -817,6 +830,13 @@ async function startServer() {
     }
     res.status(500).json({ error: "Internal server error" });
   });
+
+  return app;
+}
+
+async function startServer(): Promise<void> {
+  const app = buildExpressApplication();
+  const PORT = parseInt(process.env.PORT || "3000");
 
   app.listen(PORT, "0.0.0.0", async () => {
     console.log(`Server running on http://localhost:${PORT}`);
@@ -859,7 +879,19 @@ async function startServer() {
   });
 }
 
-startServer().catch((err) => {
-  console.error("Failed to start server:", err);
-  process.exit(1);
-});
+function isProcessEntryThisModule(): boolean {
+  const entry = process.argv[1];
+  if (!entry) return false;
+  try {
+    return fileURLToPath(import.meta.url) === path.resolve(entry);
+  } catch {
+    return false;
+  }
+}
+
+if (isProcessEntryThisModule()) {
+  startServer().catch((err: unknown) => {
+    console.error("Failed to start server:", err);
+    process.exit(1);
+  });
+}
