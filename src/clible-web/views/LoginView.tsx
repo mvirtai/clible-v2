@@ -41,23 +41,41 @@ export function LoginView({ onSuccess }: Props) {
         className="w-full max-w-sm space-y-4 p-8 bg-[var(--surface)] rounded-2xl shadow-sm border border-[var(--border)]"
       >
         <h2 className="text-xl font-semibold">{mode === "login" ? "Sign in" : "Create account"}</h2>
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <input
-          type="text"
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          className="w-full border border-[var(--border)] bg-transparent rounded-xl px-4 py-2 outline-none focus:border-[var(--text)]"
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full border border-[var(--border)] bg-transparent rounded-xl px-4 py-2 outline-none focus:border-[var(--text)]"
-          required
-        />
+        {error && (
+          <p className="text-sm text-red-600" role="alert" aria-live="polite">
+            {error}
+          </p>
+        )}
+        <div className="space-y-1">
+          <label htmlFor="clible-auth-username" className="text-sm font-medium text-[var(--text-2)]">
+            Username
+          </label>
+          <input
+            id="clible-auth-username"
+            type="text"
+            name="username"
+            autoComplete="username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="w-full border border-[var(--border)] bg-transparent rounded-xl px-4 py-2 outline-none focus:border-[var(--text)]"
+            required
+          />
+        </div>
+        <div className="space-y-1">
+          <label htmlFor="clible-auth-password" className="text-sm font-medium text-[var(--text-2)]">
+            Password
+          </label>
+          <input
+            id="clible-auth-password"
+            type="password"
+            name="password"
+            autoComplete={mode === "login" ? "current-password" : "new-password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full border border-[var(--border)] bg-transparent rounded-xl px-4 py-2 outline-none focus:border-[var(--text)]"
+            required
+          />
+        </div>
         <button
           type="submit"
           disabled={loading}

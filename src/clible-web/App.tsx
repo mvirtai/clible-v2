@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import {
   Book,
   BookOpen,
@@ -32,17 +32,11 @@ import type { SearchQueryOptions, SearchHistoryEntry, SavedSearchRow } from './t
 import { bibleRepository } from './repositories/bibleRepository';
 import { bibleService } from './services/bibleService';
 import { ReaderView } from './components/ReaderView';
-import { SearchView } from './components/SearchView';
 import { SearchPanel, type StudyEntryTab } from './components/SearchPanel';
 import { SavedSearchesList } from './components/SavedSearchesList';
-import { AnalyticsView } from './components/AnalyticsView';
 import type { AnalyticsMode } from './components/AnalyticsView';
-import { CompareView } from './components/CompareView';
-import { OriginalStudyView } from './components/OriginalStudyView';
 import { TranslationModal } from './components/TranslationModal';
 import { SettingsPanel } from './components/SettingsPanel';
-import { AdminView } from './components/AdminView';
-import { ReadingPlanView } from './components/ReadingPlanView';
 import { StreakBadge } from './components/StreakBadge';
 import { useAuth } from './AuthContext';
 import { LoginView } from './views/LoginView';
@@ -59,6 +53,25 @@ import {
 import { appendExportNotes } from './utils/exportPostProcess';
 import { t, type UILanguage } from './utils/i18n';
 import { docsSiteApiReferenceUrl, docsSiteHomeUrl } from './utils/docsSiteUrls';
+
+const LazyAdminView = lazy(() =>
+  import('./components/AdminView').then((m) => ({ default: m.AdminView })),
+);
+const LazyReadingPlanView = lazy(() =>
+  import('./components/ReadingPlanView').then((m) => ({ default: m.ReadingPlanView })),
+);
+const LazyAnalyticsView = lazy(() =>
+  import('./components/AnalyticsView').then((m) => ({ default: m.AnalyticsView })),
+);
+const LazyCompareView = lazy(() =>
+  import('./components/CompareView').then((m) => ({ default: m.CompareView })),
+);
+const LazyOriginalStudyView = lazy(() =>
+  import('./components/OriginalStudyView').then((m) => ({ default: m.OriginalStudyView })),
+);
+const LazySearchView = lazy(() =>
+  import('./components/SearchView').then((m) => ({ default: m.SearchView })),
+);
 
 function inferUILanguageFromTranslation(language: string | undefined): 'en' | 'fi' | null {
   const lower = (language ?? '').toLowerCase().trim();
@@ -645,7 +658,10 @@ export default function App() {
       >
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#1A1A1A] rounded-lg flex items-center justify-center text-white">
+            <div
+              className="w-8 h-8 bg-[#1A1A1A] rounded-lg flex items-center justify-center text-white"
+              aria-hidden
+            >
               <Terminal size={18} />
             </div>
             <h1 className="text-xl font-semibold tracking-tight">
@@ -655,6 +671,7 @@ export default function App() {
 
           <div className="flex items-center gap-4">
             <button
+              type="button"
               onClick={() => setViewMode('reading')}
               className="flex items-center gap-2 px-3 py-1.5 hover:bg-[#F5F5F5] rounded-full transition-colors text-sm font-medium border border-[#E5E5E5]"
               title={t(uiLang).tabReading}
@@ -664,8 +681,12 @@ export default function App() {
               <StreakBadge uiLanguage={uiLang} />
             </button>
             <button
+              type="button"
               onClick={() => setShowTranslations(!showTranslations)}
               className="flex items-center gap-2 px-3 py-1.5 hover:bg-[#F5F5F5] rounded-full transition-colors text-sm font-medium border border-[#E5E5E5]"
+              aria-haspopup="dialog"
+              aria-expanded={showTranslations}
+              aria-label={`${shell.translationPickerAria}: ${settings?.translationId ?? shell.chooseTranslation}`}
             >
               <Globe size={16} className="text-[#D4A373]" />
               <span
@@ -677,38 +698,47 @@ export default function App() {
               </span>
             </button>
             <button
+              type="button"
               onClick={() => setShowHistory(!showHistory)}
               className="p-2 hover:bg-[#F5F5F5] rounded-full transition-colors relative"
+              aria-label={shell.historyToggleAria}
+              aria-expanded={showHistory}
             >
-              <History size={20} />
+              <History size={20} aria-hidden />
               {history.length > 0 && (
                 <span className="absolute top-1 right-1 w-2 h-2 bg-[#D4A373] rounded-full" />
               )}
             </button>
             <button
+              type="button"
               onClick={() => setShowSettings(true)}
               className="p-2 hover:bg-[#F5F5F5] rounded-full transition-colors"
               title={shell.settingsTitle}
+              aria-label={shell.settingsTitle}
             >
-              <Settings size={20} />
+              <Settings size={20} aria-hidden />
             </button>
             {user.isAdmin && (
               <button
+                type="button"
                 onClick={() => setViewMode('admin')}
                 className="p-2 hover:bg-[#F5F5F5] rounded-full transition-colors"
-                title="Admin"
+                title={shell.adminTitle}
+                aria-label={shell.adminTitle}
               >
-                <Shield size={20} />
+                <Shield size={20} aria-hidden />
               </button>
             )}
             <div className="flex items-center gap-2 pl-2 border-l border-[#E5E5E5]">
               <span className="text-sm text-[#8E8E8E]">{user!.username}</span>
               <button
+                type="button"
                 onClick={() => void logout()}
                 className="p-2 hover:bg-[#F5F5F5] rounded-full transition-colors text-[#8E8E8E] hover:text-[#1A1A1A]"
                 title={shell.signOutTitle}
+                aria-label={shell.signOutTitle}
               >
-                <LogOut size={18} />
+                <LogOut size={18} aria-hidden />
               </button>
             </div>
           </div>
@@ -798,6 +828,17 @@ export default function App() {
         </div>
         )}
 
+        <Suspense
+          fallback={
+            <div
+              className="flex justify-center py-16 text-sm text-[var(--muted)]"
+              role="status"
+              aria-live="polite"
+            >
+              {shell.appBootLoading}
+            </div>
+          }
+        >
         <AnimatePresence mode="wait">
           {viewMode === 'admin' && (
             <motion.div
@@ -806,7 +847,7 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
             >
-              <AdminView currentUserId={user.id} />
+              <LazyAdminView currentUserId={user.id} />
             </motion.div>
           )}
           {viewMode === 'reading' && (
@@ -816,7 +857,7 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
             >
-              <ReadingPlanView uiLanguage={uiLang} />
+              <LazyReadingPlanView uiLanguage={uiLang} />
             </motion.div>
           )}
           {viewMode === 'reader' && (
@@ -846,7 +887,7 @@ export default function App() {
           )}
           {viewMode === 'search' && (
             <motion.div key="search" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-              <SearchView
+              <LazySearchView
                 searchResponse={searchResponse}
                 searchTerms={currentSearchTerms}
                 uiLanguage={settings?.uiLanguage ?? 'en'}
@@ -875,7 +916,7 @@ export default function App() {
           )}
           {viewMode === 'analytics' && (
             <motion.div key="analytics" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-              <AnalyticsView
+              <LazyAnalyticsView
                 analyticsMode={analyticsMode}
                 nativeStats={nativeStats}
                 nativeFrequency={nativeFrequency}
@@ -909,7 +950,7 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
             >
-              <CompareView
+              <LazyCompareView
                 standalone
                 installedTranslations={installedTranslations}
                 uiLanguage={uiLang}
@@ -961,7 +1002,7 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
             >
-              <OriginalStudyView
+              <LazyOriginalStudyView
                 standalone
                 installedTranslations={installedTranslations}
                 activeTranslationId={settings?.translationId ?? null}
@@ -1011,6 +1052,7 @@ export default function App() {
             </motion.div>
           )}
         </AnimatePresence>
+        </Suspense>
       </main>
 
       <AnimatePresence>
