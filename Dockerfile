@@ -5,7 +5,7 @@ FROM python:3.12-slim AS builder
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Kopioi uv valmiista imagesta — ei pip install -vaihetta
+# Copy uv from the official image instead of installing it with pip.
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 WORKDIR /app
@@ -20,7 +20,7 @@ COPY .gitignore main.py ./
 COPY src ./src
 COPY tests ./tests
 
-# Jokainen tarkistus omalla layerillaan
+# Keep each check in its own layer so failures are easy to identify.
 RUN uv run ruff check .
 RUN uv run ruff format --check .
 RUN uv run pytest -v

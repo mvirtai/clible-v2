@@ -12,10 +12,10 @@ CREATE TABLE books (
 
 -- Translations table (installed Bible translations)
 CREATE TABLE translations (
-    id TEXT PRIMARY KEY,           -- Translation abbreviation (web, kjv, fin-biblia)
+    id TEXT PRIMARY KEY,           -- Translation ID (web, kjv, fin-biblia-33-38)
     name TEXT NOT NULL,            -- Full translation name (World English Bible)
     language TEXT NOT NULL,        -- Language code (en, fi, etc.)
-    format TEXT NOT NULL,          -- XML format (USFX, OSIS, Zefania)
+    format TEXT NOT NULL,          -- XML format (USFX, OSIS, BEBLIA)
     source_url TEXT,               -- GitHub raw URL for XML file
     installed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

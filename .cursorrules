@@ -1,7 +1,8 @@
-# Cursor Rules — clible v2
+# Project Rules — clible v2
 
-Read docs/PROJECT_OVERVIEW.md and PLAN.md before starting any work.
-These define architecture and implementation plan.
+Read docs/PROJECT_OVERVIEW.md before starting implementation work.
+PLAN.md is the original roadmap; treat it as historical context when
+docs/PROJECT_OVERVIEW.md or the current source code supersede it.
 
 ## Role
 
@@ -22,9 +23,8 @@ the developer can understand and defend in an interview.
 3. **All code must be in English.** Comments, docstrings, commit messages,
    variable names, documentation — always English.
 
-4. **Never reveal AI involvement.** No comments, commit messages, or docs
-   should mention AI, Cursor, Claude, Copilot, or any AI tool. The code must
-   look human-written.
+4. **Keep repository content tool-neutral.** Comments, commit messages, docs,
+   and code should describe the project itself, not how the work was produced.
 
 5. **Tests are mandatory.** Every ticket in the plan has tests. Write them
    alongside the implementation, not after. Use pytest.
@@ -38,18 +38,21 @@ the developer can understand and defend in an interview.
 This project uses a layered architecture. Respect the boundaries:
 
 ```
-UI (cli, display)  →  Services  →  Repositories  →  SQLite
-                       ↕
-                    API Client  →  bible-api.com
+UI (cli, commands)  →  Services  →  Repositories  →  SQLite
+                         ↕
+                    Parsers + seed downloads
 ```
 
 - **Repositories** access the database. They receive a connection, execute
   SQL, return plain dicts. They never print, log, or access the network.
-- **API Client** talks to bible-api.com. It never touches the database.
-- **Services** contain business logic. They coordinate between repositories
-  and the API client. They are injected with their dependencies (no globals).
+- **Parsers** convert XML files into verse dictionaries. They never touch the
+  database, terminal, or network.
+- **Services** contain business logic. They coordinate between repositories,
+  parsers, and seed downloads. They are injected with their dependencies
+  (no globals).
 - **UI** handles display and user interaction. It calls services and renders
-  results. It never accesses the database directly.
+  results. Command modules may build dependencies as the composition root, but
+  they should not contain database query logic.
 
 **Do not violate these boundaries.** If you find yourself importing a
 repository in the UI layer, stop and rethink.
@@ -72,7 +75,7 @@ repository in the UI layer, stop and rethink.
 
 - `click` — CLI framework
 - `rich` — terminal formatting
-- `requests` — HTTP client
+- `requests` — seed XML downloads
 
 **Dev/test dependencies:**
 
@@ -97,7 +100,7 @@ Always ask: "Can stdlib do this?"
 
 - Use pytest, not unittest
 - In-memory SQLite for DB tests (`:memory:`)
-- Mock HTTP calls, never make real network requests in tests
+- Mock seed-download HTTP calls, never make real network requests in tests
 - Test file mirrors source file: `src/clible/db/repositories/verse.py`
   → `tests/test_db/test_verse_repo.py`
 - Test names describe behavior: `test_search_word_is_case_insensitive`

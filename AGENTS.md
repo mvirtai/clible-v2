@@ -1,18 +1,16 @@
 # Architecture and Conventions Guide
 
 This document explains the architectural decisions, patterns, and conventions
-used in clible v2. It serves as both documentation and as context for any AI
-assistant helping with the project.
-
-If you are an AI assistant: read this entire document before writing any code.
+used in clible v2. Read it before writing code so changes stay aligned with the
+current architecture.
 
 ---
 
 ## What This Project Is
 
-clible is a command-line Bible study tool. It fetches verses from
-[bible-api.com](https://bible-api.com/), stores them locally in SQLite, and
-provides tools for analysis, comparison, and export.
+clible is a command-line Bible study tool. It seeds local XML translations from
+public Bible data sources, stores verses in SQLite, and provides tools for
+lookup, text analytics, and translation comparison.
 
 This is a **v2 rebuild** of an existing project (ssh: <git@github.com>/mvirtai:clible) The developer already knows
 what the app does. The focus is on building it with proper architecture,
@@ -27,26 +25,24 @@ clean separation of concerns, and thorough testing.
 │                   UI Layer                       │
 │         (Click CLI + Rich rendering)             │
 │                                                  │
-│  cli.py          commands/       ui/display.py   │
+│  cli.py          commands/                       │
 └──────────────────────┬──────────────────────────┘
                        │ calls
 ┌──────────────────────▼──────────────────────────┐
 │                Service Layer                     │
 │            (Business logic)                      │
 │                                                  │
-│  VerseService    SessionService    ExportService  │
-│  AnalyticsService    ComparisonService            │
+│  SeedService    VerseService    AnalyticService  │
 └───────┬──────────────────────────┬──────────────┘
         │ uses                     │ uses
 ┌───────▼────────┐    ┌───────────▼──────────────┐
-│  Repositories  │    │      API Client          │
-│  (Data access) │    │   (HTTP to bible-api)    │
+│  Repositories  │    │   Parsers + seed data    │
+│  (Data access) │    │   (XML -> verse dicts)   │
 │                │    │                          │
-│  VerseRepo     │    │  BibleClient             │
-│  SessionRepo   │    │                          │
-│  BookRepo      │    └──────────────────────────┘
-│  CacheRepo     │
-│  etc.          │
+│  VerseRepo     │    │  USFXParser              │
+│ TranslationRepo│    │  OSISParser              │
+│  BookRepo      │    │  BebliaParser            │
+│                │    └──────────────────────────┘
 └───────┬────────┘
         │
 ┌───────▼────────┐
@@ -55,14 +51,14 @@ clean separation of concerns, and thorough testing.
 └─────────────────┘
 ```
 
-### Layer Rulesi
+### Layer Rules
 
 | Layer        | Can access              | Cannot access           |
 |--------------|-------------------------|-------------------------|
-| UI           | Services                | Repos, DB, API Client   |
-| Services     | Repos, API Client       | UI, Click, Rich         |
-| Repositories | SQLite connection       | Services, API, UI       |
-| API Client   | Network (requests)      | DB, Repos, Services, UI |
+| UI           | Services                | DB query logic, parser internals |
+| Services     | Repos, parsers, seed downloads | UI, Click, Rich |
+| Repositories | SQLite connection       | Services, network, UI   |
+| Parsers      | XML files               | DB, network, UI         |
 
 These boundaries exist so that:
 
@@ -88,12 +84,14 @@ class VerseRepo:
     def __init__(self, conn: sqlite3.Connection):
         self.conn = conn
 
-    def save_query(self, verse_data: dict) -> str:
-        """Save a query with its verses. Returns query ID."""
-        ...
-
-    def get_query(self, query_id: str) -> dict | None:
-        """Get a single query by ID. Returns None if not found."""
+    def get_verse(
+        self,
+        translation_id: str,
+        book_id: str,
+        chapter: int,
+        verse: int,
+    ) -> dict | None:
+        """Get one verse. Returns None if it is not installed."""
         ...
 ```
 
@@ -107,9 +105,15 @@ reset, and made data flow invisible.
 
 ```python
 class VerseService:
-    def __init__(self, verse_repo: VerseRepo, client: BibleClient):
+    def __init__(
+        self,
+        verse_repo: VerseRepo,
+        book_repo: BookRepo,
+        translation_repo: TranslationRepo,
+    ):
         self.verse_repo = verse_repo
-        self.client = client
+        self.book_repo = book_repo
+        self.translation_repo = translation_repo
 ```
 
 This means:
@@ -126,36 +130,46 @@ you need to add a column or change a constraint, there's no safe mechanism.
 `_migrations` table tracks which have been applied. On startup, only
 unapplied migrations run.
 
-### 4. Static Bible structure instead of API brute-force
+### 4. Static Bible structure instead of runtime probing
 
-**Problem in v1:** `calculate_max_chapter()` could make up to 150 sequential
-API calls with 1-second delays to figure out how many chapters a book has.
-This is public, static data.
+**Problem in v1:** `calculate_max_chapter()` could make many sequential
+network calls with delays to figure out how many chapters a book has. This is
+public, static data.
 
 **v2 approach:** Ship a `data/bible_structure.json` with all 66 books, their
 chapter counts, and verse counts per chapter. Simple dictionary lookup instead
 of network calls.
 
-### 5. Services own business logic, not repositories
+### 5. Offline seeding instead of runtime verse fetching
+
+**Problem in v1:** Normal use depended on remote verse lookups, making the CLI
+slower and less reliable when offline.
+
+**v2 approach:** `SeedService` downloads catalog XML once, chooses the parser
+from `translations.json`, validates known book IDs, and stores verses locally.
+Verse lookup and analytics then read from SQLite without network calls.
+
+### 6. Services own business logic, not repositories
 
 **Problem in v1:** `queries.py` (the DB layer) imported `console` from the
 UI module and printed directly. Caching logic lived inside `api.py`. Business
 rules were scattered.
 
-**v2 approach:** Repositories only do CRUD. The API client only does HTTP.
-All orchestration, validation, and business rules live in the service layer.
+**v2 approach:** Repositories only do CRUD. Parsers only turn XML into verse
+dicts. Orchestration, validation, seeding rules, and analytics live in the
+service layer.
 
-### 6. Click subcommands instead of while-True menu loop
+### 7. Click subcommands instead of while-True menu loop
 
 **Problem in v1:** A `while True` loop with numbered menu choices. Not
 composable, not scriptable, mixes control flow with business logic.
 
 **v2 approach:** Click command groups with a clean verb-noun structure:
 ```
-clible fetch verse "John 3:16"
-clible search "grace"
-clible sessions list
-clible export markdown
+clible seed install web
+clible verse "John 3:16"
+clible analytics reference "John 3:16-18"
+clible analytics compare "John 3:16-18"
 ```
 
 An optional interactive mode can be added later for users who prefer menus.
@@ -169,7 +183,7 @@ An optional interactive mode can be added later for users who prefer menus.
 | Files          | snake_case              | `verse_repo.py`                  |
 | Classes        | PascalCase              | `VerseService`                   |
 | Functions      | snake_case              | `get_or_create`                  |
-| Constants      | UPPER_SNAKE_CASE        | `API_BASE_URL`                   |
+| Constants      | UPPER_SNAKE_CASE        | `SUPPORTED_FORMATS`              |
 | Test files     | `test_` prefix          | `test_verse_repo.py`             |
 | Test functions | `test_` prefix          | `test_search_is_case_insensitive`|
 | Migrations     | `NNN_description.sql`   | `001_initial_schema.sql`         |
@@ -190,10 +204,10 @@ An optional interactive mode can be added later for users who prefer menus.
 
 - **Repositories:** Raise exceptions for constraint violations. Return `None`
   for "not found" cases.
-- **API Client:** Raise custom exceptions (`APIError`, `APITimeout`,
-  `APINotFound`). Never return `None` silently for errors.
-- **Services:** Catch repository and API exceptions. Translate them into
-  user-meaningful results or re-raise with context.
+- **Parsers:** Return normalized verse dictionaries or raise parse errors for
+  invalid XML.
+- **Services:** Catch repository, parser, and seed-download exceptions.
+  Translate them into user-meaningful results or re-raise with context.
 - **UI:** Catch service exceptions. Display user-friendly error messages.
   Never show raw tracebacks.
 
@@ -202,8 +216,8 @@ An optional interactive mode can be added later for users who prefer menus.
 ## Testing Conventions
 
 - **Unit tests** for repositories and services (fast, isolated)
-- **Integration tests** for full workflows (fetch → save → search)
-- **No real HTTP** in any test — always mock
+- **Integration tests** for full workflows (seed → lookup → analytics)
+- **No real HTTP** in any test — mock seed downloads
 - **In-memory SQLite** for database tests
 - **Fixtures** in `conftest.py` for shared test setup:
 
@@ -245,7 +259,8 @@ stop and reconsider.
    No singletons, no module-level mutable variables.
 
 6. **Do not put business logic in the CLI layer.**
-   The CLI layer calls services and renders results. That's it.
+   The CLI layer may build dependencies, then calls services and renders
+   results.
 
 7. **Do not commit broken tests.**
    If tests fail, fix them before committing.

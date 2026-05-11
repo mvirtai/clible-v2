@@ -27,7 +27,7 @@ def _language_for_translation(translation_id: str) -> str:
     is not found or the file is missing.
 
     Args:
-        translation_id: Translation ID (e.g. "web", "fin-biblia").
+        translation_id: Translation ID (e.g. "web", "fin-biblia-33-38").
 
     Returns:
         ISO 639-1 language code (e.g. "en", "fi").

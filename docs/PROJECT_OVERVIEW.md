@@ -1,6 +1,6 @@
 # clible v2 — Project Overview
 
-**Last updated:** 2026-05-04
+**Last updated:** 2026-05-11
 
 This document provides a comprehensive picture of the clible v2 application: what it is, its architecture, current implementation status, and where all the pieces live.
 
@@ -241,6 +241,7 @@ summary metrics.
 ### Developer and release checks
 
 ```bash
+uv sync --all-groups
 task check
 task d-build
 task d-push
@@ -250,6 +251,47 @@ task d-push
 build a runtime image tagged as both `latest` and the current Git commit. The
 target image repository defaults to `docker.io/mvirtai/clible-v2` and can be
 overridden with `CLIBLE_DOCKER_REPO`.
+
+### Developer setup and operational notes
+
+**Fresh checkout**
+
+```bash
+uv sync --all-groups
+uv run clible seed available
+uv run clible seed install web
+uv run clible verse "John 3:16"
+```
+
+`seed install` is the only normal command path that downloads data. It reads
+metadata from `src/clible/data/translations.json`, downloads the configured XML
+source, parses it with the matching parser, and writes the translation plus
+verses in SQLite. After that, verse lookup, chapter/book analytics, concordance,
+and translation comparison use local database rows.
+
+**Database location**
+
+- Default DB path: `src/clible/data/clible.db`
+- Override: `CLIBLE_DB_PATH=/path/to/clible.db`
+- If `CLIBLE_DB_PATH` points into a custom directory, create the directory
+  first. SQLite creates the database file but not parent directories.
+- `get_connection()` always runs migrations and seeds the static `books` table
+  if it is empty.
+
+**Translation comparison prerequisites**
+
+`analytics compare` defaults to `fin-1992` vs `fin17xx`. Install both
+underlying translations first:
+
+```bash
+uv run clible seed install fin-1992
+uv run clible seed install fin-1776
+uv run clible analytics compare "John 3:16-18"
+```
+
+`fin17xx` and `fin-17xx` are aliases for an installed `fin-1776` translation.
+If no matching installed translation exists, the CLI exits with a missing
+translation message.
 
 ---
 
@@ -261,6 +303,8 @@ overridden with `CLIBLE_DOCKER_REPO`.
 | `Comparison failed. Missing translation(s): fin17xx` | Install `fin-1776`; the default right-side compare argument is an alias. |
 | `Unknown translation` during seed | Run `clible seed available` and use an ID from `translations.json`. |
 | No analytics results for a valid reference | Confirm the selected translation is installed and contains the requested book/chapter/verse range. |
+| `sqlite3.OperationalError: unable to open database file` | Check `CLIBLE_DB_PATH`; create its parent directory or use the default data directory. |
+| Seed download fails | Verify network access to the source URL in `translations.json`; lookup and analytics remain offline after successful seed. |
 
 ---
 

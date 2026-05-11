@@ -19,7 +19,7 @@ wheels/
 # Notes
 notes/
 
-# Internal / AI context (not for public repo)
+# Internal context (not for public repo)
 docs/CONTINUATION_GUIDE.md
 AGENTS.md
 SKILLS.md

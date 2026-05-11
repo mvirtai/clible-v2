@@ -37,7 +37,7 @@ def install(translation_id: str) -> None:
     Example: clible seed install kjv
 
     Downloads, parses, and stores the translation locally.
-    Supported formats: USFX (web), OSIS (kjv, fin-biblia), BEBLIA (fin-1992, etc.).
+    Supported formats: USFX (web), OSIS (kjv, fin-biblia-33-38), BEBLIA (fin-1992).
     """
     console = Console()
     try:

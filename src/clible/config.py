@@ -1,6 +1,6 @@
 """Application configuration.
 
-All configurable values (paths, API settings, timeouts) are defined here.
+All configurable values (paths and reserved API defaults) are defined here.
 Values are read from environment variables with sensible defaults; override
 via CLIBLE_* env vars so the same code works in every environment:
 
@@ -21,7 +21,8 @@ class Config:
     Attributes:
         db_path: Path to the SQLite database file. Defaults to data_dir/clible.db
             unless CLIBLE_DB_PATH is set.
-        api_base_url: Base URL for the Bible API (e.g. bible-api.com).
+        api_base_url: Reserved base URL for future API-backed workflows.
+            Current seed downloads use URLs from translations.json.
         translations: List of translation codes to support (e.g. ["KJV", "ESV"]).
         data_dir: Directory for data files (exports, stop words). The default
             db_path is placed inside this directory.

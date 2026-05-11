@@ -94,7 +94,11 @@ Override via environment variables:
 | Variable | Default | Description |
 | -------- | ------- | ----------- |
 | `CLIBLE_DB_PATH` | `{data_dir}/clible.db` | SQLite database path |
-| `CLIBLE_DATA_DIR` | `src/clible/data` | Data and config directory |
+| `CLIBLE_DATA_DIR` | `src/clible/data` | Data catalog directory (`translations.json`, `bible_structure.json`, stopwords) |
+| `CLIBLE_DOCKER_REPO` | `docker.io/mvirtai/clible-v2` | Docker image repository used by Taskfile Docker tasks |
+
+If you set `CLIBLE_DB_PATH`, make sure the parent directory already exists.
+SQLite will create the database file, but not missing directories.
 
 ## Architecture
 
@@ -112,6 +116,26 @@ uv sync --all-groups
 uv run pytest -v
 uv run ruff check . && uv run ruff format --check .
 ```
+
+### Local development runbook
+
+```bash
+# 1. Install dependencies
+uv sync --all-groups
+
+# 2. Use an isolated local database when testing CLI behavior manually
+export CLIBLE_DB_PATH=/tmp/clible-dev.db
+
+# 3. Seed at least one translation before lookup or analytics commands
+uv run clible seed install web
+uv run clible verse "John 3:16"
+
+# 4. Run the full local quality gate
+task check
+```
+
+`seed install` is the only normal workflow that requires network access. After
+a translation is installed, `verse` and `analytics` read from local SQLite.
 
 ## Task Automation
 
@@ -167,6 +191,9 @@ task pr-compare ARGS="--yes --base main --head <branch-name>"
 | `Verse(s) not found.` | Confirm the translation is installed with `clible seed list`, then check the reference format: `"Book Chapter:Verse"` or `"Book Chapter:Start-End"`. |
 | `Comparison failed. Missing translation(s): fin17xx` | Install `fin-1776`; `fin17xx` is an alias used by `analytics compare`. |
 | Seed install fails on an unknown translation | Run `clible seed available` and use an ID from the catalog. |
+| `sqlite3.OperationalError: unable to open database file` | Check `CLIBLE_DB_PATH`; its parent directory must exist. |
+| Seed install fails during download | Confirm network access to the catalog URL in `src/clible/data/translations.json`, then retry. |
+| Analytics returns empty metrics for a valid-looking reference | Confirm the selected translation contains that book/chapter/verse range and that the book name matches the English book names in `bible_structure.json`. |
 
 ## Documentation
 

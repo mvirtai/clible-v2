@@ -1,5 +1,10 @@
 # clible v2 — Development Plan
 
+> **Status note:** This is the original roadmap. The current implementation has
+> moved to an offline-first seed/parser architecture. Use
+> `docs/PROJECT_OVERVIEW.md` as the source of truth for implemented architecture
+> and treat older API-oriented tickets below as historical planning context.
+
 A complete rebuild of clible, a CLI Bible study tool. This plan is structured as
 phases with concrete tickets. Each ticket is a self-contained unit of work with
 clear acceptance criteria and learning goals.
@@ -768,7 +773,7 @@ Write a clean, professional README:
 
 - [ ] README is concise, not bloated
 - [ ] Installation instructions work from scratch
-- [ ] No mention of AI tools
+- [ ] No tool provenance notes in repository documentation
 
 ---
 
