@@ -40,7 +40,10 @@ export function LoginView({ onSuccess }: Props) {
         onSubmit={handleSubmit}
         className="w-full max-w-sm space-y-4 p-8 bg-[var(--surface)] rounded-2xl shadow-sm border border-[var(--border)]"
       >
-        <h2 className="text-xl font-semibold">{mode === "login" ? "Sign in" : "Create account"}</h2>
+        <h1 className="text-2xl font-semibold tracking-tight">Clible Web</h1>
+        <h2 className="text-lg font-medium text-[var(--text-2)]">
+          {mode === "login" ? "Sign in" : "Create account"}
+        </h2>
         {error && (
           <p className="text-sm text-red-600" role="alert" aria-live="polite">
             {error}

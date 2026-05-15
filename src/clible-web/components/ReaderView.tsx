@@ -43,7 +43,7 @@ export function ReaderView({
         <div className="w-16 h-16 bg-[var(--surface-2)] rounded-full flex items-center justify-center mx-auto text-[var(--accent)]">
           <Book size={32} />
         </div>
-        <h3 className="text-xl font-medium">{m.readerEmptyTitle}</h3>
+        <h2 className="text-xl font-medium">{m.readerEmptyTitle}</h2>
         <p className="text-[var(--muted)]">{m.readerEmptyHint}</p>
       </div>
     );
@@ -114,7 +114,7 @@ export function ReaderView({
           )}
         </div>
         {aiLoading ? (
-          <div className="py-12 flex flex-col items-center justify-center gap-4 text-[#8E8E8E]">
+          <div className="py-12 flex flex-col items-center justify-center gap-4 text-[var(--muted)]">
             <Loader2 size={32} className="animate-spin" />
             <p className="text-sm font-medium animate-pulse">{m.readerAiLoading}</p>
           </div>
@@ -139,7 +139,7 @@ export function ReaderView({
             ) : null}
           </div>
         ) : (
-          <p className="text-[#8E8E8E] text-sm italic">{m.readerAiPlaceholder}</p>
+          <p className="text-[var(--muted)] text-sm italic">{m.readerAiPlaceholder}</p>
         )}
       </section>
     </div>
