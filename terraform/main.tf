@@ -39,6 +39,12 @@ variable "session_secret" {
   sensitive   = true
 }
 
+variable "web_min_instance_count" {
+  description = "Minimum Cloud Run instances for clible-web (1 reduces cold starts and improves TTFB; 0 minimizes idle cost)"
+  type        = number
+  default     = 0
+}
+
 provider "google" {
   project = var.project_id
   region  = var.region
@@ -109,7 +115,7 @@ resource "google_cloud_run_v2_service" "clible_web" {
     service_account = google_service_account.clible_web.email
 
     scaling {
-      min_instance_count = 0
+      min_instance_count = var.web_min_instance_count
       max_instance_count = 10
     }
 

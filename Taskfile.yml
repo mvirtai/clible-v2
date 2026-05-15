@@ -287,6 +287,7 @@ tasks:
         msg: "Set DATABASE_URL (e.g. postgresql://user:pass@host/db from Neon or similar)."
     cmds:
       - |
+        # Optional: CLOUD_RUN_MIN_INSTANCES=1 reduces cold starts (better PageSpeed TTFB; higher idle cost).
         gcloud run deploy clible-web \
           --image={{.GCP_REGISTRY}}/clible-web:{{.GIT_SHA}} \
           --platform=managed \
@@ -295,7 +296,7 @@ tasks:
           --allow-unauthenticated \
           --memory=512Mi \
           --cpu=1 \
-          --min-instances=0 \
+          --min-instances=${CLOUD_RUN_MIN_INSTANCES:-0} \
           --max-instances=10 \
           --set-env-vars="^|^NODE_ENV=production|DATABASE_URL=${DATABASE_URL}|GEMINI_API_KEY_FOR_BETA_TESTERS=${GEMINI_API_KEY_FOR_BETA_TESTERS}|SESSION_SECRET=${SESSION_SECRET}|CLIBLE_AUTO_SEED=${CLIBLE_AUTO_SEED:-web,greeksblgnt,fin-1992,fin-stlk,eng-darby}" \
           --project=${GCP_PROJECT_ID}
@@ -320,6 +321,7 @@ tasks:
         msg: "Set DATABASE_URL (e.g. postgresql://user:pass@host/db from Neon or similar)."
     cmds:
       - |
+        # Optional: CLOUD_RUN_MIN_INSTANCES=1 reduces cold starts (better PageSpeed TTFB; higher idle cost).
         gcloud run deploy clible-web \
           --image={{.GCP_REGISTRY}}/clible-web:{{.GIT_SHA}} \
           --platform=managed \
@@ -329,7 +331,7 @@ tasks:
           --allow-unauthenticated \
           --memory=512Mi \
           --cpu=1 \
-          --min-instances=0 \
+          --min-instances=${CLOUD_RUN_MIN_INSTANCES:-0} \
           --max-instances=3 \
           --concurrency=80 \
           --timeout=60 \

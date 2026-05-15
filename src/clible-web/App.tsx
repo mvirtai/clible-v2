@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import {
   Book,
   BookOpen,
@@ -15,7 +15,7 @@ import {
   LogOut,
   Shield,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 
 import {
   AvailableTranslation,
@@ -31,18 +31,11 @@ import type { SearchResponse } from './types/search';
 import type { SearchQueryOptions, SearchHistoryEntry, SavedSearchRow } from './types/searchQuery';
 import { bibleRepository } from './repositories/bibleRepository';
 import { bibleService } from './services/bibleService';
-import { ReaderView } from './components/ReaderView';
-import { SearchView } from './components/SearchView';
-import { SearchPanel, type StudyEntryTab } from './components/SearchPanel';
+import type { StudyEntryTab } from './components/SearchPanel';
 import { SavedSearchesList } from './components/SavedSearchesList';
-import { AnalyticsView } from './components/AnalyticsView';
 import type { AnalyticsMode } from './components/AnalyticsView';
-import { CompareView } from './components/CompareView';
-import { OriginalStudyView } from './components/OriginalStudyView';
 import { TranslationModal } from './components/TranslationModal';
 import { SettingsPanel } from './components/SettingsPanel';
-import { AdminView } from './components/AdminView';
-import { ReadingPlanView } from './components/ReadingPlanView';
 import { StreakBadge } from './components/StreakBadge';
 import { useAuth } from './AuthContext';
 import { LoginView } from './views/LoginView';
@@ -60,6 +53,31 @@ import { appendExportNotes } from './utils/exportPostProcess';
 import { t, type UILanguage } from './utils/i18n';
 import { docsSiteApiReferenceUrl, docsSiteHomeUrl } from './utils/docsSiteUrls';
 
+const LazyAdminView = lazy(() =>
+  import('./components/AdminView').then((m) => ({ default: m.AdminView })),
+);
+const LazyReadingPlanView = lazy(() =>
+  import('./components/ReadingPlanView').then((m) => ({ default: m.ReadingPlanView })),
+);
+const LazyAnalyticsView = lazy(() =>
+  import('./components/AnalyticsView').then((m) => ({ default: m.AnalyticsView })),
+);
+const LazyCompareView = lazy(() =>
+  import('./components/CompareView').then((m) => ({ default: m.CompareView })),
+);
+const LazyOriginalStudyView = lazy(() =>
+  import('./components/OriginalStudyView').then((m) => ({ default: m.OriginalStudyView })),
+);
+const LazySearchView = lazy(() =>
+  import('./components/SearchView').then((m) => ({ default: m.SearchView })),
+);
+const LazyReaderView = lazy(() =>
+  import('./components/ReaderView').then((m) => ({ default: m.ReaderView })),
+);
+const LazySearchPanel = lazy(() =>
+  import('./components/SearchPanel').then((m) => ({ default: m.SearchPanel })),
+);
+
 function inferUILanguageFromTranslation(language: string | undefined): 'en' | 'fi' | null {
   const lower = (language ?? '').toLowerCase().trim();
   if (lower === 'fi' || lower.startsWith('fin')) return 'fi';
@@ -70,7 +88,11 @@ function inferUILanguageFromTranslation(language: string | undefined): 'en' | 'f
 type ViewMode = 'reader' | 'reading' | 'analytics' | 'search' | 'compare' | 'original' | 'admin';
 type SearchType = 'verse' | 'search';
 
+const viewFade = (reduceMotion: boolean | null) =>
+  reduceMotion ? false : { opacity: 0, y: 12 };
+
 export default function App() {
+  const reduceMotion = useReducedMotion();
   const { user, loading: authLoading, login, logout } = useAuth();
   const {
     settings,
@@ -207,12 +229,15 @@ export default function App() {
 
   useEffect(() => {
     if (!user) return;
+    const trimmed = translationQuery.trim();
+    if (!trimmed) return;
+
     let cancelled = false;
     const handle = window.setTimeout(() => {
       void (async () => {
         try {
           setLoadingAvailableTranslations(true);
-          const available = await bibleRepository.listAvailableTranslations(translationQuery);
+          const available = await bibleRepository.listAvailableTranslations(trimmed);
           if (!cancelled) {
             setAvailableTranslations(available);
             setTranslationsLoadError(null);
@@ -229,7 +254,7 @@ export default function App() {
           if (!cancelled) setLoadingAvailableTranslations(false);
         }
       })();
-    }, 250);
+    }, 300);
     return () => {
       cancelled = true;
       window.clearTimeout(handle);
@@ -645,16 +670,20 @@ export default function App() {
       >
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#1A1A1A] rounded-lg flex items-center justify-center text-white">
+            <div
+              className="w-8 h-8 bg-[#1A1A1A] rounded-lg flex items-center justify-center text-white"
+              aria-hidden
+            >
               <Terminal size={18} />
             </div>
             <h1 className="text-xl font-semibold tracking-tight">
-              Clible <span className="text-[#8E8E8E] font-normal">Web</span>
+              Clible <span className="text-[var(--muted)] font-normal">Web</span>
             </h1>
           </div>
 
           <div className="flex items-center gap-4">
             <button
+              type="button"
               onClick={() => setViewMode('reading')}
               className="flex items-center gap-2 px-3 py-1.5 hover:bg-[#F5F5F5] rounded-full transition-colors text-sm font-medium border border-[#E5E5E5]"
               title={t(uiLang).tabReading}
@@ -664,51 +693,64 @@ export default function App() {
               <StreakBadge uiLanguage={uiLang} />
             </button>
             <button
+              type="button"
               onClick={() => setShowTranslations(!showTranslations)}
               className="flex items-center gap-2 px-3 py-1.5 hover:bg-[#F5F5F5] rounded-full transition-colors text-sm font-medium border border-[#E5E5E5]"
+              aria-haspopup="dialog"
+              aria-expanded={showTranslations}
+              aria-label={`${shell.translationPickerAria}: ${settings?.translationId ?? shell.chooseTranslation}`}
             >
               <Globe size={16} className="text-[#D4A373]" />
               <span
                 className={
-                  settings?.translationId ? 'uppercase' : 'text-[#8E8E8E] normal-case'
+                  settings?.translationId ? 'uppercase' : 'text-[var(--muted)] normal-case'
                 }
               >
                 {settings?.translationId ?? shell.chooseTranslation}
               </span>
             </button>
             <button
+              type="button"
               onClick={() => setShowHistory(!showHistory)}
               className="p-2 hover:bg-[#F5F5F5] rounded-full transition-colors relative"
+              aria-label={shell.historyToggleAria}
+              aria-expanded={showHistory}
             >
-              <History size={20} />
+              <History size={20} aria-hidden />
               {history.length > 0 && (
                 <span className="absolute top-1 right-1 w-2 h-2 bg-[#D4A373] rounded-full" />
               )}
             </button>
             <button
+              type="button"
               onClick={() => setShowSettings(true)}
               className="p-2 hover:bg-[#F5F5F5] rounded-full transition-colors"
               title={shell.settingsTitle}
+              aria-label={shell.settingsTitle}
             >
-              <Settings size={20} />
+              <Settings size={20} aria-hidden />
             </button>
             {user.isAdmin && (
               <button
+                type="button"
                 onClick={() => setViewMode('admin')}
                 className="p-2 hover:bg-[#F5F5F5] rounded-full transition-colors"
-                title="Admin"
+                title={shell.adminTitle}
+                aria-label={shell.adminTitle}
               >
-                <Shield size={20} />
+                <Shield size={20} aria-hidden />
               </button>
             )}
             <div className="flex items-center gap-2 pl-2 border-l border-[#E5E5E5]">
-              <span className="text-sm text-[#8E8E8E]">{user!.username}</span>
+              <span className="text-sm text-[var(--muted)]">{user!.username}</span>
               <button
+                type="button"
                 onClick={() => void logout()}
-                className="p-2 hover:bg-[#F5F5F5] rounded-full transition-colors text-[#8E8E8E] hover:text-[#1A1A1A]"
+                className="p-2 hover:bg-[#F5F5F5] rounded-full transition-colors text-[var(--muted)] hover:text-[var(--text)]"
                 title={shell.signOutTitle}
+                aria-label={shell.signOutTitle}
               >
-                <LogOut size={18} />
+                <LogOut size={18} aria-hidden />
               </button>
             </div>
           </div>
@@ -730,20 +772,29 @@ export default function App() {
           )}
 
           {viewMode !== 'reading' && (
-            <SearchPanel
-              activeTranslation={settings?.translationId ?? null}
-              uiLanguage={settings?.uiLanguage ?? 'en'}
-              entryTab={studyEntryTab}
-              onEntryTabChange={handleEntryTabChange}
-              onSearch={handleAdvancedSearch}
-              onVerseSearch={(ref) => void handleSearch(ref, 'verse')}
-              history={searchHistoryApi}
-              onHistoryClear={() => {
-                void bibleRepository.clearSearchHistory().then(() => setSearchHistoryApi([]));
-              }}
-              loading={loading}
-              error={null}
-            />
+            <Suspense
+              fallback={
+                <div
+                  className="h-24 rounded-2xl bg-[var(--surface-2)] animate-pulse"
+                  aria-hidden
+                />
+              }
+            >
+              <LazySearchPanel
+                activeTranslation={settings?.translationId ?? null}
+                uiLanguage={settings?.uiLanguage ?? 'en'}
+                entryTab={studyEntryTab}
+                onEntryTabChange={handleEntryTabChange}
+                onSearch={handleAdvancedSearch}
+                onVerseSearch={(ref) => void handleSearch(ref, 'verse')}
+                history={searchHistoryApi}
+                onHistoryClear={() => {
+                  void bibleRepository.clearSearchHistory().then(() => setSearchHistoryApi([]));
+                }}
+                loading={loading}
+                error={null}
+              />
+            </Suspense>
           )}
 
           {viewMode !== 'compare' && viewMode !== 'original' && viewMode !== 'admin' && viewMode !== 'reading' && (
@@ -768,21 +819,21 @@ export default function App() {
         </div>
 
         {viewMode !== 'compare' && viewMode !== 'original' && viewMode !== 'admin' && (
-        <div className="flex gap-1 bg-[#F5F5F5] p-1 rounded-xl w-fit mb-8">
+        <div className="flex gap-1 bg-[var(--surface-2)] p-1 rounded-xl w-fit mb-8">
           <button
             type="button"
             onClick={() => {
               setViewMode('reader');
               setStudyEntryTab((t) => (t === 'compare' || t === 'original' ? 'verse' : t));
             }}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'reader' ? 'bg-white shadow-sm text-[#1A1A1A]' : 'text-[#8E8E8E] hover:text-[#1A1A1A]'}`}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'reader' ? 'bg-white shadow-sm text-[var(--text)]' : 'text-[var(--muted)] hover:text-[var(--text)]'}`}
           >
             <div className="flex items-center gap-2"><Book size={16} /> {shell.tabReader}</div>
           </button>
           <button
             type="button"
             onClick={() => setViewMode('reading')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'reading' ? 'bg-white shadow-sm text-[#1A1A1A]' : 'text-[#8E8E8E] hover:text-[#1A1A1A]'}`}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'reading' ? 'bg-white shadow-sm text-[var(--text)]' : 'text-[var(--muted)] hover:text-[var(--text)]'}`}
           >
             <div className="flex items-center gap-2">
               <BookOpen size={16} /> Reading
@@ -791,37 +842,53 @@ export default function App() {
           <button
             type="button"
             onClick={() => void handleAnalytics()}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'analytics' ? 'bg-white shadow-sm text-[#1A1A1A]' : 'text-[#8E8E8E] hover:text-[#1A1A1A]'}`}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'analytics' ? 'bg-white shadow-sm text-[var(--text)]' : 'text-[var(--muted)] hover:text-[var(--text)]'}`}
           >
             <div className="flex items-center gap-2"><Activity size={16} /> {shell.tabAnalytics}</div>
           </button>
         </div>
         )}
 
+        <Suspense
+          fallback={
+            <div
+              className="flex justify-center py-16 text-sm text-[var(--muted)]"
+              role="status"
+              aria-live="polite"
+            >
+              {shell.appBootLoading}
+            </div>
+          }
+        >
         <AnimatePresence mode="wait">
           {viewMode === 'admin' && (
             <motion.div
               key="admin"
-              initial={{ opacity: 0, y: 12 }}
+              initial={viewFade(reduceMotion)}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
+              exit={reduceMotion ? undefined : { opacity: 0, y: -12 }}
             >
-              <AdminView currentUserId={user.id} />
+              <LazyAdminView currentUserId={user.id} />
             </motion.div>
           )}
           {viewMode === 'reading' && (
             <motion.div
               key="reading"
-              initial={{ opacity: 0, y: 12 }}
+              initial={viewFade(reduceMotion)}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
+              exit={reduceMotion ? undefined : { opacity: 0, y: -12 }}
             >
-              <ReadingPlanView uiLanguage={uiLang} />
+              <LazyReadingPlanView uiLanguage={uiLang} />
             </motion.div>
           )}
           {viewMode === 'reader' && (
-            <motion.div key="reader" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
-              <ReaderView
+            <motion.div
+              key="reader"
+              initial={reduceMotion ? false : { opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={reduceMotion ? undefined : { opacity: 0, x: 20 }}
+            >
+              <LazyReaderView
                 result={result}
                 uiLanguage={settings?.uiLanguage ?? 'en'}
                 aiInsight={aiInsight}
@@ -845,8 +912,13 @@ export default function App() {
             </motion.div>
           )}
           {viewMode === 'search' && (
-            <motion.div key="search" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-              <SearchView
+            <motion.div
+              key="search"
+              initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduceMotion ? undefined : { opacity: 0, y: -20 }}
+            >
+              <LazySearchView
                 searchResponse={searchResponse}
                 searchTerms={currentSearchTerms}
                 uiLanguage={settings?.uiLanguage ?? 'en'}
@@ -874,8 +946,13 @@ export default function App() {
             </motion.div>
           )}
           {viewMode === 'analytics' && (
-            <motion.div key="analytics" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-              <AnalyticsView
+            <motion.div
+              key="analytics"
+              initial={reduceMotion ? false : { opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={reduceMotion ? undefined : { opacity: 0, x: -20 }}
+            >
+              <LazyAnalyticsView
                 analyticsMode={analyticsMode}
                 nativeStats={nativeStats}
                 nativeFrequency={nativeFrequency}
@@ -905,11 +982,11 @@ export default function App() {
           {viewMode === 'compare' && (
             <motion.div
               key="compare"
-              initial={{ opacity: 0, y: 12 }}
+              initial={viewFade(reduceMotion)}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
+              exit={reduceMotion ? undefined : { opacity: 0, y: -12 }}
             >
-              <CompareView
+              <LazyCompareView
                 standalone
                 installedTranslations={installedTranslations}
                 uiLanguage={uiLang}
@@ -957,11 +1034,11 @@ export default function App() {
           {viewMode === 'original' && (
             <motion.div
               key="original"
-              initial={{ opacity: 0, y: 12 }}
+              initial={viewFade(reduceMotion)}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
+              exit={reduceMotion ? undefined : { opacity: 0, y: -12 }}
             >
-              <OriginalStudyView
+              <LazyOriginalStudyView
                 standalone
                 installedTranslations={installedTranslations}
                 activeTranslationId={settings?.translationId ?? null}
@@ -1011,6 +1088,7 @@ export default function App() {
             </motion.div>
           )}
         </AnimatePresence>
+        </Suspense>
       </main>
 
       <AnimatePresence>
@@ -1074,15 +1152,15 @@ export default function App() {
 
       <footer className="max-w-5xl mx-auto px-6 py-12 border-t border-[#F5F5F5] mt-24">
         <div className="flex flex-col md:flex-row justify-between items-center gap-8">
-          <div className="flex items-center gap-2 text-[#8E8E8E] text-sm">
+          <div className="flex items-center gap-2 text-[var(--muted)] text-sm">
             <Terminal size={14} /><span>{shell.footerCopyright({ year: new Date().getFullYear() })}</span>
           </div>
-          <div className="flex gap-8 text-sm font-medium text-[#8E8E8E]">
+          <div className="flex gap-8 text-sm font-medium text-[var(--muted)]">
             <a
               href={docsSiteHomeUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-[#1A1A1A] transition-colors"
+              className="hover:text-[var(--text)] transition-colors"
             >
               {shell.footerDocumentation}
             </a>
@@ -1090,7 +1168,7 @@ export default function App() {
               href={docsSiteApiReferenceUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-[#1A1A1A] transition-colors"
+              className="hover:text-[var(--text)] transition-colors"
             >
               {shell.footerApi}
             </a>
@@ -1098,12 +1176,12 @@ export default function App() {
               href="https://github.com/mvirtai/clible-v2"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-[#1A1A1A] transition-colors"
+              className="hover:text-[var(--text)] transition-colors"
             >
               {shell.footerGithub}
             </a>
           </div>
-          <div className="text-[#8E8E8E] text-xs font-mono">v{__APP_VERSION__}</div>
+          <div className="text-[var(--muted)] text-xs font-mono">v{__APP_VERSION__}</div>
         </div>
       </footer>
     </div>

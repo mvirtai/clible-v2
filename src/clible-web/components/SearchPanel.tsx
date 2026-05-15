@@ -144,8 +144,8 @@ export function SearchPanel({
           onClick={() => onEntryTabChange('scripture')}
           className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
             entryTab === 'scripture'
-              ? 'bg-[#1A1A1A] text-white'
-              : 'bg-[#F5F5F5] text-[#8E8E8E]'
+              ? 'bg-[var(--text)] text-[var(--surface)]'
+              : 'bg-[var(--surface-2)] text-[var(--muted)]'
           }`}
         >
           {m.searchFindInScripture}
@@ -154,7 +154,7 @@ export function SearchPanel({
           type="button"
           onClick={() => onEntryTabChange('verse')}
           className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
-            entryTab === 'verse' ? 'bg-[#1A1A1A] text-white' : 'bg-[#F5F5F5] text-[#8E8E8E]'
+            entryTab === 'verse' ? 'bg-[var(--text)] text-[var(--surface)]' : 'bg-[var(--surface-2)] text-[var(--muted)]'
           }`}
         >
           {m.searchVerseLookup}
@@ -164,8 +164,8 @@ export function SearchPanel({
           onClick={() => onEntryTabChange('compare')}
           className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${
             entryTab === 'compare'
-              ? 'bg-[#1A1A1A] text-white'
-              : 'bg-[#F5F5F5] text-[#8E8E8E]'
+              ? 'bg-[var(--text)] text-[var(--surface)]'
+              : 'bg-[var(--surface-2)] text-[var(--muted)]'
           }`}
         >
           <GitCompareArrows size={13} aria-hidden />
@@ -176,8 +176,8 @@ export function SearchPanel({
           onClick={() => onEntryTabChange('original')}
           className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${
             entryTab === 'original'
-              ? 'bg-[#1A1A1A] text-white'
-              : 'bg-[#F5F5F5] text-[#8E8E8E]'
+              ? 'bg-[var(--text)] text-[var(--surface)]'
+              : 'bg-[var(--surface-2)] text-[var(--muted)]'
           }`}
         >
           <Languages size={13} aria-hidden />
