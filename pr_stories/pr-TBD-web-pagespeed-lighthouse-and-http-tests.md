@@ -2,7 +2,7 @@
 
 ## Summary
 
-This change set tightens production delivery for the React SPA behind Express (compression, caching rules for hashed Vite assets, security headers via Helmet without a strict CSP that would fight the bundled app), trims the initial JavaScript download with route-level lazy loading, fills in basic SEO and Open Graph meta, improves login and chrome accessibility, documents optional Cloud Run minimum instances against cold-start TTFB, and locks in behavior with Vitest-driven supertests for static file semantics and `/health`.
+This change set tightens production delivery for the React SPA behind Express (compression, caching rules for hashed Vite assets, security headers via Helmet without a strict CSP that would fight the bundled app), trims the initial JavaScript download with route-level lazy loading—including the main search surface—fills in basic SEO plus a real `robots.txt` at the dist root, improves login, reader, and search-chip accessibility and contrast tokens, documents optional Cloud Run minimum instances against cold-start TTFB, and locks in behavior with Vitest-driven supertests for static file semantics, `/robots.txt`, and `/health`.
 
 ## Purpose
 
