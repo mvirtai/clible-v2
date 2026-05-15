@@ -30,19 +30,32 @@ Terraform introduces `web_min_instance_count` (default `0`) for `scaling.min_ins
 
 Unit-style checks assert which `Cache-Control` values are applied for representative paths. Integration checks build a disposable `dist`-shaped tree, attach the same static stack used in production (Helmet stub config, compression), and validate asset responses (including gzip for a payload above the compression threshold) and SPA fallback headers. A separate case builds the full Express app under `NODE_ENV=test` and asserts `/health` returns JSON plus `X-Content-Type-Options` from Helmet.
 
+### 5. Crawlers and `/robots.txt` (`src/clible-web/public/robots.txt`, `productionStaticRoutes.test.ts`)
+
+Vite copies `public/robots.txt` into the dist root so Express static middleware serves it as a real file before the SPA catch-all. That keeps Lighthouse and crawlers from receiving `index.html` for `/robots.txt`. The Vitest suite seeds a temp dist with `robots.txt` and asserts status 200, `Content-Type` matching `text/plain`, a `User-agent` line in the body, and no HTML doctype leakage.
+
+### 6. Lighthouse-oriented UI polish (`App.tsx`, `SearchPanel.tsx`, `ReaderView.tsx`, `LoginView.tsx`, `index.css`)
+
+`LoginView` adds a page-level `h1` ("Clible Web") and demotes the sign-in heading to `h2` so the document order matches accessibility audits. `ReaderView` uses `h2` for the empty-state title and replaces reader chrome grays with `var(--muted)`. `SearchPanel` entry-tab chips use `--text` / `--surface` / `--surface-2` / `--muted` instead of fixed hex pairs that failed contrast on inactive states. `index.css` adjusts `--muted` in light and dark themes. `App` lazy-loads `SearchPanel` (with a lightweight skeleton fallback), wires `useReducedMotion` so view transitions skip vertical motion when the user prefers reduced motion, debounces `listAvailableTranslations` only when the modal search string is non-empty (avoiding a duplicate fetch on mount), and swaps remaining shell grays for the same CSS variables used elsewhere.
+
 ## Files added
 
 - `src/clible-web/productionStaticRoutes.ts` — shared static serving and header helper for hashed assets vs HTML shell.
 - `src/clible-web/productionStaticRoutes.test.ts` — header unit tests and supertest integration for static + gzip + SPA fallback.
 - `src/clible-web/server.health.test.ts` — supertest for `/health` and baseline security headers on the full app factory.
+- `src/clible-web/public/robots.txt` — minimal allow-all policy at the site root for crawlers.
 
 ## Files modified
 
 - `src/clible-web/server.ts` — Helmet, compression, `buildExpressApplication`, `CLIBLE_WEB_DIST`, gated process entry, delegates static serving to `productionStaticRoutes`.
 - `src/clible-web/package.json` / `package-lock.json` — `compression`, `helmet`, dev `supertest` and `@types/supertest`.
-- `src/clible-web/App.tsx` — lazy routes, Suspense fallback, header accessibility, `aria-hidden` on decorative chrome.
+- `src/clible-web/App.tsx` — lazy routes including `SearchPanel` and `ReaderView`, reduced-motion-friendly transitions, translation list fetch guard, token-based shell text colors, view-mode tab strip uses `var(--surface-2)`.
 - `src/clible-web/index.html` — meta description, theme-color, Open Graph tags.
-- `src/clible-web/views/LoginView.tsx` — labels, autocomplete, alert semantics.
+- `src/clible-web/index.css` — stronger `--muted` contrast in light and dark themes.
+- `src/clible-web/views/LoginView.tsx` — labels, autocomplete, alert semantics, `h1`/`h2` heading order.
+- `src/clible-web/components/SearchPanel.tsx` — inactive tab chips use design tokens for contrast.
+- `src/clible-web/components/ReaderView.tsx` — empty-state `h2`, muted text uses `var(--muted)`.
+- `src/clible-web/productionStaticRoutes.test.ts` — temp dist includes `robots.txt`; integration test for `/robots.txt` plain response.
 - `src/clible-web/utils/i18n.ts` — strings for new `aria-label` keys (history, translation picker, admin).
 - `Taskfile.yml` — documented `CLOUD_RUN_MIN_INSTANCES` for both deploy tasks.
 - `terraform/main.tf` — `web_min_instance_count` variable wired into Cloud Run scaling.
@@ -58,7 +71,7 @@ cd src/clible-web && npm run lint
 cd src/clible-web && npm run test
 ```
 
-**345** Python tests passed; coverage **94.36%** (gate ≥ 80%). **56** Vitest tests passed (`npm run test`), including new supertests. `npm run lint` (`tsc --noEmit`) clean.
+**345** Python tests passed; coverage **94.36%** (gate ≥ 80%). **57** Vitest tests passed (`npm run test`), including static and `/health` supertests. `npm run lint` (`tsc --noEmit`) clean.
 
 ## Usage
 
