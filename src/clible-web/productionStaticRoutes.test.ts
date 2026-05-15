@@ -44,6 +44,10 @@ describe("setProductionStaticAssetHeaders", () => {
 function buildTmpDist(): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "clible-web-dist-"));
   fs.writeFileSync(path.join(dir, "index.html"), "<!doctype html><html><body>x</body></html>");
+  fs.writeFileSync(
+    path.join(dir, "robots.txt"),
+    "User-agent: *\nAllow: /\n",
+  );
   fs.mkdirSync(path.join(dir, "assets"));
   // compression middleware defaults to a 1KiB minimum response size
   fs.writeFileSync(
@@ -95,6 +99,20 @@ describe("attachProductionStaticServing", () => {
     const spaRes = await request(app).get("/any/deep/route").expect(200);
     expect(spaRes.headers["cache-control"]).toBe("no-cache");
     expect(spaRes.text).toContain("<body>x</body>");
+
+    await fs.promises.rm(dist, { recursive: true, force: true });
+  });
+
+  it("serves robots.txt as plain text, not SPA index.html", async () => {
+    const dist = buildTmpDist();
+    const app = express();
+    attachProductionStaticServing(app, dist);
+
+    const res = await request(app).get("/robots.txt").expect(200);
+
+    expect(res.text).toContain("User-agent:");
+    expect(res.text).not.toContain("<!doctype html>");
+    expect(res.headers["content-type"]).toMatch(/text\/plain/);
 
     await fs.promises.rm(dist, { recursive: true, force: true });
   });
