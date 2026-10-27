@@ -34,3 +34,27 @@ def test_migrations_drop_redundant_verses_text_index(tmp_path):
     assert "idx_verses_search" not in names
     assert "idx_verses_lookup" in names
     conn.close()
+
+
+def test_migration_corrects_existing_dios_habla_hoy_language(tmp_path):
+    """Migration 007 corrects the language code stored by older catalog versions."""
+    test_db = tmp_path / "test.db"
+    conn = get_connection(test_db)
+    conn.execute(
+        """
+        INSERT INTO translations (id, name, language, format, source_url)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        ("spanishdhh", "Spanishdhh", "en", "BEBLIA", None),
+    )
+    conn.execute("DELETE FROM _migrations WHERE name = ?", ("007_fix_spanishdhh_language.sql",))
+    conn.commit()
+    conn.close()
+
+    migrated_conn = get_connection(test_db)
+    language = migrated_conn.execute(
+        "SELECT language FROM translations WHERE id = ?", ("spanishdhh",)
+    ).fetchone()[0]
+
+    assert language == "es"
+    migrated_conn.close()

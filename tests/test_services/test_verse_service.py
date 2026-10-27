@@ -259,6 +259,33 @@ def test_get_verses_returns_empty_for_invalid_reference(verse_service):
     assert verse_service.get_verses("John 3:18-16") == []
 
 
+def test_get_verses_for_all_translations_includes_each_installed_translation(
+    verse_service, verse_repo, translation_repo
+):
+    """The all-translations lookup preserves installed translation order and gaps."""
+    translation_repo.create(
+        {"id": "web", "name": "World English Bible", "language": "en", "format": "USFX"}
+    )
+    translation_repo.create(
+        {"id": "spanish", "name": "Spanish Bible", "language": "es", "format": "USFX"}
+    )
+    verse_repo.save_verses(
+        [{"book_id": "JHN", "chapter": 3, "verse": 16, "text": "For God so loved"}],
+        "web",
+    )
+
+    result = verse_service.get_verses_for_all_translations("John 3:16")
+
+    assert [translation["id"] for translation, _ in result] == ["web", "spanish"]
+    assert result[0][1][0]["text"] == "For God so loved"
+    assert result[1][1] == []
+
+    spanish_result = verse_service.get_verses_for_all_translations("John 3:16", language="ES")
+
+    assert [translation["id"] for translation, _ in spanish_result] == ["spanish"]
+    assert spanish_result[0][1] == []
+
+
 def test_get_verses_returns_empty_when_no_translation(verse_service, verse_repo):
     """get_verses returns empty list when no translation is installed."""
     result = verse_service.get_verses("John 3:16")

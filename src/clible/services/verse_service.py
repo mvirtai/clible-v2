@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import Counter
 
 from clible.db.repositories.book_repo import BookRepo, BookRow
-from clible.db.repositories.translation_repo import TranslationRepo
+from clible.db.repositories.translation_repo import TranslationRepo, TranslationRow
 from clible.db.repositories.verse_repo import VerseRepo, VerseRow
 from clible.services.reference_parser import ReferenceScope, parse_reference
 from clible.services.search_query import SearchQuery
@@ -117,6 +117,34 @@ class VerseService:
             return self.get_book_verses(parsed.book_name, translation_id)
 
         return []
+
+    def get_verses_for_all_translations(
+        self,
+        reference: str,
+        language: str | None = None,
+    ) -> list[tuple[TranslationRow, list[VerseRow]]]:
+        """Get a reference from each matching locally installed translation.
+
+        Args:
+            reference: Bible reference like ``John 3:16``.
+            language: Optional ISO language code that limits the translations.
+
+        Returns:
+            Installed translations paired with their matching verses. A translation
+            remains in the result when the reference is absent from its text.
+        """
+        translations = self._translation_repo.get_all()
+        if language:
+            normalized_language = language.casefold()
+            translations = [
+                translation
+                for translation in translations
+                if translation["language"].casefold() == normalized_language
+            ]
+        return [
+            (translation, self.get_verses(reference, translation["id"]))
+            for translation in translations
+        ]
 
     def get_chapter_verses(
         self,

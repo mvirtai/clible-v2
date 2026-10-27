@@ -308,3 +308,74 @@ def test_verse_panel_title_includes_default_translation_id_when_none_specified(c
     result = runner.invoke(main, ["verse", "John 3:16"])
     assert result.exit_code == 0
     assert "(web)" in result.output
+
+
+def test_verse_all_displays_each_installed_translation(cli_uses_temp_db):
+    """--all renders the requested verse for every installed text."""
+    conn = get_connection()
+    translation_repo = TranslationRepo(conn)
+    verse_repo = VerseRepo(conn)
+    translation_repo.create(
+        {"id": "web", "name": "World English Bible", "language": "en", "format": "USFX"}
+    )
+    translation_repo.create(
+        {"id": "spanish", "name": "Spanish Bible", "language": "es", "format": "USFX"}
+    )
+    verse_repo.save_verses(
+        [{"book_id": "JHN", "chapter": 3, "verse": 16, "text": "For God so loved"}],
+        "web",
+    )
+    verse_repo.save_verses(
+        [{"book_id": "JHN", "chapter": 3, "verse": 16, "text": "Porque de tal manera"}],
+        "spanish",
+    )
+    conn.close()
+
+    runner = CliRunner()
+    result = runner.invoke(main, ["verse", "John 3:16", "--all"])
+
+    assert result.exit_code == 0
+    assert "World English Bible (web)" in result.output
+    assert "Spanish Bible (spanish)" in result.output
+    assert "For God so loved" in result.output
+    assert "Porque de tal manera" in result.output
+
+
+def test_verse_language_filters_installed_translations(cli_uses_temp_db):
+    """--language filters the multi-translation output without requiring --all."""
+    conn = get_connection()
+    translation_repo = TranslationRepo(conn)
+    verse_repo = VerseRepo(conn)
+    translation_repo.create(
+        {"id": "web", "name": "World English Bible", "language": "en", "format": "USFX"}
+    )
+    translation_repo.create(
+        {"id": "spanish", "name": "Spanish Bible", "language": "es", "format": "USFX"}
+    )
+    verse_repo.save_verses(
+        [{"book_id": "JHN", "chapter": 3, "verse": 16, "text": "For God so loved"}],
+        "web",
+    )
+    verse_repo.save_verses(
+        [{"book_id": "JHN", "chapter": 3, "verse": 16, "text": "Porque de tal manera"}],
+        "spanish",
+    )
+    conn.close()
+
+    runner = CliRunner()
+    result = runner.invoke(main, ["verse", "John 3:16", "--language", "es"])
+
+    assert result.exit_code == 0
+    assert "Spanish Bible (spanish)" in result.output
+    assert "Porque de tal manera" in result.output
+    assert "World English Bible (web)" not in result.output
+
+
+def test_verse_all_rejects_translation_override(cli_uses_temp_db):
+    """--all and --translation select incompatible result sets."""
+    runner = CliRunner()
+
+    result = runner.invoke(main, ["verse", "John 3:16", "--all", "-t", "web"])
+
+    assert result.exit_code != 0
+    assert "cannot be used with --translation" in result.output

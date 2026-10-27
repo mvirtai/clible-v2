@@ -238,6 +238,11 @@ VERSE_HELP = """
 [bold]Options:[/bold]
   -t, --translation TEXT  Translation ID (e.g. 'web'). Defaults to the
                           primary installed translation.
+  --all                   Display a verse or verse range from every installed
+                          translation.
+  --language CODE         Display a verse or verse range from installed translations
+                          with this language code. Implies multi-translation view.
+                          Neither option can be combined with -t or export options.
   --page INTEGER          Page index for chapter or whole-book (1-based).
                           [default: 1]
   --page-size INTEGER     Verses per page for chapter or book; 0 shows all.
@@ -266,6 +271,12 @@ VERSE_HELP = """
 
   6. Export chapter to markdown:
      [cyan]clible verse "John 3" --export "FILENAME=john3,FORMAT=md"[/cyan]
+
+  7. Display a verse in every installed translation:
+     [cyan]clible verse "John 3:16" --all[/cyan]
+
+  8. Display a verse in every installed Spanish translation:
+     [cyan]clible verse "John 3:16" --language es[/cyan]
 """
 
 SEARCH_HELP = """

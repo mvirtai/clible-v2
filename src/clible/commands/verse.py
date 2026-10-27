@@ -27,6 +27,19 @@ from . import get_verse_service
     help="Translation ID (e.g. web). Defaults to installed default.",
 )
 @click.option(
+    "--all",
+    "all_translations",
+    is_flag=True,
+    default=False,
+    help="Display a verse or verse range from every installed translation.",
+)
+@click.option(
+    "--language",
+    metavar="CODE",
+    default=None,
+    help="Display a verse or verse range from installed translations with this language code.",
+)
+@click.option(
     "--export",
     "-exp",
     type=EXPORT_PARAM,
@@ -60,6 +73,8 @@ from . import get_verse_service
 def verse(
     reference: str | None,
     translation_id: str | None,
+    all_translations: bool,
+    language: str | None,
     export: ExportConfig | None,
     json: bool,
     page: int,
@@ -88,7 +103,59 @@ def verse(
         console.print("[red]Reference is required.[/red]")
         raise SystemExit(1)
 
+    if (all_translations or language) and translation_id is not None:
+        raise click.UsageError("--all and --language cannot be used with --translation.")
+
+    if (all_translations or language) and any(
+        (export is not None, json, stdout_export is not None)
+    ):
+        raise click.UsageError(
+            "--all and --language are terminal display options and cannot be used with export "
+            "options."
+        )
+
     service = get_verse_service()
+
+    if all_translations or language:
+        parsed = parse_reference(reference)
+        if not parsed or parsed.scope != ReferenceScope.VERSE:
+            raise click.UsageError("--all and --language support a verse or verse range reference.")
+
+        translation_verses = service.get_verses_for_all_translations(reference, language=language)
+        if not translation_verses:
+            if language:
+                console.print(
+                    f"[red]No installed translations found for language: {language}.[/red]"
+                )
+            else:
+                console.print("[red]No installed translations found.[/red]")
+            raise SystemExit(1)
+
+        found_verses = False
+        for translation, translated_verses in translation_verses:
+            console.print(f"[bold]{translation['name']} ({translation['id']})[/bold]")
+            if not translated_verses:
+                console.print("[yellow]Verse(s) not found in this translation.[/yellow]\n")
+                continue
+
+            found_verses = True
+            for translated_verse in translated_verses:
+                ref_display = (
+                    f"{translated_verse['book_id']} {translated_verse['chapter']}:"
+                    f"{translated_verse['verse']} ({translation['id']})"
+                )
+                console.print(
+                    Panel(translated_verse["text"], title=ref_display, border_style="dim")
+                )
+            console.print()
+
+        if not found_verses:
+            console.print(
+                f"[red]Verse(s) not found for {reference} in installed translations.[/red]"
+            )
+            raise SystemExit(1)
+        return
+
     verses = service.get_verses(reference, translation_id)
 
     if not verses:
